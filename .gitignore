@@ -39,3 +39,6 @@ next-env.d.ts
 *.db-journal
 *.sqlite
 *.sqlite-journal
+
+supabasepass.txt
+*.txt

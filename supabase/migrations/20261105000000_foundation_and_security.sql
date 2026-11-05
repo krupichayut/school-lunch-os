@@ -109,8 +109,13 @@ CREATE TABLE IF NOT EXISTS idempotency_records (
 );
 
 -- ====================================================================
--- SEED DATA: Default Permissions & Roles (Spec 4.1 & 4.2)
+-- SEED DATA: Default School, Permissions & Roles (Spec 4.1 & 4.2)
 -- ====================================================================
+
+-- Seed Default School
+INSERT INTO schools (id, code, name, is_active)
+VALUES ('11111111-1111-1111-1111-111111111111', 'SCH-001', 'โรงเรียนอนุบาลเทศบาลเมือง', true)
+ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO permissions (code, description) VALUES
     ('meal_plan.view', 'View meal plans and daily menus'),
