@@ -58,39 +58,10 @@ import { isSupabaseConfigured } from "@/lib/supabase/client";
 // Preset Master Recipes (Initial Seed)
 const PRESET_MENUS: PresetMenu[] = [
   {
-    id: "menu-1",
-    name: "ข้าวมันไก่ตอน + แตงกวาสด + น้ำซุปฟัก",
+    id: "menu-custom",
+    name: "เมนูอาหารกลางวันประจำวัน",
     category: "อาหารจานเดียว",
-    ingredients: [
-      { id: "ing-1", name: "เนื้อไก่สด (อกและสะโพก)", qty: 9.0, unit: "กก.", unitPrice: 85 },
-      { id: "ing-2", name: "ข้าวสารหอมมะลิ 100%", qty: 10.0, unit: "กก.", unitPrice: 38 },
-      { id: "ing-3", name: "แตงกวาสดคัดเกรด", qty: 3.0, unit: "กก.", unitPrice: 30 },
-      { id: "ing-4", name: "ฟักเขียวสำหรับต้มน้ำซุป", qty: 4.0, unit: "กก.", unitPrice: 20 },
-      { id: "ing-8", name: "ซีอิ๊วขาวและเครื่องปรุง", qty: 1.0, unit: "ขวด", unitPrice: 45 },
-    ],
-  },
-  {
-    id: "menu-2",
-    name: "ผัดกะเพราหมูสับไข่ดาว + ข้าวสวย",
-    category: "อาหารจานเดียว",
-    ingredients: [
-      { id: "ing-5", name: "หมูสับอนามัย", qty: 7.0, unit: "กก.", unitPrice: 140 },
-      { id: "ing-6", name: "ไข่ไก่สด เบอร์ 3", qty: 90.0, unit: "ฟอง", unitPrice: 4.2 },
-      { id: "ing-2", name: "ข้าวสารหอมมะลิ 100%", qty: 10.0, unit: "กก.", unitPrice: 38 },
-      { id: "ing-7", name: "ใบกะเพราสดและพริก", qty: 1.5, unit: "กก.", unitPrice: 50 },
-      { id: "ing-8", name: "น้ำมันพืชและซอสปรุงรส", qty: 2.0, unit: "ขวด", unitPrice: 45 },
-    ],
-  },
-  {
-    id: "menu-3",
-    name: "แกงจืดเต้าหู้หมูสับสาหร่าย + ไข่เจียวทรงเครื่อง",
-    category: "กับข้าว 2 อย่าง",
-    ingredients: [
-      { id: "ing-5", name: "หมูสับอนามัย", qty: 6.0, unit: "กก.", unitPrice: 140 },
-      { id: "ing-6", name: "ไข่ไก่สด เบอร์ 3 (ทำไข่เจียว)", qty: 90.0, unit: "ฟอง", unitPrice: 4.2 },
-      { id: "ing-2", name: "ข้าวสารหอมมะลิ 100%", qty: 10.0, unit: "กก.", unitPrice: 38 },
-      { id: "ing-9", name: "เต้าหู้ไข่ขาวและผักกาดขาว", qty: 5.0, unit: "กก.", unitPrice: 35 },
-    ],
+    ingredients: [],
   },
 ];
 
@@ -132,9 +103,9 @@ export default function HomePage() {
   // =========================================================================
   const [presetMenus, setPresetMenus] = useState<PresetMenu[]>(PRESET_MENUS);
   const [newMenuCategory, setNewMenuCategory] = useState<string>("อาหารจานเดียว");
-  const [selectedMenuId, setSelectedMenuId] = useState<string>("menu-1");
-  const [dailyIngredients, setDailyIngredients] = useState<MenuItem[]>(PRESET_MENUS[0].ingredients);
-  const [isPlanFrozen, setIsPlanFrozen] = useState<boolean>(true);
+  const [selectedMenuId, setSelectedMenuId] = useState<string>("menu-custom");
+  const [dailyIngredients, setDailyIngredients] = useState<MenuItem[]>([]);
+  const [isPlanFrozen, setIsPlanFrozen] = useState<boolean>(false);
   const [frozenSnapshotTime, setFrozenSnapshotTime] = useState<string>("06:30 น.");
 
   // Persistent State Hydration: LocalStorage First, then Cloud Sync
@@ -292,6 +263,54 @@ export default function HomePage() {
     return presetMenus.find((m) => m.id === selectedMenuId) || presetMenus[0] || PRESET_MENUS[0];
   }, [presetMenus, selectedMenuId]);
 
+  const handleUpdateMenuName = (newName: string) => {
+    setPresetMenus((prev) =>
+      prev.map((m) => (m.id === selectedMenuId ? { ...m, name: newName } : m))
+    );
+    setIsPlanFrozen(false);
+  };
+
+  const handleDeleteMenu = async (menuId: string) => {
+    if (presetMenus.length <= 1) {
+      const resetMenu: PresetMenu = {
+        id: `menu-${Date.now()}`,
+        name: "เมนูอาหารกลางวันประจำวัน",
+        category: "อาหารจานเดียว",
+        ingredients: [],
+      };
+      setPresetMenus([resetMenu]);
+      setSelectedMenuId(resetMenu.id);
+      setDailyIngredients([]);
+      setIsPlanFrozen(false);
+      setSyncStatus("SAVING");
+      await saveCloudState({
+        presetMenus: [resetMenu],
+        selectedMenuId: resetMenu.id,
+        dailyIngredients: [],
+      });
+      setSyncStatus("SYNCED");
+      alert("✓ ลบรายการอาหารและรีเซ็ตเป็นเมนูว่างเรียบร้อยแล้ว");
+      return;
+    }
+
+    if (confirm("ต้องการลบเมนูนี้ออกจากระบบใช่หรือไม่?")) {
+      const remaining = presetMenus.filter((m) => m.id !== menuId);
+      setPresetMenus(remaining);
+      const nextMenu = remaining[0];
+      setSelectedMenuId(nextMenu.id);
+      setDailyIngredients(nextMenu.ingredients ? nextMenu.ingredients.map((ing) => ({ ...ing })) : []);
+      setIsPlanFrozen(false);
+      setSyncStatus("SAVING");
+      await saveCloudState({
+        presetMenus: remaining,
+        selectedMenuId: nextMenu.id,
+        dailyIngredients: nextMenu.ingredients || [],
+      });
+      setSyncStatus("SYNCED");
+      alert("✓ ลบเมนูอาหารออกจากระบบเรียบร้อยแล้ว");
+    }
+  };
+
   const handleSelectMenu = (menuId: string) => {
     setSelectedMenuId(menuId);
     const found = presetMenus.find((m) => m.id === menuId);
@@ -331,56 +350,7 @@ export default function HomePage() {
   const [receivingDocNo] = useState<string>("RCV-2569-1105");
   const [confirmedAtTime, setConfirmedAtTime] = useState<string | null>(null);
 
-  const [inspectionItems, setInspectionItems] = useState<InspectionItemState[]>([
-    {
-      id: "ing-1",
-      name: "เนื้อไก่สด (อกและสะโพก)",
-      ordered: 9.0,
-      received: 9.0,
-      accepted: 9.0,
-      rejected: 0,
-      unit: "กก.",
-      unitPrice: 85,
-      status: "ACCEPTED",
-      photoUrl: "chicken_delivery.jpg",
-    },
-    {
-      id: "ing-2",
-      name: "ข้าวสารหอมมะลิ 100%",
-      ordered: 10.0,
-      received: 10.0,
-      accepted: 10.0,
-      rejected: 0,
-      unit: "กก.",
-      unitPrice: 38,
-      status: "ACCEPTED",
-      photoUrl: "rice_bag.jpg",
-    },
-    {
-      id: "ing-3",
-      name: "แตงกวาสดคัดเกรด",
-      ordered: 3.0,
-      received: 2.5,
-      accepted: 2.5,
-      rejected: 0,
-      unit: "กก.",
-      unitPrice: 30,
-      status: "DISCREPANCY",
-      note: "ร้านส่งมา 2.5 กก. ขาด 0.5 กก. (ของหมดตลาด)",
-      photoUrl: "cucumber_weigh.jpg",
-    },
-    {
-      id: "ing-4",
-      name: "ฟักเขียวสำหรับต้มน้ำซุป",
-      ordered: 4.0,
-      received: 4.0,
-      accepted: 4.0,
-      rejected: 0,
-      unit: "กก.",
-      unitPrice: 20,
-      status: "PENDING",
-    },
-  ]);
+  const [inspectionItems, setInspectionItems] = useState<InspectionItemState[]>([]);
 
   const handleUpdateReceivedQty = (id: string, newQty: number) => {
     setInspectionItems((prev) =>
@@ -1024,7 +994,27 @@ export default function HomePage() {
 
             {/* High-Legibility Food Cards */}
             <div className="space-y-3">
-              {inspectionItems.map((item) => (
+              {inspectionItems.length === 0 ? (
+                <div className="bg-white rounded-3xl p-10 border border-slate-200/80 text-center space-y-3 shadow-xs">
+                  <div className="w-14 h-14 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center mx-auto text-amber-600">
+                    <UtensilsCrossed className="w-7 h-7" />
+                  </div>
+                  <div>
+                    <h3 className="font-extrabold text-slate-900 text-sm tracking-tight">ยังไม่มีรายการตรวจรับวัตถุดิบสำหรับวันนี้</h3>
+                    <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto leading-relaxed">
+                      คณะครูเวรสามารถตรวจรับของสดได้เมื่อมีการกำหนดเมนูที่แท็บ <strong>&quot;2. วางแผนเมนู & ราคาวัตถุดิบ&quot;</strong> แล้วกดปุ่ม <strong>&quot;ตรึง Snapshot และส่งให้ครูเวร&quot;</strong>
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setActiveTab("MENU_PLAN")}
+                    className="px-4 py-2.5 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-black inline-flex items-center gap-1.5 transition-all shadow-xs"
+                  >
+                    <span>ไปกำหนดเมนูและวัตถุดิบวันนี้</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ) : (
+                inspectionItems.map((item) => (
                 <div
                   key={item.id}
                   className={`bg-white rounded-2xl p-4 border transition-all duration-200 shadow-xs ${
@@ -1131,7 +1121,7 @@ export default function HomePage() {
                     </div>
                   </div>
                 </div>
-              ))}
+              )))}
             </div>
 
             {/* Confirm Receiving Floating Bar */}
@@ -1169,27 +1159,51 @@ export default function HomePage() {
             {/* Planner Header Card */}
             <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
-                <div className="flex-1">
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block mb-1">
-                    DAILY PROCUREMENT ENGINE
-                  </span>
-                  <label className="text-xs font-bold text-slate-700 block mb-1.5">
-                    เลือกเมนูอาหารกลางวันประจำวัน:
-                  </label>
-                  <div className="relative max-w-lg">
-                    <select
-                      value={selectedMenuId}
-                      onChange={(e) => handleSelectMenu(e.target.value)}
-                      className="w-full appearance-none bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 pr-10"
-                    >
-                      {PRESET_MENUS.map((m) => (
-                        <option key={m.id} value={m.id}>
-                          {m.name} ({m.category})
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown className="w-4 h-4 text-slate-400 absolute right-3.5 top-3.5 pointer-events-none" />
+                <div className="flex-1 space-y-3">
+                  <div>
+                    <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block mb-1">
+                      DAILY PROCUREMENT ENGINE
+                    </span>
+                    <label className="text-xs font-bold text-slate-700 block mb-1">
+                      ชื่อเมนูอาหารกลางวันวันนี้ (พิมพ์เปลี่ยนชื่อได้โดยตรง):
+                    </label>
+                    <div className="flex items-center gap-2 max-w-xl">
+                      <input
+                        type="text"
+                        value={activeMenu.name}
+                        onChange={(e) => handleUpdateMenuName(e.target.value)}
+                        placeholder="พิมพ์ชื่อเมนูอาหารกลางวันวันนี้ เช่น ข้าวผัดไข่หมูสับ, ก๋วยเตี๋ยวน้ำใส"
+                        className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 shadow-2xs"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteMenu(selectedMenuId)}
+                        className="p-2.5 rounded-xl border border-rose-200 bg-rose-50/50 text-rose-500 hover:text-rose-700 hover:bg-rose-100 transition-colors shadow-2xs"
+                        title="ลบเมนูนี้ออกจากระบบ"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </div>
+
+                  {presetMenus.length > 1 && (
+                    <div className="flex items-center gap-2">
+                      <label className="text-[11px] font-semibold text-slate-500 whitespace-nowrap">
+                        หรือสลับไปยังเมนูอื่นที่บันทึกไว้:
+                      </label>
+                      <select
+                        value={selectedMenuId}
+                        onChange={(e) => handleSelectMenu(e.target.value)}
+                        className="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-medium text-slate-700 focus:outline-none max-w-xs"
+                      >
+                        {presetMenus.map((m) => (
+                          <option key={m.id} value={m.id}>
+                            {m.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
                 </div>
 
                 {/* Right Metric Summary */}
@@ -1240,7 +1254,18 @@ export default function HomePage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 font-medium">
-                    {dailyIngredients.map((item) => (
+                    {dailyIngredients.length === 0 ? (
+                      <tr>
+                        <td colSpan={6} className="py-12 text-center text-slate-400">
+                          <UtensilsCrossed className="w-8 h-8 mx-auto mb-2 opacity-30 text-slate-400" />
+                          <span className="block text-xs font-bold text-slate-600">ยังไม่มีรายการวัตถุดิบในเมนูนี้</span>
+                          <span className="block text-[11px] text-slate-400 mt-1">
+                            คลิกปุ่ม <strong>&quot;+ เพิ่มวัตถุดิบในเมนูนี้&quot;</strong> ด้านล่างเพื่อเริ่มระบุวัตถุดิบและราคา
+                          </span>
+                        </td>
+                      </tr>
+                    ) : (
+                      dailyIngredients.map((item) => (
                       <tr key={item.id} className="hover:bg-slate-50/70 transition-colors">
                         <td className="py-3 px-4 font-bold text-slate-900 text-sm">
                           <input
@@ -1302,7 +1327,7 @@ export default function HomePage() {
                           </button>
                         </td>
                       </tr>
-                    ))}
+                    )))}
                   </tbody>
                 </table>
               </div>

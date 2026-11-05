@@ -1,7 +1,7 @@
 import { supabase, isSupabaseConfigured } from "./supabase/client";
 
 export const DEFAULT_SCHOOL_ID = "11111111-1111-1111-1111-111111111111";
-export const STORAGE_KEY = "school_lunch_os_state_v1";
+export const STORAGE_KEY = "school_lunch_os_state_v2";
 
 export interface DutyRoster {
   monday: string[];
