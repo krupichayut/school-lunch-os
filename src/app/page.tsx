@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import {
   UtensilsCrossed,
   ClipboardCheck,
@@ -46,6 +46,8 @@ import {
   saveLocalState,
   fetchCloudState,
   saveCloudState,
+  DEFAULT_SCHOOL_SETTINGS,
+  DEFAULT_DUTY_ROSTER,
   SchoolSettings,
   DutyRoster,
   MenuItem,
@@ -74,25 +76,20 @@ export default function HomePage() {
   // =========================================================================
   // 1. SETTINGS STATE (ข้อมูลโรงเรียน, ผู้บริหาร, ครูเวรรายวัน)
   // =========================================================================
-  const [settings, setSettings] = useState<SchoolSettings>({
-    schoolName: "โรงเรียนอนุบาลเทศบาลเมือง (สพป. เขต 1)",
-    directorName: "นายวิเชียร มุ่งมั่น (ผู้อำนวยการโรงเรียน)",
-    nutritionHeadName: "ครูพรทิพย์ เจริญจิตต์ (ผู้รับผิดชอบโครงการอาหารกลางวัน)",
-    academicYear: "2569",
-    semester: "ภาคเรียนที่ 2",
-    totalSemesterDays: 100,
-    dutyRoster: {
-      monday: ["ครูสมศรี ใจดี", "ครูมานะ ขยันยิ่ง"],
-      tuesday: ["ครูวิชัย เก่งการ", "ครูชลธิชา สดใส"],
-      wednesday: ["ครูประภาส สุขสงบ", "ครูณัฐพล ส่องแสง"],
-      thursday: ["ครูอนงค์ รักเด็ก", "ครูชวลิต มั่งมี"],
-      friday: ["ครูสุชาติ พากเพียร", "ครูกานดา วาจางาม"],
-    },
-  });
-
-  const [settingsForm, setSettingsForm] = useState<SchoolSettings>(settings);
+  const [settings, setSettings] = useState<SchoolSettings>(DEFAULT_SCHOOL_SETTINGS);
+  const [settingsForm, setSettingsForm] = useState<SchoolSettings>(DEFAULT_SCHOOL_SETTINGS);
   const [settingsSaveToast, setSettingsSaveToast] = useState(false);
   const [ingredientSaveToast, setIngredientSaveToast] = useState(false);
+
+  // Auto-persist Settings Form draft to local cache
+  const isInitialMount = useRef(true);
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    saveLocalState({ settings: settingsForm });
+  }, [settingsForm]);
 
   // Cloud & Local Persistence Sync
   const [syncStatus, setSyncStatus] = useState<"SYNCED" | "SAVING" | "LOCAL">("SYNCED");
@@ -226,13 +223,17 @@ export default function HomePage() {
 
   // Handlers for Managing Multiple Teachers per Day in Settings
   const handleAddTeacherToDay = (day: keyof DutyRoster) => {
-    setSettingsForm((prev) => ({
-      ...prev,
-      dutyRoster: {
-        ...prev.dutyRoster,
-        [day]: [...prev.dutyRoster[day], ""],
-      },
-    }));
+    setSettingsForm((prev) => {
+      const currentList = prev.dutyRoster?.[day] || [];
+      return {
+        ...prev,
+        dutyRoster: {
+          ...DEFAULT_DUTY_ROSTER,
+          ...prev.dutyRoster,
+          [day]: [...currentList, ""],
+        },
+      };
+    });
   };
 
   const handleUpdateTeacherName = (
@@ -240,23 +241,31 @@ export default function HomePage() {
     index: number,
     newName: string
   ) => {
-    setSettingsForm((prev) => ({
-      ...prev,
-      dutyRoster: {
-        ...prev.dutyRoster,
-        [day]: prev.dutyRoster[day].map((name, i) => (i === index ? newName : name)),
-      },
-    }));
+    setSettingsForm((prev) => {
+      const currentList = prev.dutyRoster?.[day] || [];
+      return {
+        ...prev,
+        dutyRoster: {
+          ...DEFAULT_DUTY_ROSTER,
+          ...prev.dutyRoster,
+          [day]: currentList.map((name, i) => (i === index ? newName : name)),
+        },
+      };
+    });
   };
 
   const handleRemoveTeacherFromDay = (day: keyof DutyRoster, index: number) => {
-    setSettingsForm((prev) => ({
-      ...prev,
-      dutyRoster: {
-        ...prev.dutyRoster,
-        [day]: prev.dutyRoster[day].filter((_, i) => i !== index),
-      },
-    }));
+    setSettingsForm((prev) => {
+      const currentList = prev.dutyRoster?.[day] || [];
+      return {
+        ...prev,
+        dutyRoster: {
+          ...DEFAULT_DUTY_ROSTER,
+          ...prev.dutyRoster,
+          [day]: currentList.filter((_, i) => i !== index),
+        },
+      };
+    });
   };
 
   const activeMenu = useMemo(() => {
@@ -325,14 +334,21 @@ export default function HomePage() {
     field: "name" | "qty" | "unit" | "unitPrice",
     val: string | number
   ) => {
-    setDailyIngredients((prev) =>
-      prev.map((item) => (item.id === id ? { ...item, [field]: val } : item))
-    );
+    setDailyIngredients((prev) => {
+      const updated = prev.map((item) => (item.id === id ? { ...item, [field]: val } : item));
+      saveLocalState({ dailyIngredients: updated });
+      return updated;
+    });
     setIsPlanFrozen(false);
   };
 
   const handleDeleteIngredient = (id: string) => {
-    setDailyIngredients((prev) => prev.filter((item) => item.id !== id));
+    setDailyIngredients((prev) => {
+      const updated = prev.filter((item) => item.id !== id);
+      saveLocalState({ dailyIngredients: updated });
+      saveCloudState({ dailyIngredients: updated }).catch(console.warn);
+      return updated;
+    });
     setIsPlanFrozen(false);
   };
 
@@ -388,9 +404,19 @@ export default function HomePage() {
   const handlePhotoCapture = (id: string, event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      setInspectionItems((prev) =>
-        prev.map((item) => (item.id === id ? { ...item, photoUrl: file.name } : item))
-      );
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const dataUrl = e.target?.result as string;
+        setInspectionItems((prev) => {
+          const updated = prev.map((item) =>
+            item.id === id ? { ...item, photoUrl: dataUrl } : item
+          );
+          saveLocalState({ inspectionItems: updated });
+          saveCloudState({ inspectionItems: updated }).catch(console.warn);
+          return updated;
+        });
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -400,10 +426,34 @@ export default function HomePage() {
     setConfirmedAtTime(nowTime);
     setSyncStatus("SAVING");
 
+    // Calculate total received cost
+    const totalReceivedCost = inspectionItems.reduce(
+      (sum, item) => sum + (item.received * item.unitPrice),
+      0
+    );
+
+    // Auto-create ledger expense if not already created for this document
+    let updatedTx = transactions;
+    const existingTx = transactions.find((t) => t.documentNo.includes(receivingDocNo));
+    if (!existingTx && totalReceivedCost > 0) {
+      const dailyExpenseTx: FinancialTransactionDisplay = {
+        id: `tx-recv-${Date.now()}`,
+        documentNo: `FIN-${receivingDocNo}`,
+        date: new Date().toLocaleDateString("th-TH"),
+        type: "EXPENSE",
+        category: "ค่าวัตถุดิบ",
+        description: `ตัดจ่ายค่าวัตถุดิบอาหารสด (${activeMenu.name}) ตามใบตรวจรับ ${receivingDocNo}`,
+        amount: totalReceivedCost,
+      };
+      updatedTx = [dailyExpenseTx, ...transactions];
+      setTransactions(updatedTx);
+    }
+
     await saveCloudState({
       isReceivingConfirmed: true,
       confirmedAtTime: nowTime,
       inspectionItems,
+      transactions: updatedTx,
     });
     setSyncStatus("SYNCED");
 
@@ -578,7 +628,7 @@ export default function HomePage() {
     }
   };
 
-  const handleAddAdHocItem = () => {
+  const handleAddAdHocItem = async () => {
     const qty = parseFloat(adHocQty) || 1;
     const price = parseFloat(adHocPrice) || 0;
 
@@ -590,34 +640,44 @@ export default function HomePage() {
         received: qty,
         accepted: qty,
         rejected: 0,
-        unit: adHocUnit,
+        unit: adHocUnit || "รายการ",
         unitPrice: price,
         status: "ACCEPTED",
         isAdHoc: true,
         note: "ซื้อเพิ่มหน้างาน (นอกสูตรประจำวัน)",
       };
 
-      setInspectionItems((prev) => [...prev, newItem]);
+      const updatedInspection = [...inspectionItems, newItem];
+      setInspectionItems(updatedInspection);
 
       const newTx: FinancialTransactionDisplay = {
         id: `tx-${Date.now()}`,
-        documentNo: `FIN-2569-${String(transactions.length + 1).padStart(6, "0")}`,
-        date: "05/11/2569",
+        documentNo: `FIN-${Date.now().toString().slice(-6)}`,
+        date: new Date().toLocaleDateString("th-TH"),
         type: "EXPENSE",
         category: "เครื่องปรุงเพิ่มหน้างาน",
-        description: `ซื้อเพิ่มหน้างาน: ${adHocName} (${qty} ${adHocUnit})`,
+        description: `ซื้อเพิ่มหน้างาน: ${adHocName} (${qty} ${adHocUnit || "รายการ"})`,
         amount: qty * price,
       };
-      setTransactions((prev) => [newTx, ...prev]);
+      const updatedTx = [newTx, ...transactions];
+      setTransactions(updatedTx);
 
       setShowAdHocModal(false);
       setAdHocName("");
       setAdHocPrice("");
-      alert(`✓ เพิ่มรายการซื้อหน้างาน "${adHocName}" (${qty * price} ฿) เข้าสู่ใบตรวจรับและสมุดบัญชีแล้ว`);
+
+      setSyncStatus("SAVING");
+      await saveCloudState({
+        inspectionItems: updatedInspection,
+        transactions: updatedTx,
+      });
+      setSyncStatus("SYNCED");
+
+      alert(`✓ เพิ่มรายการซื้อหน้างาน "${adHocName}" (${(qty * price).toLocaleString()} ฿) เข้าสู่ใบตรวจรับและสมุดบัญชีแล้ว`);
     }
   };
 
-  const handleAddNewDailyIngredient = () => {
+  const handleAddNewDailyIngredient = async () => {
     const qty = parseFloat(newIngQty) || 1;
     const price = parseFloat(newIngPrice) || 0;
     if (newIngName.trim() && price > 0) {
@@ -625,14 +685,18 @@ export default function HomePage() {
         id: `ing-${Date.now()}`,
         name: newIngName.trim(),
         qty,
-        unit: newIngUnit,
+        unit: newIngUnit || "กก.",
         unitPrice: price,
       };
-      setDailyIngredients((prev) => [...prev, newItem]);
+      const updated = [...dailyIngredients, newItem];
+      setDailyIngredients(updated);
       setShowAddIngredientModal(false);
       setNewIngName("");
       setNewIngPrice("");
       setIsPlanFrozen(false);
+
+      saveLocalState({ dailyIngredients: updated });
+      saveCloudState({ dailyIngredients: updated }).catch(console.warn);
     }
   };
 
@@ -773,7 +837,10 @@ export default function HomePage() {
   }, [transactions, netCashRemaining]);
 
   const acceptedCount = inspectionItems.filter((i) => i.status === "ACCEPTED").length;
-  const progressPercent = Math.round((acceptedCount / inspectionItems.length) * 100);
+  const progressPercent =
+    inspectionItems.length > 0
+      ? Math.round((acceptedCount / inspectionItems.length) * 100)
+      : 0;
 
   return (
     <div className="min-h-screen bg-[#F6F8FA] text-[#090D16] font-sans antialiased selection:bg-slate-900 selection:text-white">
@@ -883,10 +950,7 @@ export default function HomePage() {
             </button>
 
             <button
-              onClick={() => {
-                setActiveTab("SETTINGS");
-                setSettingsForm(settings);
-              }}
+              onClick={() => setActiveTab("SETTINGS")}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                 activeTab === "SETTINGS"
                   ? "bg-white text-slate-900 shadow-sm shadow-slate-200"
@@ -1106,18 +1170,37 @@ export default function HomePage() {
                         </button>
                       </div>
 
-                      {/* Photo Capture */}
-                      <label className="cursor-pointer inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-all text-slate-700 shadow-xs">
-                        <Camera className="w-3.5 h-3.5 text-slate-500" />
-                        <span>{item.photoUrl ? "เปลี่ยนรูป" : "ถ่ายตาชั่ง"}</span>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          capture="environment"
-                          className="hidden"
-                          onChange={(e) => handlePhotoCapture(item.id, e)}
-                        />
-                      </label>
+                      {/* Photo Capture & Thumbnail Preview */}
+                      <div className="flex items-center gap-2">
+                        {item.photoUrl && (
+                          <div className="relative group">
+                            <img
+                              src={item.photoUrl}
+                              alt="รูปตาชั่ง"
+                              className="w-8 h-8 rounded-lg object-cover border border-emerald-300 shadow-2xs cursor-pointer hover:scale-105 transition-transform"
+                              onClick={() => {
+                                const w = window.open("");
+                                if (w) {
+                                  w.document.write(`<title>ภาพถ่ายตรวจรับ - ${item.name}</title><body style="margin:0; background:#000; display:flex; justify-content:center; align-items:center; min-height:100vh;"><img src="${item.photoUrl}" style="max-width:95vw; max-height:95vh; object-fit:contain; border-radius:8px;" /></body>`);
+                                }
+                              }}
+                              title="คลิกดูภาพเต็ม"
+                            />
+                            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
+                          </div>
+                        )}
+                        <label className="cursor-pointer inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-all text-slate-700 shadow-xs">
+                          <Camera className="w-3.5 h-3.5 text-slate-500" />
+                          <span>{item.photoUrl ? "เปลี่ยนรูป" : "ถ่ายตาชั่ง"}</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            capture="environment"
+                            className="hidden"
+                            onChange={(e) => handlePhotoCapture(item.id, e)}
+                          />
+                        </label>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1156,6 +1239,14 @@ export default function HomePage() {
         {/* ========================================================================= */}
         {activeTab === "MENU_PLAN" && (
           <div className="space-y-5">
+            {/* Success Toast */}
+            {ingredientSaveToast && (
+              <div className="bg-emerald-500 text-white p-4 rounded-2xl shadow-lg flex items-center gap-2 text-xs font-bold animate-in fade-in duration-200">
+                <CheckCircle2 className="w-5 h-5 text-white" />
+                <span>บันทึกรายการวัตถุดิบและราคาเรียบร้อยแล้ว! ข้อมูลถูกซิงก์ขึ้นระบบ Cloud ทันที</span>
+              </div>
+            )}
+
             {/* Planner Header Card */}
             <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
@@ -1352,17 +1443,33 @@ export default function HomePage() {
                   </button>
                 </div>
 
-                <button
-                  onClick={handleConfirmPlan}
-                  className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-bold tracking-tight transition-all flex items-center gap-2 shadow-sm"
-                >
-                  <Lock className="w-4 h-4 text-emerald-400" />
-                  <span>
-                    {isPlanFrozen
-                      ? "ตรึง Snapshot แล้ว ✓"
-                      : "ตรึง Snapshot และส่งให้ครูเวร"}
-                  </span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={async () => {
+                      setSyncStatus("SAVING");
+                      await saveCloudState({ dailyIngredients, selectedMenuId });
+                      setSyncStatus("SYNCED");
+                      setIngredientSaveToast(true);
+                      setTimeout(() => setIngredientSaveToast(false), 3000);
+                    }}
+                    className="px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-800 text-xs font-bold hover:bg-slate-50 transition-all flex items-center gap-1.5 shadow-2xs"
+                  >
+                    <Save className="w-3.5 h-3.5 text-blue-600" />
+                    <span>บันทึกวัตถุดิบ</span>
+                  </button>
+
+                  <button
+                    onClick={handleConfirmPlan}
+                    className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-bold tracking-tight transition-all flex items-center gap-2 shadow-sm"
+                  >
+                    <Lock className="w-4 h-4 text-emerald-400" />
+                    <span>
+                      {isPlanFrozen
+                        ? "ตรึง Snapshot แล้ว ✓"
+                        : "ตรึง Snapshot และส่งให้ครูเวร"}
+                    </span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -1902,7 +2009,7 @@ export default function HomePage() {
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-xs text-slate-800 flex items-center gap-2">
                         <span className={`w-2.5 h-2.5 rounded-full ${color}`} />
-                        คณะครูเวรประจำ{label} ({settingsForm.dutyRoster[dayKey].length} คน)
+                        คณะครูเวรประจำ{label} ({(settingsForm.dutyRoster?.[dayKey] || []).length} คน)
                       </span>
                       <button
                         type="button"
@@ -1915,7 +2022,7 @@ export default function HomePage() {
                     </div>
 
                     <div className="space-y-2">
-                      {settingsForm.dutyRoster[dayKey].map((teacherName, idx) => (
+                      {(settingsForm.dutyRoster?.[dayKey] || []).map((teacherName, idx) => (
                         <div key={idx} className="flex items-center gap-2">
                           <span className="text-[11px] font-mono text-slate-400 w-5 text-center">
                             {idx + 1}.
@@ -1929,7 +2036,7 @@ export default function HomePage() {
                             }
                             className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10"
                           />
-                          {settingsForm.dutyRoster[dayKey].length > 1 && (
+                          {(settingsForm.dutyRoster?.[dayKey] || []).length > 1 && (
                             <button
                               type="button"
                               onClick={() => handleRemoveTeacherFromDay(dayKey, idx)}

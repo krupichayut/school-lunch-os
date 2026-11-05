@@ -21,6 +21,24 @@ export interface SchoolSettings {
   dutyRoster: DutyRoster;
 }
 
+export const DEFAULT_DUTY_ROSTER: DutyRoster = {
+  monday: ["ครูสมศรี ใจดี", "ครูมานะ ขยันยิ่ง"],
+  tuesday: ["ครูวิชัย เก่งการ", "ครูชลธิชา สดใส"],
+  wednesday: ["ครูประภาส สุขสงบ", "ครูณัฐพล ส่องแสง"],
+  thursday: ["ครูอนงค์ รักเด็ก", "ครูชวลิต มั่งมี"],
+  friday: ["ครูสุชาติ พากเพียร", "ครูกานดา วาจางาม"],
+};
+
+export const DEFAULT_SCHOOL_SETTINGS: SchoolSettings = {
+  schoolName: "โรงเรียนบ้านควนเนียง (สพป. สฎ. เขต 3)",
+  directorName: "นายวิเชียร มุ่งมั่น (ผู้อำนวยการโรงเรียน)",
+  nutritionHeadName: "ครูพรทิพย์ เจริญจิตต์ (ผู้รับผิดชอบโครงการอาหารกลางวัน)",
+  academicYear: "2569",
+  semester: "ภาคเรียนที่ 2",
+  totalSemesterDays: 100,
+  dutyRoster: DEFAULT_DUTY_ROSTER,
+};
+
 export interface MenuItem {
   id: string;
   name: string;
@@ -75,14 +93,90 @@ export interface AppSyncPayload {
   lastUpdated?: string;
 }
 
+/**
+ * Defensive Normalizer: Flattens or un-nests school settings, guarantees valid strings and arrays
+ */
+export function normalizeSchoolSettings(raw: unknown, fallbackName?: string): SchoolSettings {
+  if (!raw || typeof raw !== "object") {
+    return {
+      ...DEFAULT_SCHOOL_SETTINGS,
+      ...(fallbackName ? { schoolName: fallbackName } : {}),
+    };
+  }
+
+  const obj = raw as Record<string, unknown>;
+  // Support both nested { settings: { ... } } and flat { ... }
+  const source =
+    obj.settings && typeof obj.settings === "object"
+      ? (obj.settings as Record<string, unknown>)
+      : obj;
+
+  const dutyRaw =
+    source.dutyRoster && typeof source.dutyRoster === "object"
+      ? (source.dutyRoster as Record<string, unknown>)
+      : {};
+
+  const cleanDuty: DutyRoster = {
+    monday:
+      Array.isArray(dutyRaw.monday) && dutyRaw.monday.length > 0
+        ? (dutyRaw.monday as string[])
+        : DEFAULT_DUTY_ROSTER.monday,
+    tuesday:
+      Array.isArray(dutyRaw.tuesday) && dutyRaw.tuesday.length > 0
+        ? (dutyRaw.tuesday as string[])
+        : DEFAULT_DUTY_ROSTER.tuesday,
+    wednesday:
+      Array.isArray(dutyRaw.wednesday) && dutyRaw.wednesday.length > 0
+        ? (dutyRaw.wednesday as string[])
+        : DEFAULT_DUTY_ROSTER.wednesday,
+    thursday:
+      Array.isArray(dutyRaw.thursday) && dutyRaw.thursday.length > 0
+        ? (dutyRaw.thursday as string[])
+        : DEFAULT_DUTY_ROSTER.thursday,
+    friday:
+      Array.isArray(dutyRaw.friday) && dutyRaw.friday.length > 0
+        ? (dutyRaw.friday as string[])
+        : DEFAULT_DUTY_ROSTER.friday,
+  };
+
+  const resolvedName =
+    (typeof source.schoolName === "string" && source.schoolName.trim()) ||
+    (typeof fallbackName === "string" && fallbackName.trim()) ||
+    DEFAULT_SCHOOL_SETTINGS.schoolName;
+
+  return {
+    schoolName: resolvedName,
+    directorName:
+      (typeof source.directorName === "string" && source.directorName.trim()) ||
+      DEFAULT_SCHOOL_SETTINGS.directorName,
+    nutritionHeadName:
+      (typeof source.nutritionHeadName === "string" && source.nutritionHeadName.trim()) ||
+      DEFAULT_SCHOOL_SETTINGS.nutritionHeadName,
+    academicYear:
+      (typeof source.academicYear === "string" && source.academicYear.trim()) ||
+      DEFAULT_SCHOOL_SETTINGS.academicYear,
+    semester:
+      (typeof source.semester === "string" && source.semester.trim()) ||
+      DEFAULT_SCHOOL_SETTINGS.semester,
+    totalSemesterDays:
+      Number(source.totalSemesterDays) || DEFAULT_SCHOOL_SETTINGS.totalSemesterDays,
+    dutyRoster: cleanDuty,
+  };
+}
+
 export function loadLocalState(): AppSyncPayload | null {
   if (typeof window === "undefined") return null;
   try {
     const raw =
+      localStorage.getItem(STORAGE_KEY) ||
       localStorage.getItem("school_lunch_os_state_v2") ||
-      localStorage.getItem("school_lunch_os_state_v1") ||
-      localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
+      localStorage.getItem("school_lunch_os_state_v1");
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as AppSyncPayload;
+    if (parsed.settings) {
+      parsed.settings = normalizeSchoolSettings(parsed.settings);
+    }
+    return parsed;
   } catch (e) {
     console.error("Failed to load local storage:", e);
     return null;
@@ -93,11 +187,17 @@ export function saveLocalState(payload: AppSyncPayload) {
   if (typeof window === "undefined") return;
   try {
     const existing = loadLocalState() || {};
-    const merged = { ...existing, ...payload, lastUpdated: new Date().toISOString() };
+    const merged: AppSyncPayload = {
+      ...existing,
+      ...payload,
+      lastUpdated: payload.lastUpdated || new Date().toISOString(),
+    };
+    if (merged.settings) {
+      merged.settings = normalizeSchoolSettings(merged.settings);
+    }
     const serialized = JSON.stringify(merged);
     localStorage.setItem(STORAGE_KEY, serialized);
     localStorage.setItem("school_lunch_os_state_v2", serialized);
-    localStorage.setItem("school_lunch_os_state_v1", serialized);
   } catch (e) {
     console.error("Failed to save local storage:", e);
   }
@@ -117,33 +217,50 @@ export async function fetchCloudState(): Promise<AppSyncPayload | null> {
       return null;
     }
 
-    const cloudSettings = (data.settings as Record<string, unknown>) || {};
+    const cloudData = (data.settings as Record<string, unknown>) || {};
+    const normalizedSettings = normalizeSchoolSettings(cloudData, data.name);
+
     const result: AppSyncPayload = {
-      ...(cloudSettings as AppSyncPayload),
+      settings: normalizedSettings,
+      presetMenus: Array.isArray(cloudData.presetMenus)
+        ? (cloudData.presetMenus as PresetMenu[])
+        : undefined,
+      selectedMenuId:
+        typeof cloudData.selectedMenuId === "string"
+          ? cloudData.selectedMenuId
+          : undefined,
+      activeMenuId:
+        typeof cloudData.activeMenuId === "string"
+          ? cloudData.activeMenuId
+          : undefined,
+      dailyIngredients: Array.isArray(cloudData.dailyIngredients)
+        ? (cloudData.dailyIngredients as MenuItem[])
+        : undefined,
+      transactions: Array.isArray(cloudData.transactions)
+        ? (cloudData.transactions as FinancialTransactionDisplay[])
+        : undefined,
+      inspectionItems: Array.isArray(cloudData.inspectionItems)
+        ? (cloudData.inspectionItems as InspectionItemState[])
+        : undefined,
+      isPlanFrozen:
+        typeof cloudData.isPlanFrozen === "boolean"
+          ? cloudData.isPlanFrozen
+          : undefined,
+      isReceivingConfirmed:
+        typeof cloudData.isReceivingConfirmed === "boolean"
+          ? cloudData.isReceivingConfirmed
+          : undefined,
+      confirmedAtTime:
+        typeof cloudData.confirmedAtTime === "string"
+          ? cloudData.confirmedAtTime
+          : null,
+      lastUpdated:
+        typeof cloudData.lastUpdated === "string"
+          ? cloudData.lastUpdated
+          : new Date().toISOString(),
     };
 
-    if (data.name && (!result.settings || !result.settings.schoolName)) {
-      result.settings = {
-        ...(result.settings as SchoolSettings),
-        schoolName: data.name,
-      };
-    } else if (data.name && result.settings) {
-      result.settings.schoolName = data.name;
-    }
-
-    // LWW (Last-Write-Wins) Conflict Guard
-    const local = loadLocalState();
-    const localTime = local?.lastUpdated ? new Date(local.lastUpdated).getTime() : 0;
-    const cloudTime = result.lastUpdated ? new Date(result.lastUpdated).getTime() : 0;
-
-    // If local edits are newer than cloud, don't overwrite local with stale cloud data!
-    if (local && localTime > cloudTime) {
-      console.log("Local state is newer than cloud. Synchronizing local state up to Cloud...");
-      await saveCloudState(local);
-      return local;
-    }
-
-    // Cache latest cloud to local storage
+    // Cache to local storage
     saveLocalState(result);
     return result;
   } catch (e) {
@@ -155,7 +272,7 @@ export async function fetchCloudState(): Promise<AppSyncPayload | null> {
 export async function saveCloudState(
   payload: AppSyncPayload
 ): Promise<{ success: boolean; error?: string }> {
-  // Always persist to local cache immediately
+  // 1. Immediately persist to local cache
   saveLocalState(payload);
 
   if (!supabase) {
@@ -163,19 +280,35 @@ export async function saveCloudState(
   }
 
   try {
+    // 2. Fetch existing cloud record to perform atomic merge and avoid clobbering fields
+    const { data: existingData } = await supabase
+      .from("schools")
+      .select("name, settings")
+      .eq("id", DEFAULT_SCHOOL_ID)
+      .single();
+
+    const currentCloud = (existingData?.settings as Record<string, unknown>) || {};
     const local = loadLocalState() || {};
-    const fullMerged: AppSyncPayload = {
+
+    // 3. Resolve normalized settings
+    const mergedSettings = payload.settings
+      ? normalizeSchoolSettings(payload.settings)
+      : normalizeSchoolSettings(currentCloud, existingData?.name);
+
+    const fullMerged: Record<string, unknown> = {
+      ...currentCloud,
       ...local,
       ...payload,
+      settings: mergedSettings,
       lastUpdated: new Date().toISOString(),
     };
 
     const updateFields: { settings: Record<string, unknown>; name?: string } = {
-      settings: fullMerged as unknown as Record<string, unknown>,
+      settings: fullMerged,
     };
 
-    if (fullMerged.settings?.schoolName) {
-      updateFields.name = fullMerged.settings.schoolName;
+    if (mergedSettings.schoolName) {
+      updateFields.name = mergedSettings.schoolName;
     }
 
     const { error } = await supabase
@@ -188,6 +321,8 @@ export async function saveCloudState(
       return { success: false, error: error.message };
     }
 
+    // Refresh local cache with the complete authoritative state
+    saveLocalState(fullMerged as unknown as AppSyncPayload);
     return { success: true };
   } catch (e) {
     console.error("saveCloudState exception:", e);
