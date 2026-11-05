@@ -113,8 +113,6 @@ export default function HomePage() {
   const [newMenuCategory, setNewMenuCategory] = useState<string>("อาหารจานเดียว");
   const [selectedMenuId, setSelectedMenuId] = useState<string>("menu-custom");
   const [dailyIngredients, setDailyIngredients] = useState<MenuItem[]>([]);
-  const [isPlanFrozen, setIsPlanFrozen] = useState<boolean>(false);
-  const [frozenSnapshotTime, setFrozenSnapshotTime] = useState<string>("06:30 น.");
 
   // Auto-persist Weekly Plan & Day Selection to Local Storage
   const isWeeklyMount = useRef(true);
@@ -144,9 +142,6 @@ export default function HomePage() {
       if (local.presetMenus && local.presetMenus.length > 0) {
         setPresetMenus(local.presetMenus);
       }
-      if (local.dailyIngredients && local.dailyIngredients.length > 0) {
-        setDailyIngredients(local.dailyIngredients);
-      }
       if (local.selectedMenuId) {
         setSelectedMenuId(local.selectedMenuId);
       }
@@ -155,18 +150,6 @@ export default function HomePage() {
           (t) => !["tx-1", "tx-2", "tx-3", "tx-4", "tx-5"].includes(t.id)
         );
         setTransactions(cleaned);
-      }
-      if (local.inspectionItems && local.inspectionItems.length > 0) {
-        setInspectionItems(local.inspectionItems);
-      }
-      if (typeof local.isPlanFrozen === "boolean") {
-        setIsPlanFrozen(local.isPlanFrozen);
-      }
-      if (typeof local.isReceivingConfirmed === "boolean") {
-        setIsReceivingConfirmed(local.isReceivingConfirmed);
-      }
-      if (local.confirmedAtTime) {
-        setConfirmedAtTime(local.confirmedAtTime);
       }
     }
 
@@ -187,9 +170,6 @@ export default function HomePage() {
           if (cloud.presetMenus && cloud.presetMenus.length > 0) {
             setPresetMenus(cloud.presetMenus);
           }
-          if (cloud.dailyIngredients && cloud.dailyIngredients.length > 0) {
-            setDailyIngredients(cloud.dailyIngredients);
-          }
           if (cloud.selectedMenuId) {
             setSelectedMenuId(cloud.selectedMenuId);
           }
@@ -198,18 +178,6 @@ export default function HomePage() {
               (t) => !["tx-1", "tx-2", "tx-3", "tx-4", "tx-5"].includes(t.id)
             );
             setTransactions(cleaned);
-          }
-          if (cloud.inspectionItems && cloud.inspectionItems.length > 0) {
-            setInspectionItems(cloud.inspectionItems);
-          }
-          if (typeof cloud.isPlanFrozen === "boolean") {
-            setIsPlanFrozen(cloud.isPlanFrozen);
-          }
-          if (typeof cloud.isReceivingConfirmed === "boolean") {
-            setIsReceivingConfirmed(cloud.isReceivingConfirmed);
-          }
-          if (cloud.confirmedAtTime) {
-            setConfirmedAtTime(cloud.confirmedAtTime);
           }
           setSyncStatus("SYNCED");
           setLastSyncTime(
@@ -479,45 +447,107 @@ export default function HomePage() {
   const totalDailyCost = activeDayCost;
 
   // =========================================================================
-  // 3. MORNING RECEIVING INSPECTION (DUTY TEACHER HUD)
+  // 3. MORNING RECEIVING INSPECTION (DUTY TEACHER HUD) - PER-DAY ISOLATED
   // =========================================================================
-  const [isReceivingConfirmed, setIsReceivingConfirmed] = useState<boolean>(false);
-  const [receivingDocNo] = useState<string>("RCV-2569-1105");
-  const [confirmedAtTime, setConfirmedAtTime] = useState<string | null>(null);
+  const isReceivingConfirmed = !!activeDayPlan.isReceivingConfirmed;
+  const receivingDocNo = `RCV-2569-${activeDayDefinition.shortLabel}`;
+  const confirmedAtTime = activeDayPlan.confirmedAtTime || null;
+  const isPlanFrozen = !!activeDayPlan.isFrozen;
+  const frozenSnapshotTime = activeDayPlan.frozenAtTime || "06:30 น.";
+  const setIsPlanFrozen = (val: boolean) => {
+    setWeeklyPlan((prev) => {
+      const cur = prev[selectedDayKey] || DEFAULT_WEEKLY_PLAN[selectedDayKey];
+      return {
+        ...prev,
+        [selectedDayKey]: {
+          ...cur,
+          isFrozen: val,
+        },
+      };
+    });
+  };
 
-  const [inspectionItems, setInspectionItems] = useState<InspectionItemState[]>([]);
+  const inspectionItems: InspectionItemState[] = useMemo(() => {
+    if (activeDayPlan.inspectionItems && activeDayPlan.inspectionItems.length > 0) {
+      return activeDayPlan.inspectionItems;
+    }
+    if (activeDayPlan.ingredients && activeDayPlan.ingredients.length > 0) {
+      return activeDayPlan.ingredients.map((item) => ({
+        id: item.id,
+        name: item.name,
+        ordered: item.qty,
+        received: item.qty,
+        accepted: item.qty,
+        rejected: 0,
+        unit: item.unit,
+        unitPrice: item.unitPrice,
+        status: "ACCEPTED" as const,
+      }));
+    }
+    return [];
+  }, [activeDayPlan.inspectionItems, activeDayPlan.ingredients]);
 
   const handleUpdateReceivedQty = (id: string, newQty: number) => {
-    setInspectionItems((prev) =>
-      prev.map((item) => {
+    setWeeklyPlan((prev) => {
+      const curDay = prev[selectedDayKey] || DEFAULT_WEEKLY_PLAN[selectedDayKey];
+      const currentList =
+        curDay.inspectionItems && curDay.inspectionItems.length > 0
+          ? curDay.inspectionItems
+          : inspectionItems;
+      const updatedList = currentList.map((item) => {
         if (item.id === id) {
           const shortage = newQty < item.ordered;
           return {
             ...item,
             received: newQty,
             accepted: newQty,
-            status: shortage ? "DISCREPANCY" : "ACCEPTED",
+            status: shortage ? ("DISCREPANCY" as const) : ("ACCEPTED" as const),
             note: shortage
               ? `ขาด ${Number((item.ordered - newQty).toFixed(2))} ${item.unit}`
               : undefined,
           };
         }
         return item;
-      })
-    );
+      });
+      const updatedPlan: WeeklyPlan = {
+        ...prev,
+        [selectedDayKey]: {
+          ...curDay,
+          inspectionItems: updatedList,
+        },
+      };
+      saveLocalState({ weeklyPlan: updatedPlan });
+      saveCloudState({ weeklyPlan: updatedPlan }).catch(console.warn);
+      return updatedPlan;
+    });
   };
 
   const handle1ClickAcceptAll = () => {
-    setInspectionItems((prev) =>
-      prev.map((item) => ({
+    setWeeklyPlan((prev) => {
+      const curDay = prev[selectedDayKey] || DEFAULT_WEEKLY_PLAN[selectedDayKey];
+      const currentList =
+        curDay.inspectionItems && curDay.inspectionItems.length > 0
+          ? curDay.inspectionItems
+          : inspectionItems;
+      const updatedList = currentList.map((item) => ({
         ...item,
         received: item.ordered,
         accepted: item.ordered,
         rejected: 0,
-        status: "ACCEPTED",
+        status: "ACCEPTED" as const,
         note: undefined,
-      }))
-    );
+      }));
+      const updatedPlan: WeeklyPlan = {
+        ...prev,
+        [selectedDayKey]: {
+          ...curDay,
+          inspectionItems: updatedList,
+        },
+      };
+      saveLocalState({ weeklyPlan: updatedPlan });
+      saveCloudState({ weeklyPlan: updatedPlan }).catch(console.warn);
+      return updatedPlan;
+    });
   };
 
   const handlePhotoCapture = (id: string, event: React.ChangeEvent<HTMLInputElement>) => {
@@ -526,13 +556,25 @@ export default function HomePage() {
       const reader = new FileReader();
       reader.onload = (e) => {
         const dataUrl = e.target?.result as string;
-        setInspectionItems((prev) => {
-          const updated = prev.map((item) =>
+        setWeeklyPlan((prev) => {
+          const curDay = prev[selectedDayKey] || DEFAULT_WEEKLY_PLAN[selectedDayKey];
+          const currentList =
+            curDay.inspectionItems && curDay.inspectionItems.length > 0
+              ? curDay.inspectionItems
+              : inspectionItems;
+          const updatedList = currentList.map((item) =>
             item.id === id ? { ...item, photoUrl: dataUrl } : item
           );
-          saveLocalState({ inspectionItems: updated });
-          saveCloudState({ inspectionItems: updated }).catch(console.warn);
-          return updated;
+          const updatedPlan: WeeklyPlan = {
+            ...prev,
+            [selectedDayKey]: {
+              ...curDay,
+              inspectionItems: updatedList,
+            },
+          };
+          saveLocalState({ weeklyPlan: updatedPlan });
+          saveCloudState({ weeklyPlan: updatedPlan }).catch(console.warn);
+          return updatedPlan;
         });
       };
       reader.readAsDataURL(file);
@@ -540,14 +582,12 @@ export default function HomePage() {
   };
 
   const handleConfirmMorningReceiving = async () => {
-    setIsReceivingConfirmed(true);
     const nowTime = new Date().toLocaleTimeString("th-TH");
-    setConfirmedAtTime(nowTime);
     setSyncStatus("SAVING");
 
     // Calculate total received cost
     const totalReceivedCost = inspectionItems.reduce(
-      (sum, item) => sum + (item.received * item.unitPrice),
+      (sum, item) => sum + item.received * item.unitPrice,
       0
     );
 
@@ -561,36 +601,46 @@ export default function HomePage() {
         date: new Date().toLocaleDateString("th-TH"),
         type: "EXPENSE",
         category: "ค่าวัตถุดิบ",
-        description: `ตัดจ่ายค่าวัตถุดิบอาหารสด (${activeMenu.name}) ตามใบตรวจรับ ${receivingDocNo}`,
+        description: `ตัดจ่ายค่าวัตถุดิบอาหารสด (${activeMenu.name}) ประจำ${activeDayDefinition.label}`,
         amount: totalReceivedCost,
       };
       updatedTx = [dailyExpenseTx, ...transactions];
       setTransactions(updatedTx);
     }
 
+    const curDay = weeklyPlan[selectedDayKey] || DEFAULT_WEEKLY_PLAN[selectedDayKey];
+    const updatedPlan: WeeklyPlan = {
+      ...weeklyPlan,
+      [selectedDayKey]: {
+        ...curDay,
+        isReceivingConfirmed: true,
+        confirmedAtTime: nowTime,
+        inspectionItems,
+      },
+    };
+
+    setWeeklyPlan(updatedPlan);
+    saveLocalState({ weeklyPlan: updatedPlan, transactions: updatedTx });
     await saveCloudState({
-      isReceivingConfirmed: true,
-      confirmedAtTime: nowTime,
-      inspectionItems,
+      weeklyPlan: updatedPlan,
       transactions: updatedTx,
     });
     setSyncStatus("SYNCED");
 
+    const dutyTeachers =
+      settings.dutyRoster?.[selectedDayKey] &&
+      settings.dutyRoster[selectedDayKey].length > 0
+        ? settings.dutyRoster[selectedDayKey]
+        : ["ครูเวรประจำวัน"];
     alert(
-      `✓ ตรวจรับและซิงก์สต็อกเรียบร้อย (${nowTime})\nเลขที่เอกสาร: ${receivingDocNo}\nคณะผู้ตรวจรับ (${todayDutyInfo.teachers.length} ท่าน):\n${todayDutyInfo.teachers.map((t, i) => `  ${i + 1}. ${t}`).join("\n")}\nบันทึกข้อมูลขึ้นระบบ Cloud (Supabase) เรียบร้อยแล้ว`
+      `✓ ตรวจรับและซิงก์สต็อกเรียบร้อย (${nowTime})\nประจำ${activeDayDefinition.label} (เลขที่: ${receivingDocNo})\nคณะผู้ตรวจรับ (${dutyTeachers.length} ท่าน):\n${dutyTeachers.map((t, i) => `  ${i + 1}. ${t}`).join("\n")}\nบันทึกข้อมูลขึ้นระบบ Cloud (Supabase) เรียบร้อยแล้ว`
     );
   };
 
   const handleConfirmPlan = async () => {
     const curDay = weeklyPlan[selectedDayKey] || DEFAULT_WEEKLY_PLAN[selectedDayKey];
-    const ingredientsToFreeze =
-      curDay.ingredients && curDay.ingredients.length > 0
-        ? curDay.ingredients
-        : dailyIngredients;
-
-    setIsPlanFrozen(true);
+    const ingredientsToFreeze = curDay.ingredients || [];
     const nowTime = new Date().toLocaleTimeString("th-TH");
-    setFrozenSnapshotTime(nowTime);
 
     const newItems: InspectionItemState[] = ingredientsToFreeze.map((item) => ({
       id: item.id,
@@ -604,24 +654,22 @@ export default function HomePage() {
       status: "ACCEPTED",
     }));
 
-    setInspectionItems(newItems);
-    setSyncStatus("SAVING");
-
     const updatedPlan: WeeklyPlan = {
       ...weeklyPlan,
       [selectedDayKey]: {
         ...curDay,
         ingredients: ingredientsToFreeze,
         isFrozen: true,
+        frozenAtTime: nowTime,
+        inspectionItems: newItems,
       },
     };
-    setWeeklyPlan(updatedPlan);
 
+    setWeeklyPlan(updatedPlan);
+    setSyncStatus("SAVING");
+    saveLocalState({ weeklyPlan: updatedPlan });
     await saveCloudState({
-      isPlanFrozen: true,
-      dailyIngredients: ingredientsToFreeze,
       weeklyPlan: updatedPlan,
-      inspectionItems: newItems,
       selectedDayKey,
     });
     setSyncStatus("SYNCED");
@@ -751,8 +799,12 @@ export default function HomePage() {
         note: "ซื้อเพิ่มหน้างาน (นอกสูตรประจำวัน)",
       };
 
-      const updatedInspection = [...inspectionItems, newItem];
-      setInspectionItems(updatedInspection);
+      const curDay = weeklyPlan[selectedDayKey] || DEFAULT_WEEKLY_PLAN[selectedDayKey];
+      const currentList =
+        curDay.inspectionItems && curDay.inspectionItems.length > 0
+          ? curDay.inspectionItems
+          : inspectionItems;
+      const updatedInspection = [...currentList, newItem];
 
       const newTx: FinancialTransactionDisplay = {
         id: `tx-${Date.now()}`,
@@ -760,24 +812,34 @@ export default function HomePage() {
         date: new Date().toLocaleDateString("th-TH"),
         type: "EXPENSE",
         category: "เครื่องปรุงเพิ่มหน้างาน",
-        description: `ซื้อเพิ่มหน้างาน: ${adHocName} (${qty} ${adHocUnit || "รายการ"})`,
+        description: `ซื้อเพิ่มหน้างาน (${activeDayDefinition.label}): ${adHocName} (${qty} ${adHocUnit || "รายการ"})`,
         amount: qty * price,
       };
       const updatedTx = [newTx, ...transactions];
       setTransactions(updatedTx);
 
+      const updatedPlan: WeeklyPlan = {
+        ...weeklyPlan,
+        [selectedDayKey]: {
+          ...curDay,
+          inspectionItems: updatedInspection,
+        },
+      };
+
+      setWeeklyPlan(updatedPlan);
       setShowAdHocModal(false);
       setAdHocName("");
       setAdHocPrice("");
 
       setSyncStatus("SAVING");
+      saveLocalState({ weeklyPlan: updatedPlan, transactions: updatedTx });
       await saveCloudState({
-        inspectionItems: updatedInspection,
+        weeklyPlan: updatedPlan,
         transactions: updatedTx,
       });
       setSyncStatus("SYNCED");
 
-      alert(`✓ เพิ่มรายการซื้อหน้างาน "${adHocName}" (${(qty * price).toLocaleString()} ฿) เข้าสู่ใบตรวจรับและสมุดบัญชีแล้ว`);
+      alert(`✓ เพิ่มรายการซื้อหน้างาน "${adHocName}" (${(qty * price).toLocaleString()} ฿) เข้าสู่ใบตรวจรับ${activeDayDefinition.label}และสมุดบัญชีแล้ว`);
     }
   };
 
@@ -1114,9 +1176,6 @@ export default function HomePage() {
                     type="button"
                     onClick={() => {
                       setSelectedDayKey(key);
-                      const dayData = weeklyPlan[key] || DEFAULT_WEEKLY_PLAN[key];
-                      setDailyIngredients(dayData.ingredients || []);
-                      setIsPlanFrozen(!!dayData.isFrozen);
                     }}
                     className={`flex-1 min-w-[70px] py-1.5 px-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap ${
                       isSelected
@@ -1461,8 +1520,6 @@ export default function HomePage() {
                       type="button"
                       onClick={() => {
                         setSelectedDayKey(key);
-                        setDailyIngredients(dayData.ingredients || []);
-                        setIsPlanFrozen(!!dayData.isFrozen);
                       }}
                       className={`relative p-3.5 rounded-2xl text-left border transition-all flex flex-col justify-between ${
                         isSelected
@@ -1566,11 +1623,10 @@ export default function HomePage() {
                         หรือดึงสูตรเมนูต้นแบบมาใส่ใน{activeDayDefinition.label}:
                       </label>
                       <select
-                        value={selectedMenuId}
+                        value=""
                         onChange={(e) => {
                           const val = e.target.value;
                           if (!val) return;
-                          setSelectedMenuId(val);
                           const selected = presetMenus.find((m) => m.id === val);
                           if (selected) {
                             const clonedIngs = selected.ingredients.map((ing) => ({
@@ -1587,22 +1643,26 @@ export default function HomePage() {
                                   isFrozen: false,
                                 },
                               };
-                              saveLocalState({ weeklyPlan: updatedPlan, dailyIngredients: clonedIngs });
-                              saveCloudState({ weeklyPlan: updatedPlan, dailyIngredients: clonedIngs }).catch(console.warn);
+                              saveLocalState({ weeklyPlan: updatedPlan });
+                              saveCloudState({ weeklyPlan: updatedPlan }).catch(console.warn);
                               return updatedPlan;
                             });
-                            setDailyIngredients(clonedIngs);
                             setIsPlanFrozen(false);
                           }
                         }}
                         className="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-medium text-slate-700 focus:outline-none max-w-xs"
                       >
-                        <option value="">-- เลือกสูตรต้นแบบเพื่อใส่ในวันนี้ --</option>
-                        {presetMenus.map((m) => (
-                          <option key={m.id} value={m.id}>
-                            {m.name}
-                          </option>
-                        ))}
+                        <option value="">-- ดึงสูตรอาหารต้นแบบมาใส่ในวันนี้ --</option>
+                        {presetMenus.map((m) => {
+                          const assignedDay = DAY_DEFINITIONS.find(
+                            (d) => weeklyPlan[d.key]?.menuName === m.name && d.key !== selectedDayKey
+                          );
+                          return (
+                            <option key={m.id} value={m.id}>
+                              {m.name} {assignedDay ? `(ใช้อยู่ใน${assignedDay.label})` : ""}
+                            </option>
+                          );
+                        })}
                       </select>
                     </div>
                   )}

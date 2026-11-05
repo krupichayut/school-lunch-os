@@ -107,4 +107,49 @@ describe("Package 6: State Persistence & Schema Normalization Tests", () => {
     assert.strictEqual(cleaned.length, 1);
     assert.strictEqual(cleaned[0].id, "tx-real-1");
   });
+
+  it("T-025: Day-level isolation prevents state, ingredients, and inspection leakage across days", () => {
+    const customWeekly = normalizeWeeklyPlan({
+      friday: {
+        menuName: "แกงกะทิไก่/ฟักทอง/ผัดวุ้นเส้น/ผลไม้",
+        category: "กับข้าว",
+        ingredients: [
+          { id: "ing-fri-1", name: "เนื้อสัตว์หลัก (ไก่/หมู)", qty: 6, unit: "กก.", unitPrice: 110 },
+        ],
+        isFrozen: true,
+        inspectionItems: [
+          { id: "insp-fri-1", name: "เนื้อสัตว์หลัก", ordered: 6, received: 6, accepted: 6, rejected: 0, unit: "กก.", unitPrice: 110, status: "ACCEPTED" },
+        ],
+        isReceivingConfirmed: true,
+        confirmedAtTime: "07:15 น.",
+      },
+      thursday: {
+        menuName: "เมนูวันพฤหัสบดี",
+        category: "อาหารจานเดียว",
+        ingredients: [],
+        isFrozen: false,
+        inspectionItems: [],
+        isReceivingConfirmed: false,
+        confirmedAtTime: null,
+      },
+    });
+
+    // Friday has its own distinct items and confirmed status
+    assert.strictEqual(customWeekly.friday.menuName, "แกงกะทิไก่/ฟักทอง/ผัดวุ้นเส้น/ผลไม้");
+    assert.strictEqual(customWeekly.friday.ingredients.length, 1);
+    assert.strictEqual(customWeekly.friday.inspectionItems?.length, 1);
+    assert.strictEqual(customWeekly.friday.isReceivingConfirmed, true);
+
+    // Thursday MUST NOT see or share Friday's items
+    assert.strictEqual(customWeekly.thursday.menuName, "เมนูวันพฤหัสบดี");
+    assert.strictEqual(customWeekly.thursday.ingredients.length, 0);
+    assert.strictEqual(customWeekly.thursday.inspectionItems?.length, 0);
+    assert.strictEqual(customWeekly.thursday.isReceivingConfirmed, false);
+    assert.strictEqual(customWeekly.thursday.confirmedAtTime, null);
+
+    // Monday, Tuesday, Wednesday also remain clean
+    assert.strictEqual(customWeekly.monday.ingredients.length, 0);
+    assert.strictEqual(customWeekly.tuesday.ingredients.length, 0);
+    assert.strictEqual(customWeekly.wednesday.ingredients.length, 0);
+  });
 });

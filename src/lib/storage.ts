@@ -90,53 +90,6 @@ export interface PresetMenu {
   ingredients: MenuItem[];
 }
 
-export interface DayPlan {
-  menuName: string;
-  category: string;
-  ingredients: MenuItem[];
-  isFrozen?: boolean;
-}
-
-export type WeeklyPlan = Record<DayKey, DayPlan>;
-
-export const DEFAULT_WEEKLY_PLAN: WeeklyPlan = {
-  monday: {
-    menuName: "เมนูวันจันทร์",
-    category: "อาหารจานเดียว",
-    ingredients: [],
-    isFrozen: false,
-  },
-  tuesday: {
-    menuName: "เมนูวันอังคาร",
-    category: "อาหารจานเดียว",
-    ingredients: [],
-    isFrozen: false,
-  },
-  wednesday: {
-    menuName: "เมนูวันพุธ",
-    category: "อาหารจานเดียว",
-    ingredients: [],
-    isFrozen: false,
-  },
-  thursday: {
-    menuName: "เมนูวันพฤหัสบดี",
-    category: "อาหารจานเดียว",
-    ingredients: [],
-    isFrozen: false,
-  },
-  friday: {
-    menuName: "แกงกะทิไก่/ฟักทอง/ผัดวุ้นเส้น/ผลไม้",
-    category: "กับข้าว",
-    ingredients: [
-      { id: "ing-fri-1", name: "เนื้อสัตว์หลัก (ไก่/หมู)", qty: 6, unit: "กก.", unitPrice: 110 },
-      { id: "ing-fri-2", name: "ผักสด / เครื่องแกง", qty: 2.5, unit: "กก.", unitPrice: 40 },
-      { id: "ing-fri-3", name: "ข้าวสารหอมมะลิ 100%", qty: 10, unit: "กก.", unitPrice: 38 },
-      { id: "ing-fri-4", name: "เครื่องปรุงรส", qty: 1, unit: "ขวด", unitPrice: 45 },
-    ],
-    isFrozen: false,
-  },
-};
-
 export interface InspectionItemState {
   id: string;
   name: string;
@@ -151,6 +104,77 @@ export interface InspectionItemState {
   note?: string;
   photoUrl?: string;
 }
+
+export interface DayPlan {
+  menuName: string;
+  category: string;
+  ingredients: MenuItem[];
+  isFrozen?: boolean;
+  frozenAtTime?: string | null;
+  inspectionItems?: InspectionItemState[];
+  isReceivingConfirmed?: boolean;
+  confirmedAtTime?: string | null;
+}
+
+export type WeeklyPlan = Record<DayKey, DayPlan>;
+
+export const DEFAULT_WEEKLY_PLAN: WeeklyPlan = {
+  monday: {
+    menuName: "เมนูวันจันทร์",
+    category: "อาหารจานเดียว",
+    ingredients: [],
+    isFrozen: false,
+    frozenAtTime: null,
+    inspectionItems: [],
+    isReceivingConfirmed: false,
+    confirmedAtTime: null,
+  },
+  tuesday: {
+    menuName: "เมนูวันอังคาร",
+    category: "อาหารจานเดียว",
+    ingredients: [],
+    isFrozen: false,
+    frozenAtTime: null,
+    inspectionItems: [],
+    isReceivingConfirmed: false,
+    confirmedAtTime: null,
+  },
+  wednesday: {
+    menuName: "เมนูวันพุธ",
+    category: "อาหารจานเดียว",
+    ingredients: [],
+    isFrozen: false,
+    frozenAtTime: null,
+    inspectionItems: [],
+    isReceivingConfirmed: false,
+    confirmedAtTime: null,
+  },
+  thursday: {
+    menuName: "เมนูวันพฤหัสบดี",
+    category: "อาหารจานเดียว",
+    ingredients: [],
+    isFrozen: false,
+    frozenAtTime: null,
+    inspectionItems: [],
+    isReceivingConfirmed: false,
+    confirmedAtTime: null,
+  },
+  friday: {
+    menuName: "แกงกะทิไก่/ฟักทอง/ผัดวุ้นเส้น/ผลไม้",
+    category: "กับข้าว",
+    ingredients: [
+      { id: "ing-fri-1", name: "เนื้อสัตว์หลัก (ไก่/หมู)", qty: 6, unit: "กก.", unitPrice: 110 },
+      { id: "ing-fri-2", name: "ผักสด / เครื่องแกง", qty: 2.5, unit: "กก.", unitPrice: 40 },
+      { id: "ing-fri-3", name: "ข้าวสารหอมมะลิ 100%", qty: 10, unit: "กก.", unitPrice: 38 },
+      { id: "ing-fri-4", name: "เครื่องปรุงรส", qty: 1, unit: "ขวด", unitPrice: 45 },
+    ],
+    isFrozen: false,
+    frozenAtTime: null,
+    inspectionItems: [],
+    isReceivingConfirmed: false,
+    confirmedAtTime: null,
+  },
+};
 
 export interface FinancialTransactionDisplay {
   id: string;
@@ -274,6 +298,13 @@ export function normalizeWeeklyPlan(raw: unknown): WeeklyPlan {
         category: typeof dp.category === "string" ? dp.category : "อาหารจานเดียว",
         ingredients: Array.isArray(dp.ingredients) ? (dp.ingredients as MenuItem[]) : [],
         isFrozen: typeof dp.isFrozen === "boolean" ? dp.isFrozen : false,
+        frozenAtTime: typeof dp.frozenAtTime === "string" ? dp.frozenAtTime : null,
+        inspectionItems: Array.isArray(dp.inspectionItems)
+          ? (dp.inspectionItems as InspectionItemState[])
+          : [],
+        isReceivingConfirmed:
+          typeof dp.isReceivingConfirmed === "boolean" ? dp.isReceivingConfirmed : false,
+        confirmedAtTime: typeof dp.confirmedAtTime === "string" ? dp.confirmedAtTime : null,
       };
     }
   }
