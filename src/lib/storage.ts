@@ -3,6 +3,42 @@ import { supabase, isSupabaseConfigured } from "./supabase/client";
 export const DEFAULT_SCHOOL_ID = "11111111-1111-1111-1111-111111111111";
 export const STORAGE_KEY = "school_lunch_os_state_v2";
 
+export type DayKey = "monday" | "tuesday" | "wednesday" | "thursday" | "friday";
+
+export interface DayDefinition {
+  key: DayKey;
+  label: string;
+  shortLabel: string;
+  dotColor: string;
+  activeBadge: string;
+}
+
+export const DAY_DEFINITIONS: DayDefinition[] = [
+  { key: "monday", label: "วันจันทร์", shortLabel: "จันทร์", dotColor: "bg-amber-400", activeBadge: "bg-amber-50 text-amber-900 border-amber-300 ring-amber-400/30" },
+  { key: "tuesday", label: "วันอังคาร", shortLabel: "อังคาร", dotColor: "bg-pink-400", activeBadge: "bg-pink-50 text-pink-900 border-pink-300 ring-pink-400/30" },
+  { key: "wednesday", label: "วันพุธ", shortLabel: "พุธ", dotColor: "bg-emerald-500", activeBadge: "bg-emerald-50 text-emerald-900 border-emerald-300 ring-emerald-400/30" },
+  { key: "thursday", label: "วันพฤหัสบดี", shortLabel: "พฤหัสบดี", dotColor: "bg-orange-500", activeBadge: "bg-orange-50 text-orange-900 border-orange-300 ring-orange-400/30" },
+  { key: "friday", label: "วันศุกร์", shortLabel: "ศุกร์", dotColor: "bg-blue-400", activeBadge: "bg-blue-50 text-blue-900 border-blue-300 ring-blue-400/30" },
+];
+
+export function getTodayDayKey(): DayKey {
+  const d = new Date().getDay();
+  switch (d) {
+    case 1:
+      return "monday";
+    case 2:
+      return "tuesday";
+    case 3:
+      return "wednesday";
+    case 4:
+      return "thursday";
+    case 5:
+      return "friday";
+    default:
+      return "thursday";
+  }
+}
+
 export interface DutyRoster {
   monday: string[];
   tuesday: string[];
@@ -54,6 +90,48 @@ export interface PresetMenu {
   ingredients: MenuItem[];
 }
 
+export interface DayPlan {
+  menuName: string;
+  category: string;
+  ingredients: MenuItem[];
+  isFrozen?: boolean;
+}
+
+export type WeeklyPlan = Record<DayKey, DayPlan>;
+
+export const DEFAULT_WEEKLY_PLAN: WeeklyPlan = {
+  monday: {
+    menuName: "เมนูวันจันทร์",
+    category: "อาหารจานเดียว",
+    ingredients: [],
+    isFrozen: false,
+  },
+  tuesday: {
+    menuName: "เมนูวันอังคาร",
+    category: "อาหารจานเดียว",
+    ingredients: [],
+    isFrozen: false,
+  },
+  wednesday: {
+    menuName: "เมนูวันพุธ",
+    category: "อาหารจานเดียว",
+    ingredients: [],
+    isFrozen: false,
+  },
+  thursday: {
+    menuName: "เมนูวันพฤหัสบดี",
+    category: "อาหารจานเดียว",
+    ingredients: [],
+    isFrozen: false,
+  },
+  friday: {
+    menuName: "เมนูวันศุกร์",
+    category: "อาหารจานเดียว",
+    ingredients: [],
+    isFrozen: false,
+  },
+};
+
 export interface InspectionItemState {
   id: string;
   name: string;
@@ -81,6 +159,8 @@ export interface FinancialTransactionDisplay {
 
 export interface AppSyncPayload {
   settings?: SchoolSettings;
+  weeklyPlan?: WeeklyPlan;
+  selectedDayKey?: DayKey;
   presetMenus?: PresetMenu[];
   selectedMenuId?: string;
   activeMenuId?: string;
@@ -105,7 +185,6 @@ export function normalizeSchoolSettings(raw: unknown, fallbackName?: string): Sc
   }
 
   const obj = raw as Record<string, unknown>;
-  // Support both nested { settings: { ... } } and flat { ... }
   const source =
     obj.settings && typeof obj.settings === "object"
       ? (obj.settings as Record<string, unknown>)
@@ -164,6 +243,38 @@ export function normalizeSchoolSettings(raw: unknown, fallbackName?: string): Sc
   };
 }
 
+/**
+ * Defensive Normalizer: Guarantees complete 5-day WeeklyPlan structure
+ */
+export function normalizeWeeklyPlan(raw: unknown): WeeklyPlan {
+  if (!raw || typeof raw !== "object") return { ...DEFAULT_WEEKLY_PLAN };
+  const obj = raw as Record<string, unknown>;
+  const days: DayKey[] = ["monday", "tuesday", "wednesday", "thursday", "friday"];
+  const result: WeeklyPlan = {
+    monday: { ...DEFAULT_WEEKLY_PLAN.monday },
+    tuesday: { ...DEFAULT_WEEKLY_PLAN.tuesday },
+    wednesday: { ...DEFAULT_WEEKLY_PLAN.wednesday },
+    thursday: { ...DEFAULT_WEEKLY_PLAN.thursday },
+    friday: { ...DEFAULT_WEEKLY_PLAN.friday },
+  };
+
+  for (const day of days) {
+    if (obj[day] && typeof obj[day] === "object") {
+      const dp = obj[day] as Record<string, unknown>;
+      result[day] = {
+        menuName:
+          typeof dp.menuName === "string" && dp.menuName.trim()
+            ? dp.menuName
+            : DEFAULT_WEEKLY_PLAN[day].menuName,
+        category: typeof dp.category === "string" ? dp.category : "อาหารจานเดียว",
+        ingredients: Array.isArray(dp.ingredients) ? (dp.ingredients as MenuItem[]) : [],
+        isFrozen: typeof dp.isFrozen === "boolean" ? dp.isFrozen : false,
+      };
+    }
+  }
+  return result;
+}
+
 export function loadLocalState(): AppSyncPayload | null {
   if (typeof window === "undefined") return null;
   try {
@@ -175,6 +286,9 @@ export function loadLocalState(): AppSyncPayload | null {
     const parsed = JSON.parse(raw) as AppSyncPayload;
     if (parsed.settings) {
       parsed.settings = normalizeSchoolSettings(parsed.settings);
+    }
+    if (parsed.weeklyPlan) {
+      parsed.weeklyPlan = normalizeWeeklyPlan(parsed.weeklyPlan);
     }
     return parsed;
   } catch (e) {
@@ -194,6 +308,9 @@ export function saveLocalState(payload: AppSyncPayload) {
     };
     if (merged.settings) {
       merged.settings = normalizeSchoolSettings(merged.settings);
+    }
+    if (merged.weeklyPlan) {
+      merged.weeklyPlan = normalizeWeeklyPlan(merged.weeklyPlan);
     }
     const serialized = JSON.stringify(merged);
     localStorage.setItem(STORAGE_KEY, serialized);
@@ -219,9 +336,17 @@ export async function fetchCloudState(): Promise<AppSyncPayload | null> {
 
     const cloudData = (data.settings as Record<string, unknown>) || {};
     const normalizedSettings = normalizeSchoolSettings(cloudData, data.name);
+    const normalizedWeeklyPlan = cloudData.weeklyPlan
+      ? normalizeWeeklyPlan(cloudData.weeklyPlan)
+      : undefined;
 
     const result: AppSyncPayload = {
       settings: normalizedSettings,
+      weeklyPlan: normalizedWeeklyPlan,
+      selectedDayKey:
+        typeof cloudData.selectedDayKey === "string"
+          ? (cloudData.selectedDayKey as DayKey)
+          : undefined,
       presetMenus: Array.isArray(cloudData.presetMenus)
         ? (cloudData.presetMenus as PresetMenu[])
         : undefined,
@@ -295,11 +420,18 @@ export async function saveCloudState(
       ? normalizeSchoolSettings(payload.settings)
       : normalizeSchoolSettings(currentCloud, existingData?.name);
 
+    const mergedWeeklyPlan = payload.weeklyPlan
+      ? normalizeWeeklyPlan(payload.weeklyPlan)
+      : currentCloud.weeklyPlan
+      ? normalizeWeeklyPlan(currentCloud.weeklyPlan)
+      : undefined;
+
     const fullMerged: Record<string, unknown> = {
       ...currentCloud,
       ...local,
       ...payload,
       settings: mergedSettings,
+      ...(mergedWeeklyPlan ? { weeklyPlan: mergedWeeklyPlan } : {}),
       lastUpdated: new Date().toISOString(),
     };
 

@@ -48,8 +48,15 @@ import {
   saveCloudState,
   DEFAULT_SCHOOL_SETTINGS,
   DEFAULT_DUTY_ROSTER,
+  DEFAULT_WEEKLY_PLAN,
+  normalizeWeeklyPlan,
+  DAY_DEFINITIONS,
+  getTodayDayKey,
   SchoolSettings,
   DutyRoster,
+  DayKey,
+  DayPlan,
+  WeeklyPlan,
   MenuItem,
   PresetMenu,
   InspectionItemState,
@@ -96,14 +103,28 @@ export default function HomePage() {
   const [lastSyncTime, setLastSyncTime] = useState<string>("");
 
   // =========================================================================
-  // 2. DAILY MENU & INGREDIENT STATE (กำหนดราคา/ปริมาณตรง ไม่คูณเด็ก)
+  // 2. DAILY MENU & INGREDIENT STATE (ตาราง 5 วันทำการ จันทร์-ศุกร์)
   // =========================================================================
+  const todayDayKey = useMemo(() => getTodayDayKey(), []);
+  const [selectedDayKey, setSelectedDayKey] = useState<DayKey>(todayDayKey);
+  const [weeklyPlan, setWeeklyPlan] = useState<WeeklyPlan>(DEFAULT_WEEKLY_PLAN);
+
   const [presetMenus, setPresetMenus] = useState<PresetMenu[]>(PRESET_MENUS);
   const [newMenuCategory, setNewMenuCategory] = useState<string>("อาหารจานเดียว");
   const [selectedMenuId, setSelectedMenuId] = useState<string>("menu-custom");
   const [dailyIngredients, setDailyIngredients] = useState<MenuItem[]>([]);
   const [isPlanFrozen, setIsPlanFrozen] = useState<boolean>(false);
   const [frozenSnapshotTime, setFrozenSnapshotTime] = useState<string>("06:30 น.");
+
+  // Auto-persist Weekly Plan & Day Selection to Local Storage
+  const isWeeklyMount = useRef(true);
+  useEffect(() => {
+    if (isWeeklyMount.current) {
+      isWeeklyMount.current = false;
+      return;
+    }
+    saveLocalState({ weeklyPlan, selectedDayKey });
+  }, [weeklyPlan, selectedDayKey]);
 
   // Persistent State Hydration: LocalStorage First, then Cloud Sync
   useEffect(() => {
@@ -114,6 +135,12 @@ export default function HomePage() {
         setSettings(local.settings);
         setSettingsForm(local.settings);
       }
+      if (local.weeklyPlan) {
+        setWeeklyPlan(local.weeklyPlan);
+      }
+      if (local.selectedDayKey) {
+        setSelectedDayKey(local.selectedDayKey);
+      }
       if (local.presetMenus && local.presetMenus.length > 0) {
         setPresetMenus(local.presetMenus);
       }
@@ -123,8 +150,11 @@ export default function HomePage() {
       if (local.selectedMenuId) {
         setSelectedMenuId(local.selectedMenuId);
       }
-      if (local.transactions && local.transactions.length > 0) {
-        setTransactions(local.transactions);
+      if (local.transactions && Array.isArray(local.transactions)) {
+        const cleaned = local.transactions.filter(
+          (t) => !["tx-1", "tx-2", "tx-3", "tx-4", "tx-5"].includes(t.id)
+        );
+        setTransactions(cleaned);
       }
       if (local.inspectionItems && local.inspectionItems.length > 0) {
         setInspectionItems(local.inspectionItems);
@@ -148,6 +178,12 @@ export default function HomePage() {
             setSettings(cloud.settings);
             setSettingsForm(cloud.settings);
           }
+          if (cloud.weeklyPlan) {
+            setWeeklyPlan(cloud.weeklyPlan);
+          }
+          if (cloud.selectedDayKey) {
+            setSelectedDayKey(cloud.selectedDayKey);
+          }
           if (cloud.presetMenus && cloud.presetMenus.length > 0) {
             setPresetMenus(cloud.presetMenus);
           }
@@ -157,8 +193,11 @@ export default function HomePage() {
           if (cloud.selectedMenuId) {
             setSelectedMenuId(cloud.selectedMenuId);
           }
-          if (cloud.transactions && cloud.transactions.length > 0) {
-            setTransactions(cloud.transactions);
+          if (cloud.transactions && Array.isArray(cloud.transactions)) {
+            const cleaned = cloud.transactions.filter(
+              (t) => !["tx-1", "tx-2", "tx-3", "tx-4", "tx-5"].includes(t.id)
+            );
+            setTransactions(cleaned);
           }
           if (cloud.inspectionItems && cloud.inspectionItems.length > 0) {
             setInspectionItems(cloud.inspectionItems);
@@ -268,96 +307,127 @@ export default function HomePage() {
     });
   };
 
+  const activeDayDefinition = useMemo(() => {
+    return DAY_DEFINITIONS.find((d) => d.key === selectedDayKey) || DAY_DEFINITIONS[3];
+  }, [selectedDayKey]);
+
+  const activeDayPlan = weeklyPlan[selectedDayKey] || DEFAULT_WEEKLY_PLAN[selectedDayKey];
+
+  const activeDayCost = useMemo(() => {
+    return (activeDayPlan.ingredients || []).reduce(
+      (sum, item) => sum + Number((item.qty * item.unitPrice).toFixed(2)),
+      0
+    );
+  }, [activeDayPlan.ingredients]);
+
+  const totalWeeklyPlannedCost = useMemo(() => {
+    return Object.values(weeklyPlan).reduce((sum, day) => {
+      const dCost = (day.ingredients || []).reduce(
+        (s, item) => s + Number((item.qty * item.unitPrice).toFixed(2)),
+        0
+      );
+      return sum + dCost;
+    }, 0);
+  }, [weeklyPlan]);
+
   const activeMenu = useMemo(() => {
-    return presetMenus.find((m) => m.id === selectedMenuId) || presetMenus[0] || PRESET_MENUS[0];
-  }, [presetMenus, selectedMenuId]);
+    return {
+      name: activeDayPlan.menuName || `เมนู${activeDayDefinition.label}`,
+    };
+  }, [activeDayPlan.menuName, activeDayDefinition.label]);
+
+  const handleUpdateDayMenuName = (newName: string) => {
+    setWeeklyPlan((prev) => {
+      const cur = prev[selectedDayKey] || DEFAULT_WEEKLY_PLAN[selectedDayKey];
+      const updatedPlan: WeeklyPlan = {
+        ...prev,
+        [selectedDayKey]: {
+          ...cur,
+          menuName: newName,
+        },
+      };
+      saveLocalState({ weeklyPlan: updatedPlan });
+      return updatedPlan;
+    });
+    setIsPlanFrozen(false);
+  };
 
   const handleUpdateMenuName = (newName: string) => {
-    setPresetMenus((prev) =>
-      prev.map((m) => (m.id === selectedMenuId ? { ...m, name: newName } : m))
-    );
-    setIsPlanFrozen(false);
+    handleUpdateDayMenuName(newName);
   };
 
-  const handleDeleteMenu = async (menuId: string) => {
-    if (presetMenus.length <= 1) {
-      const resetMenu: PresetMenu = {
-        id: `menu-${Date.now()}`,
-        name: "เมนูอาหารกลางวันประจำวัน",
-        category: "อาหารจานเดียว",
-        ingredients: [],
-      };
-      setPresetMenus([resetMenu]);
-      setSelectedMenuId(resetMenu.id);
+  const handleDeleteMenu = async () => {
+    if (confirm(`ต้องการล้างเมนูและรายการวัตถุดิบของ${activeDayDefinition.label}ใช่หรือไม่?`)) {
+      setWeeklyPlan((prev) => {
+        const updatedPlan: WeeklyPlan = {
+          ...prev,
+          [selectedDayKey]: {
+            menuName: `เมนู${activeDayDefinition.label}`,
+            category: "อาหารจานเดียว",
+            ingredients: [],
+            isFrozen: false,
+          },
+        };
+        saveLocalState({ weeklyPlan: updatedPlan, dailyIngredients: [] });
+        saveCloudState({ weeklyPlan: updatedPlan, dailyIngredients: [] }).catch(console.warn);
+        return updatedPlan;
+      });
       setDailyIngredients([]);
       setIsPlanFrozen(false);
-      setSyncStatus("SAVING");
-      await saveCloudState({
-        presetMenus: [resetMenu],
-        selectedMenuId: resetMenu.id,
-        dailyIngredients: [],
-      });
-      setSyncStatus("SYNCED");
-      alert("✓ ลบรายการอาหารและรีเซ็ตเป็นเมนูว่างเรียบร้อยแล้ว");
-      return;
-    }
-
-    if (confirm("ต้องการลบเมนูนี้ออกจากระบบใช่หรือไม่?")) {
-      const remaining = presetMenus.filter((m) => m.id !== menuId);
-      setPresetMenus(remaining);
-      const nextMenu = remaining[0];
-      setSelectedMenuId(nextMenu.id);
-      setDailyIngredients(nextMenu.ingredients ? nextMenu.ingredients.map((ing) => ({ ...ing })) : []);
-      setIsPlanFrozen(false);
-      setSyncStatus("SAVING");
-      await saveCloudState({
-        presetMenus: remaining,
-        selectedMenuId: nextMenu.id,
-        dailyIngredients: nextMenu.ingredients || [],
-      });
-      setSyncStatus("SYNCED");
-      alert("✓ ลบเมนูอาหารออกจากระบบเรียบร้อยแล้ว");
+      alert(`✓ ล้างรายการเมนูและวัตถุดิบ${activeDayDefinition.label}เรียบร้อยแล้ว`);
     }
   };
 
-  const handleSelectMenu = (menuId: string) => {
-    setSelectedMenuId(menuId);
-    const found = presetMenus.find((m) => m.id === menuId);
-    if (found) {
-      setDailyIngredients(found.ingredients.map((ing) => ({ ...ing })));
-    }
-    setIsPlanFrozen(false);
-  };
-
-  const handleUpdateIngredient = (
+  const handleUpdateDayIngredient = (
     id: string,
     field: "name" | "qty" | "unit" | "unitPrice",
     val: string | number
   ) => {
-    setDailyIngredients((prev) => {
-      const updated = prev.map((item) => (item.id === id ? { ...item, [field]: val } : item));
-      saveLocalState({ dailyIngredients: updated });
-      return updated;
+    setWeeklyPlan((prev) => {
+      const curDay = prev[selectedDayKey] || DEFAULT_WEEKLY_PLAN[selectedDayKey];
+      const updatedIngredients = (curDay.ingredients || []).map((item) =>
+        item.id === id ? { ...item, [field]: val } : item
+      );
+      const updatedPlan: WeeklyPlan = {
+        ...prev,
+        [selectedDayKey]: {
+          ...curDay,
+          ingredients: updatedIngredients,
+        },
+      };
+      saveLocalState({ weeklyPlan: updatedPlan });
+      return updatedPlan;
     });
-    setIsPlanFrozen(false);
-  };
-
-  const handleDeleteIngredient = (id: string) => {
-    setDailyIngredients((prev) => {
-      const updated = prev.filter((item) => item.id !== id);
-      saveLocalState({ dailyIngredients: updated });
-      saveCloudState({ dailyIngredients: updated }).catch(console.warn);
-      return updated;
-    });
-    setIsPlanFrozen(false);
-  };
-
-  const totalDailyCost = useMemo(() => {
-    return dailyIngredients.reduce(
-      (sum, item) => sum + Number((item.qty * item.unitPrice).toFixed(2)),
-      0
+    setDailyIngredients((prev) =>
+      prev.map((item) => (item.id === id ? { ...item, [field]: val } : item))
     );
-  }, [dailyIngredients]);
+    setIsPlanFrozen(false);
+  };
+
+  const handleUpdateIngredient = handleUpdateDayIngredient;
+
+  const handleDeleteDayIngredient = (id: string) => {
+    setWeeklyPlan((prev) => {
+      const curDay = prev[selectedDayKey] || DEFAULT_WEEKLY_PLAN[selectedDayKey];
+      const updatedIngredients = (curDay.ingredients || []).filter((item) => item.id !== id);
+      const updatedPlan: WeeklyPlan = {
+        ...prev,
+        [selectedDayKey]: {
+          ...curDay,
+          ingredients: updatedIngredients,
+        },
+      };
+      saveLocalState({ weeklyPlan: updatedPlan });
+      saveCloudState({ weeklyPlan: updatedPlan }).catch(console.warn);
+      return updatedPlan;
+    });
+    setDailyIngredients((prev) => prev.filter((item) => item.id !== id));
+    setIsPlanFrozen(false);
+  };
+
+  const handleDeleteIngredient = handleDeleteDayIngredient;
+
+  const totalDailyCost = activeDayCost;
 
   // =========================================================================
   // 3. MORNING RECEIVING INSPECTION (DUTY TEACHER HUD)
@@ -463,11 +533,17 @@ export default function HomePage() {
   };
 
   const handleConfirmPlan = async () => {
+    const curDay = weeklyPlan[selectedDayKey] || DEFAULT_WEEKLY_PLAN[selectedDayKey];
+    const ingredientsToFreeze =
+      curDay.ingredients && curDay.ingredients.length > 0
+        ? curDay.ingredients
+        : dailyIngredients;
+
     setIsPlanFrozen(true);
     const nowTime = new Date().toLocaleTimeString("th-TH");
     setFrozenSnapshotTime(nowTime);
 
-    const newItems: InspectionItemState[] = dailyIngredients.map((item) => ({
+    const newItems: InspectionItemState[] = ingredientsToFreeze.map((item) => ({
       id: item.id,
       name: item.name,
       ordered: item.qty,
@@ -482,69 +558,48 @@ export default function HomePage() {
     setInspectionItems(newItems);
     setSyncStatus("SAVING");
 
+    const updatedPlan: WeeklyPlan = {
+      ...weeklyPlan,
+      [selectedDayKey]: {
+        ...curDay,
+        ingredients: ingredientsToFreeze,
+        isFrozen: true,
+      },
+    };
+    setWeeklyPlan(updatedPlan);
+
     await saveCloudState({
       isPlanFrozen: true,
-      dailyIngredients,
+      dailyIngredients: ingredientsToFreeze,
+      weeklyPlan: updatedPlan,
       inspectionItems: newItems,
-      selectedMenuId,
+      selectedDayKey,
     });
     setSyncStatus("SYNCED");
 
+    const dutyTeachers =
+      settings.dutyRoster?.[selectedDayKey] &&
+      settings.dutyRoster[selectedDayKey].length > 0
+        ? settings.dutyRoster[selectedDayKey]
+        : ["ครูเวรประจำวัน"];
     alert(
-      `🔒 ตรึงรายการวัตถุดิบเรียบร้อย (${nowTime})\nเมนู: ${activeMenu.name}\nจำนวน: ${dailyIngredients.length} รายการ (รวม ${totalDailyCost.toLocaleString()} ฿)\nบันทึกลง Cloud และส่งรายการตรวจรับไปยังมือถือคณะครูเวร (${todayDutyInfo.teachersSummary}) แล้ว`
+      `🔒 ตรึงรายการวัตถุดิบ${activeDayDefinition.label} เรียบร้อย (${nowTime})\nเมนู: ${curDay.menuName}\nจำนวน: ${ingredientsToFreeze.length} รายการ (รวม ${activeDayCost.toLocaleString()} ฿)\nบันทึกลง Cloud และส่งรายการตรวจรับไปยังมือถือคณะครูเวร (${dutyTeachers.join(", ")}) แล้ว`
     );
   };
 
   // =========================================================================
   // 4. FINANCIAL LEDGER STATE
   // =========================================================================
-  const [transactions, setTransactions] = useState<FinancialTransactionDisplay[]>([
-    {
-      id: "tx-1",
-      documentNo: "FIN-2569-000001",
-      date: "01/11/2569",
-      type: "INCOME",
-      category: "เงินอุดหนุน",
-      description: "รับเงินจัดสรรงบอาหารกลางวันงวดที่ 1 (อปท.)",
-      amount: 99000,
-    },
-    {
-      id: "tx-2",
-      documentNo: "FIN-2569-000002",
-      date: "03/11/2569",
-      type: "EXPENSE",
-      category: "ค่าวัตถุดิบ",
-      description: "ตัดจ่ายค่าวัตถุดิบก๋วยเตี๋ยวน้ำใส (RCV-2569-000000)",
-      amount: 1180,
-    },
-    {
-      id: "tx-3",
-      documentNo: "FIN-2569-000003",
-      date: "03/11/2569",
-      type: "EXPENSE",
-      category: "ค่าจ้างแม่ครัว",
-      description: "ค่าจ้างเหมาผู้ประกอบอาหาร ประจำสัปดาห์",
-      amount: 400,
-    },
-    {
-      id: "tx-4",
-      documentNo: "FIN-2569-000004",
-      date: "04/11/2569",
-      type: "EXPENSE",
-      category: "ค่าก๊าซหุงต้มและเชื้อเพลิง",
-      description: "ค่าเติมก๊าซหุงต้ม ปตท. 15 กก. (1 ถัง)",
-      amount: 450,
-    },
-    {
-      id: "tx-5",
-      documentNo: "FIN-2569-000005",
-      date: "05/11/2569",
-      type: "EXPENSE",
-      category: "ค่าวัตถุดิบ",
-      description: "ตัดจ่ายค่าวัตถุดิบข้าวมันไก่ตอน (RCV-2569-1105)",
-      amount: 1210,
-    },
-  ]);
+  const [transactions, setTransactions] = useState<FinancialTransactionDisplay[]>([]);
+
+  const handleDeleteTransaction = async (id: string) => {
+    if (confirm("ต้องการลบรายการนี้ออกจากสมุดบัญชีใช่หรือไม่?")) {
+      const updated = transactions.filter((t) => t.id !== id);
+      setTransactions(updated);
+      saveLocalState({ transactions: updated });
+      await saveCloudState({ transactions: updated });
+    }
+  };
 
   const [ledgerFilter, setLedgerFilter] = useState<"ALL" | "INCOME" | "EXPENSE">("ALL");
 
@@ -688,15 +743,27 @@ export default function HomePage() {
         unit: newIngUnit || "กก.",
         unitPrice: price,
       };
-      const updated = [...dailyIngredients, newItem];
-      setDailyIngredients(updated);
+
+      const curDay = weeklyPlan[selectedDayKey] || DEFAULT_WEEKLY_PLAN[selectedDayKey];
+      const updatedIngredients = [...(curDay.ingredients || []), newItem];
+      const updatedPlan: WeeklyPlan = {
+        ...weeklyPlan,
+        [selectedDayKey]: {
+          ...curDay,
+          ingredients: updatedIngredients,
+          isFrozen: false,
+        },
+      };
+
+      setWeeklyPlan(updatedPlan);
+      setDailyIngredients(updatedIngredients);
       setShowAddIngredientModal(false);
       setNewIngName("");
       setNewIngPrice("");
       setIsPlanFrozen(false);
 
-      saveLocalState({ dailyIngredients: updated });
-      saveCloudState({ dailyIngredients: updated }).catch(console.warn);
+      saveLocalState({ weeklyPlan: updatedPlan, dailyIngredients: updatedIngredients });
+      saveCloudState({ weeklyPlan: updatedPlan, dailyIngredients: updatedIngredients }).catch(console.warn);
     }
   };
 
@@ -973,6 +1040,39 @@ export default function HomePage() {
         {/* ========================================================================= */}
         {activeTab === "KITCHEN_HUD" && (
           <div className="max-w-2xl mx-auto space-y-4">
+            {/* 5-Day Switcher in Kitchen HUD */}
+            <div className="flex items-center gap-1.5 bg-slate-100/90 p-1.5 rounded-2xl border border-slate-200/80 overflow-x-auto w-full">
+              {DAY_DEFINITIONS.map(({ key, shortLabel, dotColor }) => {
+                const isSelected = selectedDayKey === key;
+                const isToday = todayDayKey === key;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => {
+                      setSelectedDayKey(key);
+                      const dayData = weeklyPlan[key] || DEFAULT_WEEKLY_PLAN[key];
+                      setDailyIngredients(dayData.ingredients || []);
+                      setIsPlanFrozen(!!dayData.isFrozen);
+                    }}
+                    className={`flex-1 min-w-[70px] py-1.5 px-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap ${
+                      isSelected
+                        ? "bg-white text-slate-900 shadow-xs ring-1 ring-slate-900/10"
+                        : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
+                    }`}
+                  >
+                    <span className={`w-2 h-2 rounded-full ${dotColor}`} />
+                    <span>{shortLabel}</span>
+                    {isToday && (
+                      <span className="text-[9px] bg-slate-900 text-white px-1 py-0.2 rounded-sm font-bold">
+                        วันนี้
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
             {/* Terminal Header */}
             <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-2xl pointer-events-none" />
@@ -990,17 +1090,22 @@ export default function HomePage() {
                     ตรวจรับของสดในโรงครัว
                   </h2>
                   <p className="text-xs text-slate-600 mt-1 flex items-center gap-1.5">
-                    <span>เมนูวันนี้:</span>
+                    <span>เมนู{activeDayDefinition.label}:</span>
                     <strong className="text-slate-900 bg-slate-100 px-2 py-0.5 rounded-md">
-                      {activeMenu.name}
+                      {activeDayPlan.menuName}
                     </strong>
                   </p>
                 </div>
 
                 <div className="text-right">
-                  <span className="text-[10px] font-mono text-slate-400 block">คณะครูเวรผู้ตรวจรับ</span>
+                  <span className="text-[10px] font-mono text-slate-400 block">
+                    คณะครูเวรประจำ{activeDayDefinition.label}
+                  </span>
                   <div className="text-xs font-bold text-slate-900 mt-0.5 space-y-0.5">
-                    {todayDutyInfo.teachers.map((t, idx) => (
+                    {((settings.dutyRoster?.[selectedDayKey] && settings.dutyRoster[selectedDayKey].length > 0)
+                      ? settings.dutyRoster[selectedDayKey]
+                      : ["ครูเวรประจำวัน"]
+                    ).map((t, idx) => (
                       <div key={idx} className="flex items-center justify-end gap-1">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
                         <span>{t}</span>
@@ -1247,46 +1352,166 @@ export default function HomePage() {
               </div>
             )}
 
+            {/* 5-Day Weekly Menu Schedule Switcher Dock */}
+            <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs space-y-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-slate-700" />
+                    <h3 className="text-sm font-extrabold text-slate-900 tracking-tight">
+                      ตารางอาหารกลางวัน 5 วันทำการ (จันทร์ – ศุกร์)
+                    </h3>
+                  </div>
+                  <p className="text-[11px] text-slate-500 mt-0.5">
+                    คลิกเลือกวันเพื่อกำหนดชื่อเมนูและรายการวัตถุดิบประจำวัน ระบบจะเชื่อมต่อไปยังครูเวรตรวจรับของสดในแท็บ 1 ทันที
+                  </p>
+                </div>
+                <div className="text-right">
+                  <span className="text-[10px] font-mono text-slate-400 block font-bold uppercase">
+                    ประมาณการรวม 5 วันทั้งสัปดาห์
+                  </span>
+                  <span className="text-base font-black font-mono text-slate-900">
+                    {totalWeeklyPlannedCost.toLocaleString(undefined, {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    })}{" "}
+                    <span className="text-xs font-normal text-slate-500">฿</span>
+                  </span>
+                </div>
+              </div>
+
+              {/* 5 Day Cards Grid */}
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-1">
+                {DAY_DEFINITIONS.map(({ key, shortLabel, dotColor, activeBadge }) => {
+                  const isSelected = selectedDayKey === key;
+                  const isToday = todayDayKey === key;
+                  const dayData = weeklyPlan[key] || DEFAULT_WEEKLY_PLAN[key];
+                  const dayIngredientsCount = (dayData.ingredients || []).length;
+                  const dayCost = (dayData.ingredients || []).reduce(
+                    (s, item) => s + Number((item.qty * item.unitPrice).toFixed(2)),
+                    0
+                  );
+
+                  return (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => {
+                        setSelectedDayKey(key);
+                        setDailyIngredients(dayData.ingredients || []);
+                        setIsPlanFrozen(!!dayData.isFrozen);
+                      }}
+                      className={`relative p-3.5 rounded-2xl text-left border transition-all flex flex-col justify-between ${
+                        isSelected
+                          ? `bg-white shadow-md ring-2 ring-slate-900 ${activeBadge}`
+                          : "bg-slate-50/70 border-slate-200/80 hover:bg-slate-100/70 text-slate-700"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-1.5 font-bold text-xs">
+                          <span className={`w-2.5 h-2.5 rounded-full ${dotColor}`} />
+                          <span>{shortLabel}</span>
+                        </div>
+                        {isToday && (
+                          <span className="text-[9px] bg-slate-900 text-white px-1.5 py-0.5 rounded-md font-extrabold tracking-wide">
+                            วันนี้
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="text-xs font-bold text-slate-900 truncate mb-2" title={dayData.menuName}>
+                        {dayData.menuName || "ยังไม่ระบุเมนู"}
+                      </div>
+
+                      <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between text-[11px] font-mono">
+                        <span className="text-slate-500 font-sans text-[10px]">
+                          {dayIngredientsCount} รายการ
+                        </span>
+                        <span className="font-bold text-slate-900">
+                          {dayCost.toLocaleString()} ฿
+                        </span>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Planner Header Card */}
             <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
                 <div className="flex-1 space-y-3">
                   <div>
-                    <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block mb-1">
-                      DAILY PROCUREMENT ENGINE
-                    </span>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block">
+                        DAILY PROCUREMENT ENGINE • {activeDayDefinition.label}
+                      </span>
+                      {selectedDayKey === todayDayKey && (
+                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-900 text-white">
+                          ตรงกับวันนี้
+                        </span>
+                      )}
+                    </div>
                     <label className="text-xs font-bold text-slate-700 block mb-1">
-                      ชื่อเมนูอาหารกลางวันวันนี้ (พิมพ์เปลี่ยนชื่อได้โดยตรง):
+                      ชื่อเมนูอาหารกลางวัน{activeDayDefinition.label} (พิมพ์เปลี่ยนชื่อได้โดยตรง):
                     </label>
                     <div className="flex items-center gap-2 max-w-xl">
                       <input
                         type="text"
-                        value={activeMenu.name}
+                        value={activeDayPlan.menuName}
                         onChange={(e) => handleUpdateMenuName(e.target.value)}
-                        placeholder="พิมพ์ชื่อเมนูอาหารกลางวันวันนี้ เช่น ข้าวผัดไข่หมูสับ, ก๋วยเตี๋ยวน้ำใส"
+                        placeholder={`พิมพ์ชื่อเมนูอาหารกลางวัน${activeDayDefinition.label} เช่น ข้าวผัดไข่หมูสับ, ก๋วยเตี๋ยวน้ำใส`}
                         className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 shadow-2xs"
                       />
                       <button
                         type="button"
-                        onClick={() => handleDeleteMenu(selectedMenuId)}
+                        onClick={handleDeleteMenu}
                         className="p-2.5 rounded-xl border border-rose-200 bg-rose-50/50 text-rose-500 hover:text-rose-700 hover:bg-rose-100 transition-colors shadow-2xs"
-                        title="ลบเมนูนี้ออกจากระบบ"
+                        title={`ล้างเมนูและรายการวัตถุดิบ${activeDayDefinition.label}`}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   </div>
 
-                  {presetMenus.length > 1 && (
+                  {presetMenus.length > 0 && (
                     <div className="flex items-center gap-2">
                       <label className="text-[11px] font-semibold text-slate-500 whitespace-nowrap">
-                        หรือสลับไปยังเมนูอื่นที่บันทึกไว้:
+                        หรือดึงสูตรเมนูต้นแบบมาใส่ใน{activeDayDefinition.label}:
                       </label>
                       <select
                         value={selectedMenuId}
-                        onChange={(e) => handleSelectMenu(e.target.value)}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          if (!val) return;
+                          setSelectedMenuId(val);
+                          const selected = presetMenus.find((m) => m.id === val);
+                          if (selected) {
+                            const clonedIngs = selected.ingredients.map((ing) => ({
+                              ...ing,
+                              id: `ing-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                            }));
+                            setWeeklyPlan((prev) => {
+                              const updatedPlan: WeeklyPlan = {
+                                ...prev,
+                                [selectedDayKey]: {
+                                  menuName: selected.name,
+                                  category: selected.category || "อาหารจานเดียว",
+                                  ingredients: clonedIngs,
+                                  isFrozen: false,
+                                },
+                              };
+                              saveLocalState({ weeklyPlan: updatedPlan, dailyIngredients: clonedIngs });
+                              saveCloudState({ weeklyPlan: updatedPlan, dailyIngredients: clonedIngs }).catch(console.warn);
+                              return updatedPlan;
+                            });
+                            setDailyIngredients(clonedIngs);
+                            setIsPlanFrozen(false);
+                          }
+                        }}
                         className="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-medium text-slate-700 focus:outline-none max-w-xs"
                       >
+                        <option value="">-- เลือกสูตรต้นแบบเพื่อใส่ในวันนี้ --</option>
                         {presetMenus.map((m) => (
                           <option key={m.id} value={m.id}>
                             {m.name}
@@ -1301,10 +1526,10 @@ export default function HomePage() {
                 <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 flex items-center gap-6">
                   <div>
                     <span className="text-[10px] font-mono text-slate-400 uppercase font-bold block">
-                      ยอดรวมค่าวัตถุดิบวันนี้
+                      ยอดรวมค่าวัตถุดิบ ({activeDayDefinition.shortLabel})
                     </span>
                     <span className="text-2xl font-black font-mono text-slate-950">
-                      {totalDailyCost.toLocaleString(undefined, {
+                      {activeDayCost.toLocaleString(undefined, {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
                       })}{" "}
@@ -1320,12 +1545,12 @@ export default function HomePage() {
                     </span>
                     <span
                       className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full mt-0.5 ${
-                        isPlanFrozen
+                        activeDayPlan.isFrozen
                           ? "bg-emerald-100 text-emerald-800"
                           : "bg-amber-100 text-amber-800"
                       }`}
                     >
-                      {isPlanFrozen ? "ตรึง Snapshot แล้ว ✓" : "กำลังกำหนดรายการ"}
+                      {activeDayPlan.isFrozen ? "ตรึง Snapshot แล้ว ✓" : "กำลังกำหนดรายการ"}
                     </span>
                   </div>
                 </div>
@@ -1447,7 +1672,7 @@ export default function HomePage() {
                   <button
                     onClick={async () => {
                       setSyncStatus("SAVING");
-                      await saveCloudState({ dailyIngredients, selectedMenuId });
+                      await saveCloudState({ weeklyPlan, selectedDayKey, dailyIngredients });
                       setSyncStatus("SYNCED");
                       setIngredientSaveToast(true);
                       setTimeout(() => setIngredientSaveToast(false), 3000);
@@ -1795,42 +2020,66 @@ export default function HomePage() {
                     <th className="py-3 px-3">หมวดหมู่</th>
                     <th className="py-3 px-3">รายละเอียด</th>
                     <th className="py-3 px-3 text-right">จำนวนเงิน (บาท)</th>
+                    <th className="py-3 px-3 text-center w-12">จัดการ</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 font-medium">
-                  {transactions
-                    .filter((t) => (ledgerFilter === "ALL" ? true : t.type === ledgerFilter))
-                    .map((tx) => (
-                      <tr key={tx.id} className="hover:bg-slate-50/70 transition-colors">
-                        <td className="py-3 px-3 font-mono font-bold text-slate-900">{tx.documentNo}</td>
-                        <td className="py-3 px-3 font-mono text-slate-500">{tx.date}</td>
-                        <td className="py-3 px-3">
-                          <span
-                            className={`inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                              tx.type === "INCOME"
-                                ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
-                                : "bg-rose-50 text-rose-700 border border-rose-200"
+                  {transactions.filter((t) => (ledgerFilter === "ALL" ? true : t.type === ledgerFilter))
+                    .length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="py-12 text-center text-slate-400">
+                        <FileSpreadsheet className="w-8 h-8 mx-auto mb-2 opacity-30 text-slate-400" />
+                        <span className="block text-xs font-bold text-slate-600">ยังไม่มีรายการบันทึกในสมุดบัญชี</span>
+                        <span className="block text-[11px] text-slate-400 mt-1">
+                          คลิกปุ่ม <strong>&quot;+ รับงบงวดใหม่&quot;</strong> เพื่อบันทึกเงินอุดหนุนที่โอนเข้า หรือเมื่อครูเวรตรวจรับของสดในแท็บ 1 ระบบจะลงบัญชีให้อัตโนมัติ
+                        </span>
+                      </td>
+                    </tr>
+                  ) : (
+                    transactions
+                      .filter((t) => (ledgerFilter === "ALL" ? true : t.type === ledgerFilter))
+                      .map((tx) => (
+                        <tr key={tx.id} className="hover:bg-slate-50/70 transition-colors">
+                          <td className="py-3 px-3 font-mono font-bold text-slate-900">{tx.documentNo}</td>
+                          <td className="py-3 px-3 font-mono text-slate-500">{tx.date}</td>
+                          <td className="py-3 px-3">
+                            <span
+                              className={`inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                                tx.type === "INCOME"
+                                  ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
+                                  : "bg-rose-50 text-rose-700 border border-rose-200"
+                              }`}
+                            >
+                              {tx.type === "INCOME" ? "รายรับ (+)" : "รายจ่าย (-)"}
+                            </span>
+                          </td>
+                          <td className="py-3 px-3 font-semibold text-slate-700">{tx.category}</td>
+                          <td className="py-3 px-3 text-slate-800">{tx.description}</td>
+                          <td
+                            className={`py-3 px-3 text-right font-mono font-bold ${
+                              tx.type === "INCOME" ? "text-emerald-700" : "text-slate-900"
                             }`}
                           >
-                            {tx.type === "INCOME" ? "รายรับ (+)" : "รายจ่าย (-)"}
-                          </span>
-                        </td>
-                        <td className="py-3 px-3 font-semibold text-slate-700">{tx.category}</td>
-                        <td className="py-3 px-3 text-slate-800">{tx.description}</td>
-                        <td
-                          className={`py-3 px-3 text-right font-mono font-bold ${
-                            tx.type === "INCOME" ? "text-emerald-700" : "text-slate-900"
-                          }`}
-                        >
-                          {tx.type === "INCOME" ? "+" : "-"}
-                          {tx.amount.toLocaleString(undefined, {
-                            minimumFractionDigits: 2,
-                            maximumFractionDigits: 2,
-                          })}{" "}
-                          ฿
-                        </td>
-                      </tr>
-                    ))}
+                            {tx.type === "INCOME" ? "+" : "-"}
+                            {tx.amount.toLocaleString(undefined, {
+                              minimumFractionDigits: 2,
+                              maximumFractionDigits: 2,
+                            })}{" "}
+                            ฿
+                          </td>
+                          <td className="py-3 px-3 text-center">
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteTransaction(tx.id)}
+                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                              title="ลบรายการนี้ออกจากสมุดบัญชี"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </button>
+                          </td>
+                        </tr>
+                      ))
+                  )}
                 </tbody>
               </table>
             </div>
