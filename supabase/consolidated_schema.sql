@@ -1,4 +1,14 @@
 -- ====================================================================
+-- School Lunch OS: Consolidated Complete Database Schema (Titanium Edition)
+-- Ready for Supabase SQL Editor
+-- Generated at: 2026-11-05T07:26:02.793Z
+-- ====================================================================
+
+-- --------------------------------------------------------------------
+-- SOURCE: 20261105000000_foundation_and_security.sql
+-- --------------------------------------------------------------------
+
+-- ====================================================================
 -- School Lunch OS: Package 1 - Foundation & Security Schema
 -- Master Specification Compliant (Domain 1, Domain 9, Domain 10)
 -- Timezone: Asia/Bangkok | Primary Key: UUID | Strict RLS & Multi-tenant
@@ -113,8 +123,8 @@ CREATE TABLE IF NOT EXISTS idempotency_records (
 -- ====================================================================
 
 -- Seed Default School
-INSERT INTO schools (id, code, name, is_active)
-VALUES ('11111111-1111-1111-1111-111111111111', 'SCH-001', 'โรงเรียนอนุบาลเทศบาลเมือง', true)
+INSERT INTO schools (id, school_code, name)
+VALUES ('11111111-1111-1111-1111-111111111111', 'SCH-001', 'โรงเรียนอนุบาลเทศบาลเมือง')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO permissions (code, description) VALUES
@@ -189,7 +199,9 @@ SELECT '00000000-0000-0000-0000-000000000002', id FROM permissions
 ON CONFLICT DO NOTHING;
 
 
--- ====================================================================
+-- --------------------------------------------------------------------
+-- SOURCE: 20261105000001_menu_and_recipe.sql
+-- --------------------------------------------------------------------
 
 -- ====================================================================
 -- School Lunch OS: Package 2 - Menu, Recipe & Ingredient Schema
@@ -347,7 +359,9 @@ INSERT INTO unit_conversions (from_unit_id, to_unit_id, factor, ingredient_id, n
 ON CONFLICT DO NOTHING;
 
 
--- ====================================================================
+-- --------------------------------------------------------------------
+-- SOURCE: 20261105000002_purchasing_receiving_inventory.sql
+-- --------------------------------------------------------------------
 
 -- ====================================================================
 -- School Lunch OS: Package 3 & 4 - Purchasing, Receiving & Inventory Schema
@@ -516,7 +530,9 @@ CREATE TABLE IF NOT EXISTS inventory_issue_items (
 );
 
 
--- ====================================================================
+-- --------------------------------------------------------------------
+-- SOURCE: 20261105000003_finance_and_budget.sql
+-- --------------------------------------------------------------------
 
 -- ====================================================================
 -- School Lunch OS: Package 5 - Budget & Finance Schema
@@ -620,3 +636,5 @@ INSERT INTO financial_categories (id, school_id, code, name, category_type, is_a
     ('00000000-0005-0000-0000-000000000005', '11111111-1111-1111-1111-111111111111', 'EXP_GAS_FUEL', 'ค่าก๊าซหุงต้มและเชื้อเพลิง', 'EXPENSE', true),
     ('00000000-0005-0000-0000-000000000006', '11111111-1111-1111-1111-111111111111', 'EXP_CLEANING', 'วัสดุทำความสะอาดและสุขาภิบาลโรงครัว', 'EXPENSE', true)
 ON CONFLICT (school_id, code) DO NOTHING;
+
+

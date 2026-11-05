@@ -113,8 +113,8 @@ CREATE TABLE IF NOT EXISTS idempotency_records (
 -- ====================================================================
 
 -- Seed Default School
-INSERT INTO schools (id, code, name, is_active)
-VALUES ('11111111-1111-1111-1111-111111111111', 'SCH-001', 'โรงเรียนอนุบาลเทศบาลเมือง', true)
+INSERT INTO schools (id, school_code, name)
+VALUES ('11111111-1111-1111-1111-111111111111', 'SCH-001', 'โรงเรียนอนุบาลเทศบาลเมือง')
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO permissions (code, description) VALUES
