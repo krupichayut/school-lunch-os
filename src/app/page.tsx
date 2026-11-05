@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   UtensilsCrossed,
   ClipboardCheck,
@@ -41,67 +41,19 @@ import {
   RefreshCw,
   SlidersHorizontal,
 } from "lucide-react";
-
-// =========================================================================
-// TYPES & DATA CONTRACTS
-// =========================================================================
-interface MenuItem {
-  id: string;
-  name: string;
-  qty: number;
-  unit: string;
-  unitPrice: number;
-}
-
-interface PresetMenu {
-  id: string;
-  name: string;
-  category: string;
-  ingredients: MenuItem[];
-}
-
-interface InspectionItemState {
-  id: string;
-  name: string;
-  ordered: number;
-  received: number;
-  accepted: number;
-  rejected: number;
-  unit: string;
-  unitPrice: number;
-  status: "PENDING" | "ACCEPTED" | "DISCREPANCY";
-  isAdHoc?: boolean;
-  note?: string;
-  photoUrl?: string;
-}
-
-interface FinancialTransactionDisplay {
-  id: string;
-  documentNo: string;
-  date: string;
-  type: "INCOME" | "EXPENSE";
-  category: string;
-  description: string;
-  amount: number;
-}
-
-interface DutyRoster {
-  monday: string[];
-  tuesday: string[];
-  wednesday: string[];
-  thursday: string[];
-  friday: string[];
-}
-
-interface SchoolSettings {
-  schoolName: string;
-  directorName: string;
-  nutritionHeadName: string;
-  academicYear: string;
-  semester: string;
-  totalSemesterDays?: number;
-  dutyRoster: DutyRoster;
-}
+import {
+  loadLocalState,
+  saveLocalState,
+  fetchCloudState,
+  saveCloudState,
+  SchoolSettings,
+  DutyRoster,
+  MenuItem,
+  PresetMenu,
+  InspectionItemState,
+  FinancialTransactionDisplay,
+} from "@/lib/storage";
+import { isSupabaseConfigured } from "@/lib/supabase/client";
 
 // Preset Master Recipes (Initial Seed)
 const PRESET_MENUS: PresetMenu[] = [
@@ -169,6 +121,102 @@ export default function HomePage() {
 
   const [settingsForm, setSettingsForm] = useState<SchoolSettings>(settings);
   const [settingsSaveToast, setSettingsSaveToast] = useState(false);
+  const [ingredientSaveToast, setIngredientSaveToast] = useState(false);
+
+  // Cloud & Local Persistence Sync
+  const [syncStatus, setSyncStatus] = useState<"SYNCED" | "SAVING" | "LOCAL">("SYNCED");
+  const [lastSyncTime, setLastSyncTime] = useState<string>("");
+
+  // =========================================================================
+  // 2. DAILY MENU & INGREDIENT STATE (กำหนดราคา/ปริมาณตรง ไม่คูณเด็ก)
+  // =========================================================================
+  const [presetMenus, setPresetMenus] = useState<PresetMenu[]>(PRESET_MENUS);
+  const [newMenuCategory, setNewMenuCategory] = useState<string>("อาหารจานเดียว");
+  const [selectedMenuId, setSelectedMenuId] = useState<string>("menu-1");
+  const [dailyIngredients, setDailyIngredients] = useState<MenuItem[]>(PRESET_MENUS[0].ingredients);
+  const [isPlanFrozen, setIsPlanFrozen] = useState<boolean>(true);
+  const [frozenSnapshotTime, setFrozenSnapshotTime] = useState<string>("06:30 น.");
+
+  // Persistent State Hydration: LocalStorage First, then Cloud Sync
+  useEffect(() => {
+    // 1. Instant local cache load
+    const local = loadLocalState();
+    if (local) {
+      if (local.settings) {
+        setSettings(local.settings);
+        setSettingsForm(local.settings);
+      }
+      if (local.presetMenus && local.presetMenus.length > 0) {
+        setPresetMenus(local.presetMenus);
+      }
+      if (local.dailyIngredients && local.dailyIngredients.length > 0) {
+        setDailyIngredients(local.dailyIngredients);
+      }
+      if (local.selectedMenuId) {
+        setSelectedMenuId(local.selectedMenuId);
+      }
+      if (local.transactions && local.transactions.length > 0) {
+        setTransactions(local.transactions);
+      }
+      if (local.inspectionItems && local.inspectionItems.length > 0) {
+        setInspectionItems(local.inspectionItems);
+      }
+      if (typeof local.isPlanFrozen === "boolean") {
+        setIsPlanFrozen(local.isPlanFrozen);
+      }
+      if (typeof local.isReceivingConfirmed === "boolean") {
+        setIsReceivingConfirmed(local.isReceivingConfirmed);
+      }
+      if (local.confirmedAtTime) {
+        setConfirmedAtTime(local.confirmedAtTime);
+      }
+    }
+
+    // 2. Fetch and merge latest from Supabase
+    fetchCloudState()
+      .then((cloud) => {
+        if (cloud) {
+          if (cloud.settings) {
+            setSettings(cloud.settings);
+            setSettingsForm(cloud.settings);
+          }
+          if (cloud.presetMenus && cloud.presetMenus.length > 0) {
+            setPresetMenus(cloud.presetMenus);
+          }
+          if (cloud.dailyIngredients && cloud.dailyIngredients.length > 0) {
+            setDailyIngredients(cloud.dailyIngredients);
+          }
+          if (cloud.selectedMenuId) {
+            setSelectedMenuId(cloud.selectedMenuId);
+          }
+          if (cloud.transactions && cloud.transactions.length > 0) {
+            setTransactions(cloud.transactions);
+          }
+          if (cloud.inspectionItems && cloud.inspectionItems.length > 0) {
+            setInspectionItems(cloud.inspectionItems);
+          }
+          if (typeof cloud.isPlanFrozen === "boolean") {
+            setIsPlanFrozen(cloud.isPlanFrozen);
+          }
+          if (typeof cloud.isReceivingConfirmed === "boolean") {
+            setIsReceivingConfirmed(cloud.isReceivingConfirmed);
+          }
+          if (cloud.confirmedAtTime) {
+            setConfirmedAtTime(cloud.confirmedAtTime);
+          }
+          setSyncStatus("SYNCED");
+          setLastSyncTime(
+            new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })
+          );
+        } else {
+          setSyncStatus(isSupabaseConfigured ? "SYNCED" : "LOCAL");
+        }
+      })
+      .catch((err) => {
+        console.warn("Could not fetch cloud state, using local cache:", err);
+        setSyncStatus("LOCAL");
+      });
+  }, []);
 
   // Auto-detect Day of Week & Today's Duty Teachers
   const todayDutyInfo = useMemo(() => {
@@ -240,21 +288,13 @@ export default function HomePage() {
     }));
   };
 
-  // =========================================================================
-  // 2. DAILY MENU & INGREDIENT STATE (กำหนดราคา/ปริมาณตรง ไม่คูณเด็ก)
-  // =========================================================================
-  const [selectedMenuId, setSelectedMenuId] = useState<string>("menu-1");
-  const [dailyIngredients, setDailyIngredients] = useState<MenuItem[]>(PRESET_MENUS[0].ingredients);
-  const [isPlanFrozen, setIsPlanFrozen] = useState<boolean>(true);
-  const [frozenSnapshotTime, setFrozenSnapshotTime] = useState<string>("06:30 น.");
-
   const activeMenu = useMemo(() => {
-    return PRESET_MENUS.find((m) => m.id === selectedMenuId) || PRESET_MENUS[0];
-  }, [selectedMenuId]);
+    return presetMenus.find((m) => m.id === selectedMenuId) || presetMenus[0] || PRESET_MENUS[0];
+  }, [presetMenus, selectedMenuId]);
 
   const handleSelectMenu = (menuId: string) => {
     setSelectedMenuId(menuId);
-    const found = PRESET_MENUS.find((m) => m.id === menuId);
+    const found = presetMenus.find((m) => m.id === menuId);
     if (found) {
       setDailyIngredients(found.ingredients.map((ing) => ({ ...ing })));
     }
@@ -384,36 +424,54 @@ export default function HomePage() {
     }
   };
 
-  const handleConfirmMorningReceiving = () => {
+  const handleConfirmMorningReceiving = async () => {
     setIsReceivingConfirmed(true);
     const nowTime = new Date().toLocaleTimeString("th-TH");
     setConfirmedAtTime(nowTime);
+    setSyncStatus("SAVING");
+
+    await saveCloudState({
+      isReceivingConfirmed: true,
+      confirmedAtTime: nowTime,
+      inspectionItems,
+    });
+    setSyncStatus("SYNCED");
+
     alert(
-      `✓ ตรวจรับและซิงก์สต็อกเรียบร้อย (${nowTime})\nเลขที่เอกสาร: ${receivingDocNo}\nคณะผู้ตรวจรับ (${todayDutyInfo.teachers.length} ท่าน):\n${todayDutyInfo.teachers.map((t, i) => `  ${i + 1}. ${t}`).join("\n")}\nส่งผลและหลักฐานรูปถ่ายเข้าสู่ระบบแอดมินทันที`
+      `✓ ตรวจรับและซิงก์สต็อกเรียบร้อย (${nowTime})\nเลขที่เอกสาร: ${receivingDocNo}\nคณะผู้ตรวจรับ (${todayDutyInfo.teachers.length} ท่าน):\n${todayDutyInfo.teachers.map((t, i) => `  ${i + 1}. ${t}`).join("\n")}\nบันทึกข้อมูลขึ้นระบบ Cloud (Supabase) เรียบร้อยแล้ว`
     );
   };
 
-  const handleConfirmPlan = () => {
+  const handleConfirmPlan = async () => {
     setIsPlanFrozen(true);
     const nowTime = new Date().toLocaleTimeString("th-TH");
     setFrozenSnapshotTime(nowTime);
 
-    setInspectionItems(
-      dailyIngredients.map((item) => ({
-        id: item.id,
-        name: item.name,
-        ordered: item.qty,
-        received: item.qty,
-        accepted: item.qty,
-        rejected: 0,
-        unit: item.unit,
-        unitPrice: item.unitPrice,
-        status: "ACCEPTED",
-      }))
-    );
+    const newItems: InspectionItemState[] = dailyIngredients.map((item) => ({
+      id: item.id,
+      name: item.name,
+      ordered: item.qty,
+      received: item.qty,
+      accepted: item.qty,
+      rejected: 0,
+      unit: item.unit,
+      unitPrice: item.unitPrice,
+      status: "ACCEPTED",
+    }));
+
+    setInspectionItems(newItems);
+    setSyncStatus("SAVING");
+
+    await saveCloudState({
+      isPlanFrozen: true,
+      dailyIngredients,
+      inspectionItems: newItems,
+      selectedMenuId,
+    });
+    setSyncStatus("SYNCED");
 
     alert(
-      `🔒 ตรึงรายการวัตถุดิบเรียบร้อย (${nowTime})\nเมนู: ${activeMenu.name}\nจำนวน: ${dailyIngredients.length} รายการ (รวม ${totalDailyCost.toLocaleString()} ฿)\nส่งรายการตรวจรับไปยังมือถือคณะครูเวร (${todayDutyInfo.teachersSummary}) แล้ว`
+      `🔒 ตรึงรายการวัตถุดิบเรียบร้อย (${nowTime})\nเมนู: ${activeMenu.name}\nจำนวน: ${dailyIngredients.length} รายการ (รวม ${totalDailyCost.toLocaleString()} ฿)\nบันทึกลง Cloud และส่งรายการตรวจรับไปยังมือถือคณะครูเวร (${todayDutyInfo.teachersSummary}) แล้ว`
     );
   };
 
@@ -506,39 +564,47 @@ export default function HomePage() {
   const [newMenuName, setNewMenuName] = useState<string>("");
 
   // Modal Handlers
-  const handleAddIncome = () => {
+  const handleAddIncome = async () => {
     const val = parseFloat(incomeAmount);
     if (val > 0) {
       const newTx: FinancialTransactionDisplay = {
         id: `tx-${Date.now()}`,
         documentNo: `FIN-2569-${String(transactions.length + 1).padStart(6, "0")}`,
-        date: "05/11/2569",
+        date: new Date().toLocaleDateString("th-TH"),
         type: "INCOME",
         category: "เงินอุดหนุน",
         description: incomeName,
         amount: val,
       };
-      setTransactions((prev) => [newTx, ...prev]);
+      const updated = [newTx, ...transactions];
+      setTransactions(updated);
       setShowAddIncomeModal(false);
       setIncomeAmount("");
+      setSyncStatus("SAVING");
+      await saveCloudState({ transactions: updated });
+      setSyncStatus("SYNCED");
     }
   };
 
-  const handleAddExpense = () => {
+  const handleAddExpense = async () => {
     const val = parseFloat(expenseAmount);
     if (val > 0) {
       const newTx: FinancialTransactionDisplay = {
         id: `tx-${Date.now()}`,
         documentNo: `FIN-2569-${String(transactions.length + 1).padStart(6, "0")}`,
-        date: "05/11/2569",
+        date: new Date().toLocaleDateString("th-TH"),
         type: "EXPENSE",
         category: expenseCategory,
         description: expenseDesc,
         amount: val,
       };
-      setTransactions((prev) => [newTx, ...prev]);
+      const updated = [newTx, ...transactions];
+      setTransactions(updated);
       setShowAddExpenseModal(false);
       setExpenseAmount("");
+      setSyncStatus("SAVING");
+      await saveCloudState({ transactions: updated });
+      setSyncStatus("SYNCED");
     }
   };
 
@@ -600,11 +666,74 @@ export default function HomePage() {
     }
   };
 
-  const handleSaveSettings = (e: React.FormEvent) => {
+  const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
+    setSyncStatus("SAVING");
     setSettings(settingsForm);
     setSettingsSaveToast(true);
-    setTimeout(() => setSettingsSaveToast(false), 3000);
+
+    try {
+      await saveCloudState({ settings: settingsForm });
+      setSyncStatus("SYNCED");
+      setLastSyncTime(new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" }));
+    } catch (err) {
+      console.error("Save settings error:", err);
+      setSyncStatus("LOCAL");
+    }
+
+    setTimeout(() => setSettingsSaveToast(false), 3500);
+  };
+
+  const handleSaveDailyIngredients = async () => {
+    setSyncStatus("SAVING");
+    try {
+      const updatedPresetMenus = presetMenus.map((m) =>
+        m.id === selectedMenuId ? { ...m, ingredients: dailyIngredients } : m
+      );
+      setPresetMenus(updatedPresetMenus);
+      await saveCloudState({
+        presetMenus: updatedPresetMenus,
+        selectedMenuId,
+        dailyIngredients,
+      });
+      setSyncStatus("SYNCED");
+      setIngredientSaveToast(true);
+      setTimeout(() => setIngredientSaveToast(false), 3000);
+    } catch (err) {
+      console.error("Save ingredients error:", err);
+      setSyncStatus("LOCAL");
+    }
+  };
+
+  const handleCreateNewMenu = async () => {
+    if (newMenuName.trim()) {
+      const newMenu: PresetMenu = {
+        id: `menu-${Date.now()}`,
+        name: newMenuName.trim(),
+        category: newMenuCategory,
+        ingredients: [
+          { id: `ing-${Date.now()}-1`, name: "เนื้อสัตว์หลัก (ไก่/หมู)", qty: 6.0, unit: "กก.", unitPrice: 110 },
+          { id: `ing-${Date.now()}-2`, name: "ผักสด / เครื่องแกง", qty: 2.5, unit: "กก.", unitPrice: 40 },
+          { id: `ing-${Date.now()}-3`, name: "ข้าวสารหอมมะลิ 100%", qty: 10.0, unit: "กก.", unitPrice: 38 },
+          { id: `ing-${Date.now()}-4`, name: "เครื่องปรุงรส", qty: 1.0, unit: "ขวด", unitPrice: 45 },
+        ],
+      };
+      const updatedMenus = [...presetMenus, newMenu];
+      setPresetMenus(updatedMenus);
+      setSelectedMenuId(newMenu.id);
+      setDailyIngredients(newMenu.ingredients.map((ing) => ({ ...ing })));
+      setIsPlanFrozen(false);
+      setShowNewMenuModal(false);
+      setNewMenuName("");
+      setSyncStatus("SAVING");
+      await saveCloudState({
+        presetMenus: updatedMenus,
+        selectedMenuId: newMenu.id,
+        dailyIngredients: newMenu.ingredients,
+      });
+      setSyncStatus("SYNCED");
+      alert(`✓ บันทึกเมนู "${newMenu.name}" เข้าสู่ระบบ Cloud เรียบร้อยแล้ว`);
+    }
   };
 
   const handleExportCSV = () => {
@@ -2053,7 +2182,11 @@ export default function HomePage() {
                 </div>
                 <div>
                   <label className="font-semibold text-slate-700 block mb-1">หมวดหมู่อาหาร:</label>
-                  <select className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none">
+                  <select
+                    value={newMenuCategory}
+                    onChange={(e) => setNewMenuCategory(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none"
+                  >
                     <option>อาหารจานเดียว</option>
                     <option>กับข้าว</option>
                     <option>ของหวาน/ผลไม้</option>
@@ -2069,16 +2202,11 @@ export default function HomePage() {
                   ยกเลิก
                 </button>
                 <button
-                  onClick={() => {
-                    if (newMenuName.trim()) {
-                      alert(`✓ บันทึกเมนู "${newMenuName}" เข้าสู่ระบบเรียบร้อย`);
-                      setShowNewMenuModal(false);
-                      setNewMenuName("");
-                    }
-                  }}
-                  className="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-semibold hover:bg-black"
+                  onClick={handleCreateNewMenu}
+                  className="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-semibold hover:bg-black flex items-center gap-1.5"
                 >
-                  บันทึกเมนู
+                  <Save className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>บันทึกเมนูลง Cloud</span>
                 </button>
               </div>
             </div>
