@@ -78,7 +78,10 @@ export interface AppSyncPayload {
 export function loadLocalState(): AppSyncPayload | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw =
+      localStorage.getItem("school_lunch_os_state_v2") ||
+      localStorage.getItem("school_lunch_os_state_v1") ||
+      localStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : null;
   } catch (e) {
     console.error("Failed to load local storage:", e);
@@ -91,7 +94,10 @@ export function saveLocalState(payload: AppSyncPayload) {
   try {
     const existing = loadLocalState() || {};
     const merged = { ...existing, ...payload, lastUpdated: new Date().toISOString() };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+    const serialized = JSON.stringify(merged);
+    localStorage.setItem(STORAGE_KEY, serialized);
+    localStorage.setItem("school_lunch_os_state_v2", serialized);
+    localStorage.setItem("school_lunch_os_state_v1", serialized);
   } catch (e) {
     console.error("Failed to save local storage:", e);
   }
@@ -125,7 +131,19 @@ export async function fetchCloudState(): Promise<AppSyncPayload | null> {
       result.settings.schoolName = data.name;
     }
 
-    // Cache to local storage
+    // LWW (Last-Write-Wins) Conflict Guard
+    const local = loadLocalState();
+    const localTime = local?.lastUpdated ? new Date(local.lastUpdated).getTime() : 0;
+    const cloudTime = result.lastUpdated ? new Date(result.lastUpdated).getTime() : 0;
+
+    // If local edits are newer than cloud, don't overwrite local with stale cloud data!
+    if (local && localTime > cloudTime) {
+      console.log("Local state is newer than cloud. Synchronizing local state up to Cloud...");
+      await saveCloudState(local);
+      return local;
+    }
+
+    // Cache latest cloud to local storage
     saveLocalState(result);
     return result;
   } catch (e) {
