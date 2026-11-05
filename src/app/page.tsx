@@ -347,6 +347,7 @@ export default function HomePage() {
         },
       };
       saveLocalState({ weeklyPlan: updatedPlan });
+      saveCloudState({ weeklyPlan: updatedPlan }).catch(console.warn);
       return updatedPlan;
     });
     setIsPlanFrozen(false);
@@ -354,6 +355,45 @@ export default function HomePage() {
 
   const handleUpdateMenuName = (newName: string) => {
     handleUpdateDayMenuName(newName);
+  };
+
+  const handleMoveOrSwapMenu = async (targetDay: DayKey, action: "swap" | "move") => {
+    if (targetDay === selectedDayKey) return;
+    const currentDayPlan = weeklyPlan[selectedDayKey] || DEFAULT_WEEKLY_PLAN[selectedDayKey];
+    const targetDayPlan = weeklyPlan[targetDay] || DEFAULT_WEEKLY_PLAN[targetDay];
+
+    const targetDef = DAY_DEFINITIONS.find((d) => d.key === targetDay);
+    const targetName = targetDef ? targetDef.label : targetDay;
+
+    let updatedPlan: WeeklyPlan;
+    if (action === "swap") {
+      updatedPlan = {
+        ...weeklyPlan,
+        [selectedDayKey]: { ...targetDayPlan },
+        [targetDay]: { ...currentDayPlan },
+      };
+    } else {
+      updatedPlan = {
+        ...weeklyPlan,
+        [targetDay]: { ...currentDayPlan },
+        [selectedDayKey]: {
+          menuName: `เมนู${activeDayDefinition.label}`,
+          category: "อาหารจานเดียว",
+          ingredients: [],
+          isFrozen: false,
+        },
+      };
+    }
+
+    setWeeklyPlan(updatedPlan);
+    setSelectedDayKey(targetDay);
+    setDailyIngredients(currentDayPlan.ingredients || []);
+    setIsPlanFrozen(!!currentDayPlan.isFrozen);
+
+    saveLocalState({ weeklyPlan: updatedPlan, selectedDayKey: targetDay });
+    await saveCloudState({ weeklyPlan: updatedPlan, selectedDayKey: targetDay });
+
+    alert(`✓ สลับเมนู "${currentDayPlan.menuName}" ไปยัง${targetName}เรียบร้อยแล้ว`);
   };
 
   const handleDeleteMenu = async () => {
@@ -385,7 +425,11 @@ export default function HomePage() {
   ) => {
     setWeeklyPlan((prev) => {
       const curDay = prev[selectedDayKey] || DEFAULT_WEEKLY_PLAN[selectedDayKey];
-      const updatedIngredients = (curDay.ingredients || []).map((item) =>
+      const sourceIngredients =
+        curDay.ingredients && curDay.ingredients.length > 0
+          ? curDay.ingredients
+          : dailyIngredients;
+      const updatedIngredients = sourceIngredients.map((item) =>
         item.id === id ? { ...item, [field]: val } : item
       );
       const updatedPlan: WeeklyPlan = {
@@ -396,6 +440,7 @@ export default function HomePage() {
         },
       };
       saveLocalState({ weeklyPlan: updatedPlan });
+      saveCloudState({ weeklyPlan: updatedPlan }).catch(console.warn);
       return updatedPlan;
     });
     setDailyIngredients((prev) =>
@@ -409,7 +454,11 @@ export default function HomePage() {
   const handleDeleteDayIngredient = (id: string) => {
     setWeeklyPlan((prev) => {
       const curDay = prev[selectedDayKey] || DEFAULT_WEEKLY_PLAN[selectedDayKey];
-      const updatedIngredients = (curDay.ingredients || []).filter((item) => item.id !== id);
+      const sourceIngredients =
+        curDay.ingredients && curDay.ingredients.length > 0
+          ? curDay.ingredients
+          : dailyIngredients;
+      const updatedIngredients = sourceIngredients.filter((item) => item.id !== id);
       const updatedPlan: WeeklyPlan = {
         ...prev,
         [selectedDayKey]: {
@@ -820,8 +869,21 @@ export default function HomePage() {
         ],
       };
       const updatedMenus = [...presetMenus, newMenu];
+      const curDay = weeklyPlan[selectedDayKey] || DEFAULT_WEEKLY_PLAN[selectedDayKey];
+      const updatedPlan: WeeklyPlan = {
+        ...weeklyPlan,
+        [selectedDayKey]: {
+          ...curDay,
+          menuName: newMenu.name,
+          category: newMenu.category,
+          ingredients: newMenu.ingredients.map((ing) => ({ ...ing })),
+          isFrozen: false,
+        },
+      };
+
       setPresetMenus(updatedMenus);
       setSelectedMenuId(newMenu.id);
+      setWeeklyPlan(updatedPlan);
       setDailyIngredients(newMenu.ingredients.map((ing) => ({ ...ing })));
       setIsPlanFrozen(false);
       setShowNewMenuModal(false);
@@ -830,6 +892,7 @@ export default function HomePage() {
       await saveCloudState({
         presetMenus: updatedMenus,
         selectedMenuId: newMenu.id,
+        weeklyPlan: updatedPlan,
         dailyIngredients: newMenu.ingredients,
       });
       setSyncStatus("SYNCED");
@@ -1455,14 +1518,37 @@ export default function HomePage() {
                     <label className="text-xs font-bold text-slate-700 block mb-1">
                       ชื่อเมนูอาหารกลางวัน{activeDayDefinition.label} (พิมพ์เปลี่ยนชื่อได้โดยตรง):
                     </label>
-                    <div className="flex items-center gap-2 max-w-xl">
+                    <div className="flex flex-wrap items-center gap-2 max-w-2xl">
                       <input
                         type="text"
                         value={activeDayPlan.menuName}
                         onChange={(e) => handleUpdateMenuName(e.target.value)}
                         placeholder={`พิมพ์ชื่อเมนูอาหารกลางวัน${activeDayDefinition.label} เช่น ข้าวผัดไข่หมูสับ, ก๋วยเตี๋ยวน้ำใส`}
-                        className="flex-1 bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 shadow-2xs"
+                        className="flex-1 min-w-[240px] bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 shadow-2xs"
                       />
+
+                      {/* Move/Swap Menu Dropdown */}
+                      <select
+                        defaultValue=""
+                        onChange={(e) => {
+                          const target = e.target.value as DayKey;
+                          if (!target) return;
+                          handleMoveOrSwapMenu(target, "swap");
+                          e.target.value = "";
+                        }}
+                        className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer shadow-2xs"
+                        title="สลับเมนูนี้กับวันอื่น"
+                      >
+                        <option value="" disabled>
+                          ⇄ สลับเมนูกับวัน...
+                        </option>
+                        {DAY_DEFINITIONS.filter((d) => d.key !== selectedDayKey).map((d) => (
+                          <option key={d.key} value={d.key}>
+                            สลับกับ {d.label}
+                          </option>
+                        ))}
+                      </select>
+
                       <button
                         type="button"
                         onClick={handleDeleteMenu}
@@ -1570,7 +1656,7 @@ export default function HomePage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100 font-medium">
-                    {dailyIngredients.length === 0 ? (
+                    {(activeDayPlan.ingredients || []).length === 0 ? (
                       <tr>
                         <td colSpan={6} className="py-12 text-center text-slate-400">
                           <UtensilsCrossed className="w-8 h-8 mx-auto mb-2 opacity-30 text-slate-400" />
@@ -1581,7 +1667,7 @@ export default function HomePage() {
                         </td>
                       </tr>
                     ) : (
-                      dailyIngredients.map((item) => (
+                      (activeDayPlan.ingredients || []).map((item) => (
                       <tr key={item.id} className="hover:bg-slate-50/70 transition-colors">
                         <td className="py-3 px-4 font-bold text-slate-900 text-sm">
                           <input

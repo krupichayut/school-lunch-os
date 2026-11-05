@@ -125,9 +125,14 @@ export const DEFAULT_WEEKLY_PLAN: WeeklyPlan = {
     isFrozen: false,
   },
   friday: {
-    menuName: "เมนูวันศุกร์",
-    category: "อาหารจานเดียว",
-    ingredients: [],
+    menuName: "แกงกะทิไก่/ฟักทอง/ผัดวุ้นเส้น/ผลไม้",
+    category: "กับข้าว",
+    ingredients: [
+      { id: "ing-fri-1", name: "เนื้อสัตว์หลัก (ไก่/หมู)", qty: 6, unit: "กก.", unitPrice: 110 },
+      { id: "ing-fri-2", name: "ผักสด / เครื่องแกง", qty: 2.5, unit: "กก.", unitPrice: 40 },
+      { id: "ing-fri-3", name: "ข้าวสารหอมมะลิ 100%", qty: 10, unit: "กก.", unitPrice: 38 },
+      { id: "ing-fri-4", name: "เครื่องปรุงรส", qty: 1, unit: "ขวด", unitPrice: 45 },
+    ],
     isFrozen: false,
   },
 };
