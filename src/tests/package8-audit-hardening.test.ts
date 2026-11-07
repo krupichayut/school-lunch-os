@@ -2,6 +2,7 @@ import { describe, it } from "node:test";
 import assert from "node:assert";
 import {
   getTodayDayKey,
+  getDefaultActiveDayKey,
   WeeklyPlan,
   DEFAULT_WEEKLY_PLAN,
   normalizeWeeklyPlan,
@@ -88,11 +89,14 @@ describe("Package 8: Professional QA & Edge Case Hardening Tests", () => {
     assert.notStrictEqual(scheduledCost, totalWithAdHoc);
   });
 
-  it("T-034: Weekend day detection returns Monday for upcoming week planning", () => {
-    // Verify getTodayDayKey behavior
-    const key = getTodayDayKey();
-    const validKeys = ["monday", "tuesday", "wednesday", "thursday", "friday"];
-    assert.ok(validKeys.includes(key));
+  it("T-034: Weekend day detection returns null for todayKey and Monday for upcoming week planning", () => {
+    // Current runtime check
+    const saturday = new Date("2026-11-07T10:00:00Z");
+    const todayKey = getTodayDayKey(saturday);
+    assert.strictEqual(todayKey, null); // Weekend is not a school lunch day!
+
+    const defaultDay = getDefaultActiveDayKey(saturday);
+    assert.strictEqual(defaultDay, "monday"); // Monday for upcoming week planning
   });
 
   it("T-035: Analytics breakdown handles 0 total expenses without producing NaN or 100% ad-hoc", () => {

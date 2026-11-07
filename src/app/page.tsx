@@ -61,6 +61,8 @@ import {
   normalizeWeeklyPlan,
   DAY_DEFINITIONS,
   getTodayDayKey,
+  getDefaultActiveDayKey,
+  isWeekend,
   SchoolSettings,
   DutyRoster,
   DayKey,
@@ -124,7 +126,7 @@ export default function HomePage() {
   // 2. DAILY MENU & INGREDIENT STATE (ตาราง 5 วันทำการ จันทร์-ศุกร์)
   // =========================================================================
   const todayDayKey = useMemo(() => getTodayDayKey(), []);
-  const [selectedDayKey, setSelectedDayKey] = useState<DayKey>(todayDayKey);
+  const [selectedDayKey, setSelectedDayKey] = useState<DayKey>(getDefaultActiveDayKey());
   const [weeklyPlan, setWeeklyPlan] = useState<WeeklyPlan>(DEFAULT_WEEKLY_PLAN);
 
   const [presetMenus, setPresetMenus] = useState<PresetMenu[]>(PRESET_MENUS);
@@ -214,41 +216,54 @@ export default function HomePage() {
   // Auto-detect Day of Week & Today's Duty Teachers
   const todayDutyInfo = useMemo(() => {
     const day = new Date().getDay(); // 0 = Sun, 1 = Mon, ..., 5 = Fri, 6 = Sat
-    let dayLabel = "วันจันทร์ (เตรียมสัปดาห์ใหม่)";
+    const isWeekendDay = day === 0 || day === 6;
+    let dayName = "วันจันทร์";
+    let dayLabel = "วันจันทร์";
     let teachers = settings.dutyRoster.monday;
+
     switch (day) {
       case 1:
+        dayName = "วันจันทร์";
         dayLabel = "วันจันทร์";
         teachers = settings.dutyRoster.monday;
         break;
       case 2:
+        dayName = "วันอังคาร";
         dayLabel = "วันอังคาร";
         teachers = settings.dutyRoster.tuesday;
         break;
       case 3:
+        dayName = "วันพุธ";
         dayLabel = "วันพุธ";
         teachers = settings.dutyRoster.wednesday;
         break;
       case 4:
+        dayName = "วันพฤหัสบดี";
         dayLabel = "วันพฤหัสบดี";
         teachers = settings.dutyRoster.thursday;
         break;
       case 5:
+        dayName = "วันศุกร์";
         dayLabel = "วันศุกร์";
         teachers = settings.dutyRoster.friday;
         break;
       case 6:
+        dayName = "วันเสาร์";
         dayLabel = "วันเสาร์ (วันหยุดราชการ)";
         teachers = settings.dutyRoster.monday;
         break;
       case 0:
+        dayName = "วันอาทิตย์";
         dayLabel = "วันอาทิตย์ (วันหยุดราชการ)";
         teachers = settings.dutyRoster.monday;
         break;
     }
     const safeTeachers = teachers && teachers.length > 0 ? teachers : ["ครูเวรประจำวัน"];
     return {
+      day,
+      dayName,
       dayLabel,
+      isWeekendDay,
       teachers: safeTeachers,
       teachersSummary: safeTeachers.join(", "),
     };
@@ -1265,13 +1280,26 @@ export default function HomePage() {
           {/* Dynamic Duty Teacher Badge & Live Budget Pill */}
           <div className="flex flex-wrap items-center gap-2.5">
             <div className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-2xl bg-white border border-[#E7E4DC] shadow-xs max-w-xs sm:max-w-md">
-              <UserCheck className="w-4 h-4 text-[#1F5E4B] shrink-0" />
+              {todayDutyInfo.isWeekendDay ? (
+                <Calendar className="w-4 h-4 text-[#D97757] shrink-0" />
+              ) : (
+                <UserCheck className="w-4 h-4 text-[#1F5E4B] shrink-0" />
+              )}
               <div className="text-xs leading-tight truncate">
                 <span className="text-[11px] text-[#8C9890] block">
-                  ครูเวรประจำ{todayDutyInfo.dayLabel} ({todayDutyInfo.teachers.length} ท่าน)
+                  {todayDutyInfo.isWeekendDay ? (
+                    <span className="inline-flex items-center gap-1 font-semibold text-[#B55232]">
+                      <span className="w-1.5 h-1.5 rounded-full bg-[#D97757]" />
+                      วันนี้: {todayDutyInfo.dayLabel}
+                    </span>
+                  ) : (
+                    `ครูเวรประจำ${todayDutyInfo.dayLabel} (${todayDutyInfo.teachers.length} ท่าน)`
+                  )}
                 </span>
                 <span className="font-bold text-[#18201C] truncate block">
-                  {todayDutyInfo.teachersSummary}
+                  {todayDutyInfo.isWeekendDay
+                    ? `ครูเวรเปิดสัปดาห์วันจันทร์: ${todayDutyInfo.teachersSummary}`
+                    : todayDutyInfo.teachersSummary}
                 </span>
               </div>
             </div>
@@ -1395,6 +1423,28 @@ export default function HomePage() {
               })}
             </div>
 
+            {/* Weekend Context Notice if accessed on Saturday or Sunday */}
+            {todayDutyInfo.isWeekendDay && (
+              <div className="bg-[#FAF9F6] border border-[#E7E4DC] rounded-2xl p-3 px-4 flex items-center justify-between gap-3 text-xs shadow-2xs">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-7 h-7 rounded-xl bg-[#FDF4F0] border border-[#F2D7CA] flex items-center justify-center shrink-0">
+                    <Calendar className="w-3.5 h-3.5 text-[#D97757]" />
+                  </div>
+                  <div>
+                    <span className="font-bold text-[#18201C] block">
+                      วันนี้คือ{todayDutyInfo.dayName} (วันหยุดราชการ • โรงครัวปิดทำการ)
+                    </span>
+                    <span className="text-[11px] text-[#8C9890]">
+                      กำลังแสดงตารางตรวจรับของ &ldquo;{activeDayDefinition.label}&rdquo; สำหรับตรวจทานย้อนหลังหรือเตรียมการล่วงหน้า
+                    </span>
+                  </div>
+                </div>
+                <span className="hidden sm:inline-flex px-2.5 py-1 rounded-lg bg-[#EBF4F0] text-[#1F5E4B] font-bold text-[11px] border border-[#C7E2D6] shrink-0">
+                  โหมดดูข้อมูลล่วงหน้า
+                </span>
+              </div>
+            )}
+
             {/* Terminal Header */}
             <div className="bg-white rounded-3xl p-6 border border-[#E7E4DC] shadow-card relative overflow-hidden space-y-4">
               <div className="flex items-start justify-between gap-3 pb-4 border-b border-[#ECE8DE]">
@@ -1490,7 +1540,7 @@ export default function HomePage() {
                     <UtensilsCrossed className="w-7 h-7" />
                   </div>
                   <div>
-                    <h3 className="font-bold text-[#18201C] text-sm">ยังไม่มีรายการตรวจรับวัตถุดิบสำหรับวันนี้</h3>
+                    <h3 className="font-bold text-[#18201C] text-sm">ยังไม่มีรายการตรวจรับวัตถุดิบสำหรับ{activeDayDefinition.label}</h3>
                     <p className="text-xs text-[#66746C] mt-1 max-w-md mx-auto leading-relaxed">
                       คณะครูเวรสามารถตรวจรับของสดได้เมื่อมีการกำหนดเมนูที่แท็บ <strong>&quot;วางแผนเมนูอาหาร&quot;</strong> แล้วกดปุ่ม <strong>&quot;ตรึง Snapshot และส่งให้ครูเวร&quot;</strong>
                     </p>
@@ -1499,7 +1549,7 @@ export default function HomePage() {
                     onClick={() => setActiveTab("MENU_PLAN")}
                     className="px-4 py-2.5 rounded-xl bg-[#1F5E4B] hover:bg-[#143B30] text-white text-xs font-bold inline-flex items-center gap-1.5 transition-smooth shadow-soft"
                   >
-                    <span>ไปกำหนดเมนูและวัตถุดิบวันนี้</span>
+                    <span>ไปกำหนดเมนูและวัตถุดิบ ({activeDayDefinition.shortLabel})</span>
                     <ArrowRight className="w-3.5 h-3.5" />
                   </button>
                 </div>
@@ -1711,6 +1761,21 @@ export default function HomePage() {
                 </div>
               </div>
 
+              {/* Weekend Notice in Menu Planning */}
+              {todayDutyInfo.isWeekendDay && (
+                <div className="mb-2 px-3.5 py-2 rounded-xl bg-[#FAF9F6] border border-[#E7E4DC] flex items-center justify-between text-xs text-[#66746C]">
+                  <div className="flex items-center gap-2">
+                    <span className="w-2 h-2 rounded-full bg-[#D97757]" />
+                    <span>
+                      <strong className="text-[#18201C]">วันนี้: {todayDutyInfo.dayName} (วันหยุดราชการ)</strong> — จัดตารางและวางแผนเมนูอาหารล่วงหน้าสำหรับ 5 วันทำการ
+                    </span>
+                  </div>
+                  <span className="font-bold text-[#1F5E4B] text-[11px] bg-[#EBF4F0] px-2 py-0.5 rounded-md border border-[#C7E2D6]">
+                    โหมดวางแผนล่วงหน้า
+                  </span>
+                </div>
+              )}
+
               {/* 5 Day Cards Grid (Unified Ribbon) */}
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-1">
                 {DAY_DEFINITIONS.map(({ key, shortLabel, dotColor }) => {
@@ -1789,7 +1854,7 @@ export default function HomePage() {
                   </div>
 
                   <div className="flex items-center gap-2 text-right">
-                    <span className="text-xs text-[#66746C]">ยอดรวมวัตถุดิบวันนี้:</span>
+                    <span className="text-xs text-[#66746C]">ยอดรวมวัตถุดิบ{activeDayDefinition.label}:</span>
                     <span className="text-xl font-black tabular-nums text-[#1F5E4B]">
                       {activeDayCost.toLocaleString(undefined, {
                         minimumFractionDigits: 2,
@@ -1883,7 +1948,7 @@ export default function HomePage() {
                       }}
                       className="bg-white border border-[#E7E4DC] rounded-xl px-3 py-1.5 text-xs font-medium text-[#18201C] focus:outline-none focus:border-[#1F5E4B] max-w-sm"
                     >
-                      <option value="">-- เลือกดึงสูตรอาหารต้นแบบมาใส่ในวันนี้ --</option>
+                      <option value="">-- เลือกดึงสูตรอาหารต้นแบบมาใส่ใน{activeDayDefinition.label} --</option>
                       {presetMenus.map((m) => {
                         const assignedDay = DAY_DEFINITIONS.find(
                           (d) => weeklyPlan[d.key]?.menuName === m.name && d.key !== selectedDayKey
@@ -2979,16 +3044,16 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* MODAL 5: เพิ่มวัตถุดิบในเมนูวันนี้ */}
+        {/* MODAL 5: เพิ่มวัตถุดิบในเมนู ({activeDayDefinition.label}) */}
         {showAddIngredientModal && (
           <div className="fixed inset-0 z-50 bg-[#18201C]/50 backdrop-blur-sm flex items-center justify-center p-4">
             <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-floating border border-[#E7E4DC]">
               <h3 className="text-base font-extrabold text-[#18201C] flex items-center gap-2">
                 <Plus className="w-5 h-5 text-[#1F5E4B]" />
-                เพิ่มวัตถุดิบในเมนูวันนี้
+                เพิ่มวัตถุดิบในเมนู ({activeDayDefinition.label})
               </h3>
               <p className="text-xs text-[#66746C] mt-1">
-                กำหนดรายการวัตถุดิบ ปริมาณที่ต้องสั่ง และราคาต่อหน่วยสำหรับเมนูวันนี้
+                กำหนดรายการวัตถุดิบ ปริมาณที่ต้องสั่ง และราคาต่อหน่วยสำหรับเมนู{activeDayDefinition.label}
               </p>
 
               <div className="mt-4 space-y-3 text-xs">

@@ -21,8 +21,8 @@ export const DAY_DEFINITIONS: DayDefinition[] = [
   { key: "friday", label: "วันศุกร์", shortLabel: "ศุกร์", dotColor: "bg-blue-400", activeBadge: "bg-blue-50 text-blue-900 border-blue-300 ring-blue-400/30" },
 ];
 
-export function getTodayDayKey(): DayKey {
-  const d = new Date().getDay();
+export function getTodayDayKey(date: Date = new Date()): DayKey | null {
+  const d = date.getDay();
   switch (d) {
     case 1:
       return "monday";
@@ -35,8 +35,20 @@ export function getTodayDayKey(): DayKey {
     case 5:
       return "friday";
     default:
-      return "monday";
+      return null; // Saturday (6) and Sunday (0) are weekends (no school lunch operations)
   }
+}
+
+export function isWeekend(date: Date = new Date()): boolean {
+  const d = date.getDay();
+  return d === 0 || d === 6;
+}
+
+export function getDefaultActiveDayKey(date: Date = new Date()): DayKey {
+  const today = getTodayDayKey(date);
+  if (today) return today;
+  // If weekend (Saturday / Sunday), default to Monday for planning the upcoming week
+  return "monday";
 }
 
 export interface DutyRoster {

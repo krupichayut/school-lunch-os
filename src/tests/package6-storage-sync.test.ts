@@ -4,6 +4,8 @@ import {
   normalizeSchoolSettings,
   normalizeWeeklyPlan,
   getTodayDayKey,
+  getDefaultActiveDayKey,
+  isWeekend,
   DEFAULT_SCHOOL_SETTINGS,
   DEFAULT_DUTY_ROSTER,
   DEFAULT_WEEKLY_PLAN,
@@ -87,10 +89,39 @@ describe("Package 6: State Persistence & Schema Normalization Tests", () => {
     assert.deepStrictEqual(corruptedPlan, DEFAULT_WEEKLY_PLAN);
   });
 
-  it("T-023: getTodayDayKey returns a valid weekday key", () => {
-    const key = getTodayDayKey();
-    const validKeys = ["monday", "tuesday", "wednesday", "thursday", "friday"];
-    assert.ok(validKeys.includes(key));
+  it("T-023: getTodayDayKey returns a valid weekday key or null on weekends, and detects weekends accurately", () => {
+    // Current runtime check
+    const currentKey = getTodayDayKey();
+    const validKeys = ["monday", "tuesday", "wednesday", "thursday", "friday", null];
+    assert.ok(validKeys.includes(currentKey));
+
+    // Specific deterministic date checks
+    const sunday = new Date("2026-11-01T08:00:00Z"); // Sunday
+    const monday = new Date("2026-11-02T08:00:00Z"); // Monday
+    const tuesday = new Date("2026-11-03T08:00:00Z"); // Tuesday
+    const wednesday = new Date("2026-11-04T08:00:00Z"); // Wednesday
+    const thursday = new Date("2026-11-05T08:00:00Z"); // Thursday
+    const friday = new Date("2026-11-06T08:00:00Z"); // Friday
+    const saturday = new Date("2026-11-07T08:00:00Z"); // Saturday
+
+    assert.strictEqual(getTodayDayKey(sunday), null);
+    assert.strictEqual(getTodayDayKey(monday), "monday");
+    assert.strictEqual(getTodayDayKey(tuesday), "tuesday");
+    assert.strictEqual(getTodayDayKey(wednesday), "wednesday");
+    assert.strictEqual(getTodayDayKey(thursday), "thursday");
+    assert.strictEqual(getTodayDayKey(friday), "friday");
+    assert.strictEqual(getTodayDayKey(saturday), null);
+
+    // isWeekend helper
+    assert.strictEqual(isWeekend(saturday), true);
+    assert.strictEqual(isWeekend(sunday), true);
+    assert.strictEqual(isWeekend(monday), false);
+    assert.strictEqual(isWeekend(friday), false);
+
+    // getDefaultActiveDayKey returns valid weekday on weekends
+    assert.strictEqual(getDefaultActiveDayKey(saturday), "monday");
+    assert.strictEqual(getDefaultActiveDayKey(sunday), "monday");
+    assert.strictEqual(getDefaultActiveDayKey(wednesday), "wednesday");
   });
 
   it("T-024: Dummy financial transactions filter cleans mock records tx-1 to tx-5", () => {
