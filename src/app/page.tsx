@@ -51,6 +51,7 @@ import {
 } from "lucide-react";
 import OfficialReportModal, { OfficialFormType } from "@/components/OfficialReportModal";
 import MenuCalendarPlanner from "@/components/MenuCalendarPlanner";
+import MobileInstallGuideModal from "@/components/MobileInstallGuideModal";
 import {
   parseIngredientsExcel,
   downloadExcelTemplate,
@@ -151,6 +152,7 @@ export default function HomePage() {
     ensureDatePlans({}, DEFAULT_WEEKLY_PLAN)
   );
   const [menuPlanningView, setMenuPlanningView] = useState<"CALENDAR" | "WEEKLY">("CALENDAR");
+  const [showInstallGuide, setShowInstallGuide] = useState(false);
 
   // Auto-persist Weekly Plan & Day Selection to Local Storage
   const isWeeklyMount = useRef(true);
@@ -1570,6 +1572,17 @@ export default function HomePage() {
                 </span>
               </div>
             </div>
+
+            <button
+              type="button"
+              onClick={() => setShowInstallGuide(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-white hover:bg-[#FAF9F6] border border-[#E7E4DC] hover:border-[#1F5E4B] text-xs font-bold text-[#18201C] transition-smooth shadow-xs"
+              title="ดูวิธีติดตั้งแอปไว้บนหน้าจอโฮมมือถือ"
+            >
+              <Smartphone className="w-3.5 h-3.5 text-[#1F5E4B]" />
+              <span className="hidden sm:inline">วิธีติดตั้งบนมือถือ</span>
+              <span className="sm:hidden">ติดตั้งแอป</span>
+            </button>
           </div>
         </div>
 
@@ -3045,6 +3058,39 @@ export default function HomePage() {
               </div>
             )}
 
+            {/* Mobile PWA Install Shortcut Card */}
+            <div className="bg-gradient-to-r from-white to-[#F2F8F5] p-5 rounded-3xl border border-[#C7E2D6] shadow-card flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3.5">
+                <div className="w-11 h-11 rounded-2xl bg-white border border-[#C7E2D6] p-1 flex items-center justify-center shadow-xs shrink-0">
+                  <img
+                    src="/app-logo.png"
+                    alt="School Lunch OS Logo"
+                    className="w-full h-full object-contain rounded-xl"
+                  />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-xs font-bold text-[#18201C]">ติดตั้งแอปไว้บนหน้าจอโฮมโทรศัพท์ (Mobile PWA)</h4>
+                    <span className="text-[10px] font-semibold bg-[#EBF4F0] text-[#1F5E4B] px-2 py-0.5 rounded-full border border-[#C7E2D6]">
+                      แนะนำสำหรับครูเวร
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-[#66746C] mt-0.5">
+                    เปิดใช้งานสะดวกแบบเต็มหน้าจอ เสมือนแอปมือถือจริง ไม่ต้องโหลดผ่าน App Store
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowInstallGuide(true)}
+                className="px-4 py-2 rounded-xl bg-[#1F5E4B] hover:bg-[#143B30] text-white text-xs font-bold shrink-0 transition-smooth shadow-soft flex items-center gap-1.5 self-start sm:self-auto"
+              >
+                <Smartphone className="w-3.5 h-3.5 text-[#EAD598]" />
+                <span>เปิดดูวิธีติดตั้ง (iOS & Android)</span>
+              </button>
+            </div>
+
             {/* School Profile Section */}
             <div className="bg-white p-6 rounded-3xl border border-[#E7E4DC] shadow-card space-y-4">
               <h3 className="text-sm font-extrabold text-[#18201C] flex items-center gap-2 border-b border-[#ECE8DE] pb-3">
@@ -4287,6 +4333,11 @@ export default function HomePage() {
           financialTransactions={transactions}
           receivingDocNo={receivingDocNo}
           confirmedAtTime={confirmedAtTime}
+        />
+        {/* MODAL 8: คู่มือแนะนำการติดตั้งแอปบนหน้าจอมือถือ (Mobile PWA Guide) */}
+        <MobileInstallGuideModal
+          isOpen={showInstallGuide}
+          onClose={() => setShowInstallGuide(false)}
         />
       </main>
     </div>
