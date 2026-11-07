@@ -138,9 +138,18 @@ export interface DayPlan {
   inspectionItems?: InspectionItemState[];
   isReceivingConfirmed?: boolean;
   confirmedAtTime?: string | null;
+  inspectionDate?: string | null;
 }
 
 export type WeeklyPlan = Record<DayKey, DayPlan>;
+
+export const DEFAULT_WEEKDAY_DATES: Record<DayKey, string> = {
+  monday: "2026-11-02",
+  tuesday: "2026-11-03",
+  wednesday: "2026-11-04",
+  thursday: "2026-11-05",
+  friday: "2026-11-06",
+};
 
 export const DEFAULT_WEEKLY_PLAN: WeeklyPlan = {
   monday: {
@@ -152,6 +161,7 @@ export const DEFAULT_WEEKLY_PLAN: WeeklyPlan = {
     inspectionItems: [],
     isReceivingConfirmed: false,
     confirmedAtTime: null,
+    inspectionDate: DEFAULT_WEEKDAY_DATES.monday,
   },
   tuesday: {
     menuName: "ข้าวมันไก่ตอน",
@@ -162,6 +172,7 @@ export const DEFAULT_WEEKLY_PLAN: WeeklyPlan = {
     inspectionItems: [],
     isReceivingConfirmed: false,
     confirmedAtTime: null,
+    inspectionDate: DEFAULT_WEEKDAY_DATES.tuesday,
   },
   wednesday: {
     menuName: "ต้มจืดเต้าหู้หมูสับ/ข้าวสวย",
@@ -172,6 +183,7 @@ export const DEFAULT_WEEKLY_PLAN: WeeklyPlan = {
     inspectionItems: [],
     isReceivingConfirmed: false,
     confirmedAtTime: null,
+    inspectionDate: DEFAULT_WEEKDAY_DATES.wednesday,
   },
   thursday: {
     menuName: "ผัดกะเพราหมูสับ/ไข่ต้ม",
@@ -182,6 +194,7 @@ export const DEFAULT_WEEKLY_PLAN: WeeklyPlan = {
     inspectionItems: [],
     isReceivingConfirmed: false,
     confirmedAtTime: null,
+    inspectionDate: DEFAULT_WEEKDAY_DATES.thursday,
   },
   friday: {
     menuName: "แกงกะทิไก่/ฟักทอง/ผัดวุ้นเส้น/ผลไม้",
@@ -197,6 +210,7 @@ export const DEFAULT_WEEKLY_PLAN: WeeklyPlan = {
     inspectionItems: [],
     isReceivingConfirmed: false,
     confirmedAtTime: null,
+    inspectionDate: DEFAULT_WEEKDAY_DATES.friday,
   },
 };
 
@@ -347,10 +361,145 @@ export function normalizeWeeklyPlan(raw: unknown): WeeklyPlan {
         isReceivingConfirmed:
           typeof dp.isReceivingConfirmed === "boolean" ? dp.isReceivingConfirmed : false,
         confirmedAtTime: typeof dp.confirmedAtTime === "string" ? dp.confirmedAtTime : null,
+        inspectionDate:
+          typeof dp.inspectionDate === "string" && dp.inspectionDate.trim()
+            ? dp.inspectionDate
+            : DEFAULT_WEEKDAY_DATES[day],
       };
     }
   }
   return result;
+}
+
+/**
+ * Robust Thai & ISO Date Utilities (Safe against Thai Buddhist Era 2569 vs CE 2026)
+ */
+const THAI_MONTH_MAP: Record<string, string> = {
+  "ม.ค.": "01", "มกราคม": "01",
+  "ก.พ.": "02", "กุมภาพันธ์": "02",
+  "มี.ค.": "03", "มีนาคม": "03",
+  "เม.ย.": "04", "เมษายน": "04",
+  "พ.ค.": "05", "พฤษภาคม": "05",
+  "มิ.ย.": "06", "มิถุนายน": "06",
+  "ก.ค.": "07", "กรกฎาคม": "07",
+  "ส.ค.": "08", "สิงหาคม": "08",
+  "ก.ย.": "09", "กันยายน": "09",
+  "ต.ค.": "10", "ตุลาคม": "10",
+  "พ.ย.": "11", "พฤศจิกายน": "11",
+  "ธ.ค.": "12", "ธันวาคม": "12",
+};
+
+export function toISODate(dateStr?: string | null): string {
+  if (!dateStr || typeof dateStr !== "string") {
+    return new Date().toISOString().split("T")[0];
+  }
+  const trimmed = dateStr.trim();
+  // If already yyyy-MM-dd
+  if (/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
+    const y = parseInt(trimmed.slice(0, 4), 10);
+    if (y > 2400) {
+      return `${y - 543}-${trimmed.slice(5)}`;
+    }
+    return trimmed;
+  }
+  // If dd/MM/yyyy or d/M/yyyy
+  const slashParts = trimmed.split("/");
+  if (slashParts.length === 3) {
+    const d = slashParts[0].padStart(2, "0");
+    const m = slashParts[1].padStart(2, "0");
+    let y = parseInt(slashParts[2], 10);
+    if (y > 2400) y -= 543;
+    return `${y}-${m}-${d}`;
+  }
+
+  // If Thai textual date (e.g. "6 พ.ย. 2569", "วันที่ 2 พฤศจิกายน พ.ศ. 2569")
+  const sanitized = trimmed
+    .replace(/^(วันที่|วัน)?\s*/, "")
+    .replace(/พ\.ศ\.\s*/, "")
+    .trim();
+  const thaiMatch = sanitized.match(/^(\d{1,2})\s+([^\s\d]+)\s+(\d{4})$/);
+  if (thaiMatch) {
+    const day = thaiMatch[1].padStart(2, "0");
+    const monthKey = thaiMatch[2];
+    const monthNum = THAI_MONTH_MAP[monthKey];
+    if (monthNum) {
+      let y = parseInt(thaiMatch[3], 10);
+      if (y > 2400) y -= 543;
+      return `${y}-${monthNum}-${day}`;
+    }
+  }
+
+  // Try Date parse
+  const parsed = new Date(trimmed);
+  if (!isNaN(parsed.getTime())) {
+    return parsed.toISOString().split("T")[0];
+  }
+  return new Date().toISOString().split("T")[0];
+}
+
+export function formatThaiDateShort(dateStr?: string | null): string {
+  if (!dateStr) return "";
+  const iso = toISODate(dateStr);
+  const parts = iso.split("-");
+  if (parts.length === 3) {
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    const d = parseInt(parts[2], 10);
+    const thaiMonths = [
+      "", "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
+      "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."
+    ];
+    const thaiYear = y > 2400 ? y : y + 543;
+    return `${d} ${thaiMonths[m] || ""} ${thaiYear}`;
+  }
+  return dateStr;
+}
+
+export function formatThaiDateFull(dateStr?: string | null): string {
+  if (!dateStr) return "";
+  const iso = toISODate(dateStr);
+  const parts = iso.split("-");
+  if (parts.length === 3) {
+    const y = parseInt(parts[0], 10);
+    const m = parseInt(parts[1], 10);
+    const d = parseInt(parts[2], 10);
+    const thaiMonths = [
+      "", "มกราคม", "กุมภาพันธ์", "มีนาคม", "เมษายน", "พฤษภาคม", "มิถุนายน",
+      "กรกฎาคม", "สิงหาคม", "กันยายน", "ตุลาคม", "พฤศจิกายน", "ธันวาคม"
+    ];
+    const thaiYear = y > 2400 ? y : y + 543;
+    return `วันที่ ${d} ${thaiMonths[m] || ""} พ.ศ. ${thaiYear}`;
+  }
+  return dateStr;
+}
+
+export function parseDateToTimestamp(dateStr?: string | null): number {
+  if (!dateStr) return 0;
+  const iso = toISODate(dateStr);
+  const t = new Date(iso).getTime();
+  return isNaN(t) ? 0 : t;
+}
+
+export function getDayDefaultDate(dayKey: DayKey, baseStartDate?: string): string {
+  if (!baseStartDate || baseStartDate === "2026-11-02") {
+    return DEFAULT_WEEKDAY_DATES[dayKey];
+  }
+  const dayOffsets: Record<DayKey, number> = {
+    monday: 0,
+    tuesday: 1,
+    wednesday: 2,
+    thursday: 3,
+    friday: 4,
+  };
+  try {
+    const base = new Date(baseStartDate);
+    if (!isNaN(base.getTime())) {
+      const target = new Date(base);
+      target.setDate(base.getDate() + dayOffsets[dayKey]);
+      return target.toISOString().split("T")[0];
+    }
+  } catch {}
+  return DEFAULT_WEEKDAY_DATES[dayKey];
 }
 
 export function loadLocalState(): AppSyncPayload | null {

@@ -19,6 +19,10 @@ import {
   InspectionItemState,
   FinancialTransactionDisplay,
   DAY_DEFINITIONS,
+  DEFAULT_WEEKDAY_DATES,
+  formatThaiDateFull,
+  formatThaiDateShort,
+  parseDateToTimestamp,
 } from "@/lib/storage";
 import { toBahtText, toThaiNumerals } from "@/lib/baht-text";
 
@@ -240,7 +244,11 @@ export default function OfficialReportModal({
                   <div className="grid grid-cols-2 gap-x-4 gap-y-1">
                     <div>
                       <span className="font-bold text-gray-700">วันที่ตรวจรับ:</span>{" "}
-                      <span>{activeDayDefinition.label} (สัปดาห์ปัจจุบัน)</span>
+                      <span>
+                        {activeDayPlan.inspectionDate
+                          ? formatThaiDateFull(activeDayPlan.inspectionDate)
+                          : `${activeDayDefinition.label} (สัปดาห์ปัจจุบัน)`}
+                      </span>
                     </div>
                     <div>
                       <span className="font-bold text-gray-700">เลขที่เอกสารตรวจรับ:</span>{" "}
@@ -484,7 +492,12 @@ export default function OfficialReportModal({
 
                       return (
                         <tr key={key}>
-                          <td className="border border-black p-2 text-center font-bold">{label}</td>
+                          <td className="border border-black p-2 text-center">
+                            <span className="font-bold block">{label}</span>
+                            <span className="text-[11px] text-gray-600 block mt-0.5 font-mono">
+                              {formatThaiDateShort(dayPlan?.inspectionDate || DEFAULT_WEEKDAY_DATES[key])}
+                            </span>
+                          </td>
                           <td className="border border-black p-2">
                             <span className="font-semibold text-gray-900">
                               {dayPlan?.menuName || "ยังไม่ระบุเมนู"}
@@ -587,7 +600,10 @@ export default function OfficialReportModal({
                   <tbody>
                     {(() => {
                       let runningBalance = 0;
-                      return financialTransactions.map((tx) => {
+                      const sortedTxs = [...financialTransactions].sort(
+                        (a, b) => parseDateToTimestamp(a.date) - parseDateToTimestamp(b.date)
+                      );
+                      return sortedTxs.map((tx) => {
                         if (tx.type === "INCOME") {
                           runningBalance += tx.amount;
                         } else {

@@ -45,6 +45,8 @@ import {
   X,
   Printer,
   Calculator,
+  Pencil,
+  Unlock,
 } from "lucide-react";
 import OfficialReportModal, { OfficialFormType } from "@/components/OfficialReportModal";
 import {
@@ -66,6 +68,11 @@ import {
   getTodayDayKey,
   getDefaultActiveDayKey,
   isWeekend,
+  formatThaiDateShort,
+  formatThaiDateFull,
+  toISODate,
+  getDayDefaultDate,
+  parseDateToTimestamp,
   SchoolSettings,
   DutyRoster,
   DayKey,
@@ -666,6 +673,11 @@ export default function HomePage() {
         0
       );
 
+    const curDay = weeklyPlan[selectedDayKey] || DEFAULT_WEEKLY_PLAN[selectedDayKey];
+    const actualInspectionDate =
+      curDay.inspectionDate || getDayDefaultDate(selectedDayKey, settings.currentRoundStartDate);
+    const formattedInspectionDate = formatThaiDateShort(actualInspectionDate);
+
     // Auto-create or update ledger expense for this receiving record
     let updatedTx = transactions;
     const existingTxIndex = transactions.findIndex((t) => t.documentNo.includes(receivingDocNo));
@@ -673,26 +685,28 @@ export default function HomePage() {
       const updatedList = [...transactions];
       updatedList[existingTxIndex] = {
         ...updatedList[existingTxIndex],
+        date: formattedInspectionDate,
         amount: totalReceivedCost,
-        description: `ตัดจ่ายค่าวัตถุดิบอาหารสด (${activeMenu.name}) ประจำ${activeDayDefinition.label}`,
+        description: `ตัดจ่ายค่าวัตถุดิบอาหารสด (${activeMenu.name}) ประจำ${activeDayDefinition.label} (${formattedInspectionDate})`,
       };
-      updatedTx = updatedList;
+      updatedTx = updatedList.sort((a, b) => parseDateToTimestamp(a.date) - parseDateToTimestamp(b.date));
       setTransactions(updatedTx);
     } else if (totalReceivedCost > 0) {
       const dailyExpenseTx: FinancialTransactionDisplay = {
         id: `tx-recv-${Date.now()}`,
         documentNo: `FIN-${receivingDocNo}`,
-        date: new Date().toLocaleDateString("th-TH"),
+        date: formattedInspectionDate,
         type: "EXPENSE",
         category: "ค่าวัตถุดิบ",
-        description: `ตัดจ่ายค่าวัตถุดิบอาหารสด (${activeMenu.name}) ประจำ${activeDayDefinition.label}`,
+        description: `ตัดจ่ายค่าวัตถุดิบอาหารสด (${activeMenu.name}) ประจำ${activeDayDefinition.label} (${formattedInspectionDate})`,
         amount: totalReceivedCost,
       };
-      updatedTx = [dailyExpenseTx, ...transactions];
+      updatedTx = [...transactions, dailyExpenseTx].sort(
+        (a, b) => parseDateToTimestamp(a.date) - parseDateToTimestamp(b.date)
+      );
       setTransactions(updatedTx);
     }
 
-    const curDay = weeklyPlan[selectedDayKey] || DEFAULT_WEEKLY_PLAN[selectedDayKey];
     const updatedPlan: WeeklyPlan = {
       ...weeklyPlan,
       [selectedDayKey]: {
@@ -805,12 +819,24 @@ export default function HomePage() {
   // Modals Input States
   const [showAddIncomeModal, setShowAddIncomeModal] = useState<boolean>(false);
   const [incomeAmount, setIncomeAmount] = useState<string>("");
-  const [incomeName, setIncomeName] = useState<string>("เงินอุดหนุนอาหารกลางวันงวดที่ 2 (อปท.)");
+  const [incomeName, setIncomeName] = useState<string>("เงินอุดหนุนอาหารกลางวันงวดที่ 1 (2 พ.ย. – 27 พ.ย. 2569)");
+  const [incomeDate, setIncomeDate] = useState<string>("2026-11-02");
 
   const [showAddExpenseModal, setShowAddExpenseModal] = useState<boolean>(false);
   const [expenseAmount, setExpenseAmount] = useState<string>("");
   const [expenseCategory, setExpenseCategory] = useState<string>("ค่าก๊าซหุงต้มและเชื้อเพลิง");
   const [expenseDesc, setExpenseDesc] = useState<string>("ค่าเติมก๊าซหุงต้ม ปตท. 15 กก. (1 ถัง)");
+  const [expenseDate, setExpenseDate] = useState<string>(new Date().toISOString().split("T")[0]);
+
+  // Edit Transaction States
+  const [showEditTxModal, setShowEditTxModal] = useState<boolean>(false);
+  const [editingTx, setEditingTx] = useState<FinancialTransactionDisplay | null>(null);
+  const [editTxDate, setEditTxDate] = useState<string>("");
+  const [editTxDocNo, setEditTxDocNo] = useState<string>("");
+  const [editTxType, setEditTxType] = useState<"INCOME" | "EXPENSE">("EXPENSE");
+  const [editTxCategory, setEditTxCategory] = useState<string>("ค่าวัตถุดิบ");
+  const [editTxDesc, setEditTxDesc] = useState<string>("");
+  const [editTxAmount, setEditTxAmount] = useState<string>("");
 
   const [showAdHocModal, setShowAdHocModal] = useState<boolean>(false);
   const [adHocName, setAdHocName] = useState<string>("");
@@ -848,24 +874,101 @@ export default function HomePage() {
     setShowReportModal(true);
   };
 
+  // Backdated and Edit Transaction Handlers
+  const handleOpenEditTransaction = (tx: FinancialTransactionDisplay) => {
+    setEditingTx(tx);
+    setEditTxDate(toISODate(tx.date));
+    setEditTxDocNo(tx.documentNo);
+    setEditTxType(tx.type);
+    setEditTxCategory(tx.category);
+    setEditTxDesc(tx.description);
+    setEditTxAmount(tx.amount.toString());
+    setShowEditTxModal(true);
+  };
+
+  const handleSaveEditTransaction = async () => {
+    if (!editingTx) return;
+    const val = parseCleanNumber(editTxAmount);
+    if (val <= 0 || !editTxDesc.trim()) return;
+
+    const formattedDate = formatThaiDateShort(editTxDate);
+    const updated = transactions
+      .map((t) => {
+        if (t.id === editingTx.id) {
+          return {
+            ...t,
+            date: formattedDate,
+            documentNo: editTxDocNo.trim() || t.documentNo,
+            type: editTxType,
+            category: editTxCategory.trim() || t.category,
+            description: editTxDesc.trim(),
+            amount: val,
+          };
+        }
+        return t;
+      })
+      .sort((a, b) => parseDateToTimestamp(a.date) - parseDateToTimestamp(b.date));
+
+    setTransactions(updated);
+    setShowEditTxModal(false);
+    setEditingTx(null);
+    setSyncStatus("SAVING");
+    saveLocalState({ transactions: updated });
+    await saveCloudState({ transactions: updated });
+    setSyncStatus("SYNCED");
+  };
+
+  const handleUnlockReceiving = async () => {
+    const curDay = weeklyPlan[selectedDayKey] || DEFAULT_WEEKLY_PLAN[selectedDayKey];
+    const updatedPlan: WeeklyPlan = {
+      ...weeklyPlan,
+      [selectedDayKey]: {
+        ...curDay,
+        isReceivingConfirmed: false,
+        confirmedAtTime: null,
+      },
+    };
+    setWeeklyPlan(updatedPlan);
+    saveLocalState({ weeklyPlan: updatedPlan });
+    await saveCloudState({ weeklyPlan: updatedPlan });
+  };
+
+  const handleUpdateInspectionDate = async (newDate: string) => {
+    const curDay = weeklyPlan[selectedDayKey] || DEFAULT_WEEKLY_PLAN[selectedDayKey];
+    const updatedPlan: WeeklyPlan = {
+      ...weeklyPlan,
+      [selectedDayKey]: {
+        ...curDay,
+        inspectionDate: newDate,
+      },
+    };
+    setWeeklyPlan(updatedPlan);
+    saveLocalState({ weeklyPlan: updatedPlan });
+    await saveCloudState({ weeklyPlan: updatedPlan });
+  };
+
   // Modal Handlers
   const handleAddIncome = async () => {
     const val = parseCleanNumber(incomeAmount);
     if (val > 0) {
+      const formattedDate = formatThaiDateShort(incomeDate);
       const newTx: FinancialTransactionDisplay = {
         id: `tx-${Date.now()}`,
         documentNo: `FIN-2569-${String(transactions.length + 1).padStart(6, "0")}`,
-        date: new Date().toLocaleDateString("th-TH"),
+        date: formattedDate,
         type: "INCOME",
         category: "เงินอุดหนุน",
         description: incomeName,
         amount: val,
       };
-      const updated = [newTx, ...transactions];
+      const updated = [...transactions, newTx].sort(
+        (a, b) => parseDateToTimestamp(a.date) - parseDateToTimestamp(b.date)
+      );
       setTransactions(updated);
       setShowAddIncomeModal(false);
       setIncomeAmount("");
       setSyncStatus("SAVING");
+      saveLocalState({ transactions: updated });
       await saveCloudState({ transactions: updated });
       setSyncStatus("SYNCED");
     }
@@ -874,20 +977,24 @@ export default function HomePage() {
   const handleAddExpense = async () => {
     const val = parseCleanNumber(expenseAmount);
     if (val > 0) {
+      const formattedDate = formatThaiDateShort(expenseDate);
       const newTx: FinancialTransactionDisplay = {
         id: `tx-${Date.now()}`,
         documentNo: `FIN-2569-${String(transactions.length + 1).padStart(6, "0")}`,
-        date: new Date().toLocaleDateString("th-TH"),
+        date: formattedDate,
         type: "EXPENSE",
         category: expenseCategory,
         description: expenseDesc,
         amount: val,
       };
-      const updated = [newTx, ...transactions];
+      const updated = [...transactions, newTx].sort(
+        (a, b) => parseDateToTimestamp(a.date) - parseDateToTimestamp(b.date)
+      );
       setTransactions(updated);
       setShowAddExpenseModal(false);
       setExpenseAmount("");
       setSyncStatus("SAVING");
+      saveLocalState({ transactions: updated });
       await saveCloudState({ transactions: updated });
       setSyncStatus("SYNCED");
     }
@@ -919,16 +1026,22 @@ export default function HomePage() {
           : inspectionItems;
       const updatedInspection = [...currentList, newItem];
 
+      const actualInspectionDate =
+        curDay.inspectionDate || getDayDefaultDate(selectedDayKey, settings.currentRoundStartDate);
+      const formattedInspectionDate = formatThaiDateShort(actualInspectionDate);
+
       const newTx: FinancialTransactionDisplay = {
         id: `tx-${Date.now()}`,
         documentNo: `FIN-${Date.now().toString().slice(-6)}`,
-        date: new Date().toLocaleDateString("th-TH"),
+        date: formattedInspectionDate,
         type: "EXPENSE",
         category: "เครื่องปรุงเพิ่มหน้างาน",
         description: `ซื้อเพิ่มหน้างาน (${activeDayDefinition.label}): ${adHocName} (${qty} ${adHocUnit || "รายการ"})`,
         amount: qty * price,
       };
-      const updatedTx = [newTx, ...transactions];
+      const updatedTx = [...transactions, newTx].sort(
+        (a, b) => parseDateToTimestamp(a.date) - parseDateToTimestamp(b.date)
+      );
       setTransactions(updatedTx);
 
       const updatedPlan: WeeklyPlan = {
@@ -1504,6 +1617,29 @@ export default function HomePage() {
                       งบจัดสรร {dailyBudgetCeiling.toLocaleString()} ฿/วัน
                     </span>
                   </p>
+
+                  {/* Backdated Inspection Date Selector */}
+                  <div className="mt-2.5 flex flex-wrap items-center gap-2">
+                    <span className="text-xs font-bold text-[#4B5850] flex items-center gap-1">
+                      <Calendar className="w-3.5 h-3.5 text-[#1F5E4B]" />
+                      <span>วันที่ตรวจรับจริง:</span>
+                    </span>
+                    <input
+                      type="date"
+                      value={toISODate(
+                        activeDayPlan.inspectionDate ||
+                          getDayDefaultDate(selectedDayKey, settings.currentRoundStartDate)
+                      )}
+                      onChange={(e) => handleUpdateInspectionDate(e.target.value)}
+                      className="text-xs font-mono font-bold text-[#18201C] bg-[#FAF9F6] border border-[#E7E4DC] hover:border-[#1F5E4B] focus:border-[#1F5E4B] rounded-xl px-2.5 py-1 outline-none transition-smooth shadow-2xs"
+                    />
+                    <span className="text-xs font-bold text-[#1F5E4B] bg-[#EBF4F0] px-2 py-0.5 rounded-lg border border-[#C7E2D6]">
+                      {formatThaiDateShort(
+                        activeDayPlan.inspectionDate ||
+                          getDayDefaultDate(selectedDayKey, settings.currentRoundStartDate)
+                      )}
+                    </span>
+                  </div>
                 </div>
 
                 <div className="text-right">
@@ -1759,15 +1895,27 @@ export default function HomePage() {
               </button>
 
               {isReceivingConfirmed && (
-                <button
-                  type="button"
-                  onClick={() => handleOpenReportModal("RECEIVING")}
-                  className="py-4 px-5 rounded-2xl bg-white border border-[#C7E2D6] text-[#1F5E4B] hover:bg-[#F2F8F5] text-xs font-bold transition-smooth flex items-center gap-2 shadow-floating shrink-0"
-                  title="พิมพ์ใบตรวจรับพัสดุราชการ (แบบ ตร.01)"
-                >
-                  <Printer className="w-4 h-4 text-[#1F5E4B]" />
-                  <span>พิมพ์ ตร.01</span>
-                </button>
+                <>
+                  <button
+                    type="button"
+                    onClick={handleUnlockReceiving}
+                    className="py-4 px-4 rounded-2xl bg-[#FAF9F6] border border-[#E7E4DC] hover:border-[#D97757] text-[#B55232] hover:bg-[#FDF4F0] text-xs font-bold transition-smooth flex items-center gap-1.5 shadow-floating shrink-0"
+                    title="ปลดล็อกเพื่อแก้ไขรายการตรวจรับ ปริมาณ หรือรูปถ่าย"
+                  >
+                    <Unlock className="w-4 h-4 text-[#D97757]" />
+                    <span>ปลดล็อกเพื่อแก้ไข</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleOpenReportModal("RECEIVING")}
+                    className="py-4 px-5 rounded-2xl bg-white border border-[#C7E2D6] text-[#1F5E4B] hover:bg-[#F2F8F5] text-xs font-bold transition-smooth flex items-center gap-2 shadow-floating shrink-0"
+                    title="พิมพ์ใบตรวจรับพัสดุราชการ (แบบ ตร.01)"
+                  >
+                    <Printer className="w-4 h-4 text-[#1F5E4B]" />
+                    <span>พิมพ์ ตร.01</span>
+                  </button>
+                </>
               )}
             </div>
           </div>
@@ -2641,14 +2789,24 @@ export default function HomePage() {
                             ฿
                           </td>
                           <td className="py-3 px-3 text-center">
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteTransaction(tx.id)}
-                              className="p-1.5 text-[#8C9890] hover:text-[#B55232] hover:bg-[#FDF4F0] rounded-lg transition-colors"
-                              title="ลบรายการนี้ออกจากสมุดบัญชี"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
+                            <div className="flex items-center justify-center gap-1">
+                              <button
+                                type="button"
+                                onClick={() => handleOpenEditTransaction(tx)}
+                                className="p-1.5 text-[#66746C] hover:text-[#1F5E4B] hover:bg-[#EBF4F0] rounded-lg transition-colors"
+                                title="แก้ไขรายการบัญชีนี้ (วันที่, จำนวนเงิน, รายละเอียด)"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteTransaction(tx.id)}
+                                className="p-1.5 text-[#8C9890] hover:text-[#B55232] hover:bg-[#FDF4F0] rounded-lg transition-colors"
+                                title="ลบรายการนี้ออกจากสมุดบัญชี"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
                           </td>
                         </tr>
                       ))
@@ -3199,6 +3357,38 @@ export default function HomePage() {
 
               <div className="mt-4 space-y-3 text-xs">
                 <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="font-bold text-[#18201C] block">วันที่รับเงินงบประมาณ:</label>
+                    <div className="flex items-center gap-1.5 text-[11px]">
+                      <button
+                        type="button"
+                        onClick={() => setIncomeDate(settings.currentRoundStartDate || "2026-11-02")}
+                        className="text-[#1F5E4B] hover:underline font-semibold"
+                      >
+                        วันเริ่มงวด (2 พ.ย. 69)
+                      </button>
+                      <span className="text-[#8C9890]">|</span>
+                      <button
+                        type="button"
+                        onClick={() => setIncomeDate(new Date().toISOString().split("T")[0])}
+                        className="text-[#1F5E4B] hover:underline font-semibold"
+                      >
+                        วันนี้
+                      </button>
+                    </div>
+                  </div>
+                  <input
+                    type="date"
+                    value={toISODate(incomeDate)}
+                    onChange={(e) => setIncomeDate(e.target.value)}
+                    className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3.5 py-2.5 text-sm font-mono text-[#18201C] focus:outline-none focus:ring-2 focus:ring-[#1F5E4B]/20 focus:border-[#1F5E4B] transition-smooth"
+                  />
+                  <span className="text-[11px] text-[#66746C] mt-0.5 block">
+                    แสดงในรายงานเป็น: {formatThaiDateShort(incomeDate)}
+                  </span>
+                </div>
+
+                <div>
                   <label className="font-bold text-[#18201C] block mb-1">ชื่อรายการงบประมาณ:</label>
                   <input
                     type="text"
@@ -3253,6 +3443,38 @@ export default function HomePage() {
 
               <div className="mt-4 space-y-3 text-xs">
                 <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="font-bold text-[#18201C] block">วันที่จ่ายเงินจริง:</label>
+                    <div className="flex items-center gap-1.5 text-[11px]">
+                      <button
+                        type="button"
+                        onClick={() => setExpenseDate(new Date().toISOString().split("T")[0])}
+                        className="text-[#D97757] hover:underline font-semibold"
+                      >
+                        วันนี้
+                      </button>
+                      <span className="text-[#8C9890]">|</span>
+                      <button
+                        type="button"
+                        onClick={() => setExpenseDate(settings.currentRoundStartDate || "2026-11-02")}
+                        className="text-[#D97757] hover:underline font-semibold"
+                      >
+                        วันเริ่มงวด (2 พ.ย. 69)
+                      </button>
+                    </div>
+                  </div>
+                  <input
+                    type="date"
+                    value={toISODate(expenseDate)}
+                    onChange={(e) => setExpenseDate(e.target.value)}
+                    className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3.5 py-2.5 text-sm font-mono text-[#18201C] focus:outline-none focus:ring-2 focus:ring-[#D97757]/20 focus:border-[#D97757] transition-smooth"
+                  />
+                  <span className="text-[11px] text-[#66746C] mt-0.5 block">
+                    แสดงในรายงานเป็น: {formatThaiDateShort(expenseDate)}
+                  </span>
+                </div>
+
+                <div>
                   <label className="font-bold text-[#18201C] block mb-1">หมวดหมู่ค่าใช้จ่าย:</label>
                   <select
                     value={expenseCategory}
@@ -3299,6 +3521,117 @@ export default function HomePage() {
                   className="px-4 py-2 rounded-xl bg-[#D97757] hover:bg-[#C26243] text-white text-xs font-bold shadow-soft transition-smooth"
                 >
                   บันทึกจ่ายเงิน
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL: แก้ไขรายการบัญชี (Edit Transaction) */}
+        {showEditTxModal && editingTx && (
+          <div className="fixed inset-0 z-50 bg-[#18201C]/50 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white w-full max-w-lg rounded-3xl p-6 shadow-floating border border-[#E7E4DC] space-y-4">
+              <div className="flex items-center justify-between border-b border-[#ECE8DE] pb-3">
+                <h3 className="text-base font-extrabold text-[#18201C] flex items-center gap-2">
+                  <Pencil className="w-5 h-5 text-[#1F5E4B]" />
+                  <span>แก้ไขรายการบัญชี ({editingTx.documentNo})</span>
+                </h3>
+                <button
+                  type="button"
+                  onClick={() => setShowEditTxModal(false)}
+                  className="p-1 rounded-lg text-[#8C9890] hover:text-[#18201C] transition-smooth"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-3 text-xs">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="font-bold text-[#18201C] block mb-1">วันที่ทำรายการ:</label>
+                    <input
+                      type="date"
+                      value={editTxDate}
+                      onChange={(e) => setEditTxDate(e.target.value)}
+                      className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3.5 py-2.5 text-sm font-mono text-[#18201C] focus:outline-none focus:ring-2 focus:ring-[#1F5E4B]/20 focus:border-[#1F5E4B] transition-smooth"
+                    />
+                    <span className="text-[10px] text-[#66746C] mt-0.5 block">
+                      {formatThaiDateShort(editTxDate)}
+                    </span>
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-[#18201C] block mb-1">เลขที่เอกสาร:</label>
+                    <input
+                      type="text"
+                      value={editTxDocNo}
+                      onChange={(e) => setEditTxDocNo(e.target.value)}
+                      className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3.5 py-2.5 text-sm font-mono text-[#18201C] focus:outline-none focus:ring-2 focus:ring-[#1F5E4B]/20 focus:border-[#1F5E4B] transition-smooth"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="font-bold text-[#18201C] block mb-1">ประเภทรายการ:</label>
+                    <select
+                      value={editTxType}
+                      onChange={(e) => setEditTxType(e.target.value as "INCOME" | "EXPENSE")}
+                      className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3.5 py-2.5 text-sm font-bold text-[#18201C] focus:outline-none focus:ring-2 focus:ring-[#1F5E4B]/20 focus:border-[#1F5E4B] transition-smooth"
+                    >
+                      <option value="EXPENSE">รายจ่าย (-)</option>
+                      <option value="INCOME">รายรับ (+)</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-[#18201C] block mb-1">หมวดหมู่:</label>
+                    <input
+                      type="text"
+                      value={editTxCategory}
+                      onChange={(e) => setEditTxCategory(e.target.value)}
+                      className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3.5 py-2.5 text-sm text-[#18201C] focus:outline-none focus:ring-2 focus:ring-[#1F5E4B]/20 focus:border-[#1F5E4B] transition-smooth"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="font-bold text-[#18201C] block mb-1">รายละเอียดรายการ:</label>
+                  <input
+                    type="text"
+                    value={editTxDesc}
+                    onChange={(e) => setEditTxDesc(e.target.value)}
+                    className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3.5 py-2.5 text-sm text-[#18201C] focus:outline-none focus:ring-2 focus:ring-[#1F5E4B]/20 focus:border-[#1F5E4B] transition-smooth"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-[#18201C] block mb-1">จำนวนเงิน (บาท):</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={editTxAmount}
+                    onChange={(e) => setEditTxAmount(e.target.value)}
+                    className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3.5 py-2.5 text-sm font-black font-mono tabular-nums text-[#18201C] focus:outline-none focus:ring-2 focus:ring-[#1F5E4B]/20 focus:border-[#1F5E4B] transition-smooth"
+                  />
+                </div>
+              </div>
+
+              <div className="mt-6 flex items-center justify-end gap-2 pt-2 border-t border-[#ECE8DE]">
+                <button
+                  type="button"
+                  onClick={() => setShowEditTxModal(false)}
+                  className="px-4 py-2 rounded-xl border border-[#E7E4DC] text-xs font-bold text-[#66746C] hover:bg-[#FAF9F6] transition-smooth"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSaveEditTransaction}
+                  className="px-4 py-2 rounded-xl bg-[#1F5E4B] hover:bg-[#143B30] text-white text-xs font-bold shadow-soft transition-smooth flex items-center gap-1.5"
+                >
+                  <Save className="w-3.5 h-3.5" />
+                  <span>บันทึกการแก้ไข</span>
                 </button>
               </div>
             </div>
