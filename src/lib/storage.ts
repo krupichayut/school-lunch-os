@@ -63,6 +63,7 @@ export interface SchoolSettings {
   schoolName: string;
   directorName: string;
   nutritionHeadName: string;
+  cookName?: string;
   academicYear: string;
   semester: string;
   totalSemesterDays?: number;
@@ -87,6 +88,7 @@ export const DEFAULT_SCHOOL_SETTINGS: SchoolSettings = {
   schoolName: "โรงเรียนบ้านควนเนียง (สพป. สฎ. เขต 3)",
   directorName: "นายวิเชียร มุ่งมั่น (ผู้อำนวยการโรงเรียน)",
   nutritionHeadName: "ครูพรทิพย์ เจริญจิตต์ (ผู้รับผิดชอบโครงการอาหารกลางวัน)",
+  cookName: "",
   academicYear: "2569",
   semester: "ภาคเรียนที่ 2",
   totalSemesterDays: 100,
@@ -330,6 +332,8 @@ export function normalizeSchoolSettings(raw: unknown, fallbackName?: string): Sc
     nutritionHeadName:
       (typeof source.nutritionHeadName === "string" && source.nutritionHeadName.trim()) ||
       DEFAULT_SCHOOL_SETTINGS.nutritionHeadName,
+    cookName:
+      typeof source.cookName === "string" ? source.cookName.trim() : "",
     academicYear:
       (typeof source.academicYear === "string" && source.academicYear.trim()) ||
       DEFAULT_SCHOOL_SETTINGS.academicYear,

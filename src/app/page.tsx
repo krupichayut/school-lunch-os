@@ -1670,6 +1670,12 @@ export default function HomePage() {
                         <span>{t}</span>
                       </div>
                     ))}
+                    {settings.cookName?.trim() && (
+                      <div className="flex items-center justify-end gap-1.5 text-[11px] text-[#66746C] pt-0.5">
+                        <span className="text-[#8C9890]">แม่ครัว:</span>
+                        <span className="font-semibold text-[#18201C]">{settings.cookName.trim()}</span>
+                      </div>
+                    )}
                   </div>
                   <span
                     className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full mt-1.5 border ${
@@ -2911,6 +2917,24 @@ export default function HomePage() {
                     }
                     className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3.5 py-2.5 text-sm font-semibold text-[#18201C] focus:outline-none focus:ring-2 focus:ring-[#1F5E4B]/20 focus:border-[#1F5E4B] transition-smooth"
                   />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="font-bold text-[#18201C] block mb-1">
+                    ชื่อผู้ประกอบอาหาร / แม่ครัว (ผู้ส่งมอบในใบตรวจรับพัสดุ ตร.01):
+                  </label>
+                  <input
+                    type="text"
+                    value={settingsForm.cookName ?? ""}
+                    onChange={(e) =>
+                      setSettingsForm({ ...settingsForm, cookName: e.target.value })
+                    }
+                    placeholder="ระบุชื่อ-นามสกุลแม่ครัว (หรือเว้นว่างไว้เพื่อลงชื่อด้วยลายมือในเอกสาร)"
+                    className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3.5 py-2.5 text-sm font-semibold text-[#18201C] focus:outline-none focus:ring-2 focus:ring-[#1F5E4B]/20 focus:border-[#1F5E4B] transition-smooth"
+                  />
+                  <span className="text-[11px] text-[#66746C] mt-1 block">
+                    * ชื่อนี้จะใช้เป็นผู้ลงนามส่งมอบในใบตรวจรับพัสดุราชการ (แบบ ตร.01) หากไม่ระบุ ระบบจะเว้นช่องว่างเป็นเส้นประให้ลงนามจริง
+                  </span>
                 </div>
 
                 <div>

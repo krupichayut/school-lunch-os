@@ -381,7 +381,9 @@ export default function OfficialReportModal({
 
                     <div>
                       <p>ลงชื่อ ..................................................... ผู้ส่งมอบ/ผู้ประกอบอาหาร</p>
-                      <p className="mt-0.5 font-bold">( นางวันเพ็ญ รสมือทอง )</p>
+                      <p className="mt-0.5 font-bold">
+                        ( {settings.cookName?.trim() ? settings.cookName.trim() : "....................................................."} )
+                      </p>
                       <p className="text-xs text-gray-600">ผู้รับจ้างเหมาประกอบอาหาร</p>
                     </div>
                   </div>
