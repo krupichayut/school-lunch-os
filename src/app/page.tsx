@@ -17,6 +17,7 @@ import {
   Lock,
   Sparkles,
   ChevronDown,
+  ChevronLeft,
   Download,
   Smartphone,
   LayoutDashboard,
@@ -49,6 +50,7 @@ import {
   Unlock,
 } from "lucide-react";
 import OfficialReportModal, { OfficialFormType } from "@/components/OfficialReportModal";
+import MenuCalendarPlanner from "@/components/MenuCalendarPlanner";
 import {
   parseIngredientsExcel,
   downloadExcelTemplate,
@@ -63,6 +65,10 @@ import {
   DEFAULT_SCHOOL_SETTINGS,
   DEFAULT_DUTY_ROSTER,
   DEFAULT_WEEKLY_PLAN,
+  DEFAULT_PRESET_MENUS,
+  DEFAULT_WEEKDAY_DATES,
+  ensureDatePlans,
+  getRoundSchoolDays,
   normalizeWeeklyPlan,
   DAY_DEFINITIONS,
   getTodayDayKey,
@@ -88,15 +94,8 @@ import {
 } from "@/lib/storage";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 
-// Preset Master Recipes (Initial Seed)
-const PRESET_MENUS: PresetMenu[] = [
-  {
-    id: "menu-custom",
-    name: "เมนูอาหารกลางวันประจำวัน",
-    category: "อาหารจานเดียว",
-    ingredients: [],
-  },
-];
+// Preset Master Recipes (Initial Seed from Library)
+const PRESET_MENUS: PresetMenu[] = DEFAULT_PRESET_MENUS;
 
 // Helper to safely parse numbers with commas, whitespace, and guard against NaN
 function parseCleanNumber(val: unknown): number {
@@ -147,6 +146,12 @@ export default function HomePage() {
   const [selectedMenuId, setSelectedMenuId] = useState<string>("menu-custom");
   const [dailyIngredients, setDailyIngredients] = useState<MenuItem[]>([]);
 
+  // Date-Based Calendar Menu Planning State
+  const [datePlans, setDatePlans] = useState<Record<string, DayPlan>>(() =>
+    ensureDatePlans({}, DEFAULT_WEEKLY_PLAN)
+  );
+  const [menuPlanningView, setMenuPlanningView] = useState<"CALENDAR" | "WEEKLY">("CALENDAR");
+
   // Auto-persist Weekly Plan & Day Selection to Local Storage
   const isWeeklyMount = useRef(true);
   useEffect(() => {
@@ -154,8 +159,8 @@ export default function HomePage() {
       isWeeklyMount.current = false;
       return;
     }
-    saveLocalState({ weeklyPlan, selectedDayKey });
-  }, [weeklyPlan, selectedDayKey]);
+    saveLocalState({ weeklyPlan, selectedDayKey, datePlans });
+  }, [weeklyPlan, selectedDayKey, datePlans]);
 
   // Persistent State Hydration: LocalStorage First, then Cloud Sync
   useEffect(() => {
@@ -174,6 +179,13 @@ export default function HomePage() {
       }
       if (local.presetMenus && local.presetMenus.length > 0) {
         setPresetMenus(local.presetMenus);
+      } else {
+        setPresetMenus(DEFAULT_PRESET_MENUS);
+      }
+      if (local.datePlans) {
+        setDatePlans(ensureDatePlans(local.datePlans, local.weeklyPlan || DEFAULT_WEEKLY_PLAN));
+      } else {
+        setDatePlans(ensureDatePlans({}, local.weeklyPlan || DEFAULT_WEEKLY_PLAN));
       }
       if (local.selectedMenuId) {
         setSelectedMenuId(local.selectedMenuId);
@@ -205,6 +217,17 @@ export default function HomePage() {
           }
           if (cloud.presetMenus && cloud.presetMenus.length > 0) {
             setPresetMenus(cloud.presetMenus);
+          } else {
+            setPresetMenus(DEFAULT_PRESET_MENUS);
+          }
+          if (cloud.datePlans) {
+            const hydrated = ensureDatePlans(cloud.datePlans, cloud.weeklyPlan || DEFAULT_WEEKLY_PLAN);
+            setDatePlans(hydrated);
+            saveLocalState({ datePlans: hydrated });
+          } else {
+            const seeded = ensureDatePlans(local?.datePlans, cloud.weeklyPlan || DEFAULT_WEEKLY_PLAN);
+            setDatePlans(seeded);
+            saveLocalState({ datePlans: seeded });
           }
           if (cloud.selectedMenuId) {
             setSelectedMenuId(cloud.selectedMenuId);
@@ -435,6 +458,77 @@ export default function HomePage() {
     await saveCloudState({ weeklyPlan: updatedPlan, selectedDayKey: targetDay });
 
     alert(`✓ สลับเมนู "${currentDayPlan.menuName}" ไปยัง${targetName}เรียบร้อยแล้ว`);
+  };
+
+  // Date-Based Calendar Handlers
+  const handleUpdateDatePlan = async (dateStr: string, plan: DayPlan) => {
+    setDatePlans((prev) => {
+      const updated = { ...prev, [dateStr]: plan };
+      saveLocalState({ datePlans: updated });
+      saveCloudState({ datePlans: updated }).catch(console.warn);
+      return updated;
+    });
+
+    const weekdayKeys: DayKey[] = ["monday", "tuesday", "wednesday", "thursday", "friday"];
+    const matchedDay = weekdayKeys.find(
+      (k) => DEFAULT_WEEKDAY_DATES[k] === dateStr || weeklyPlan[k]?.inspectionDate === dateStr
+    );
+
+    if (matchedDay) {
+      setWeeklyPlan((prev) => {
+        const cur = prev[matchedDay] || DEFAULT_WEEKLY_PLAN[matchedDay];
+        const updatedWeekly: WeeklyPlan = {
+          ...prev,
+          [matchedDay]: {
+            ...cur,
+            menuName: plan.menuName,
+            category: plan.category || "อาหารจานเดียว",
+            ingredients: (plan.ingredients || []).map((i) => ({ ...i })),
+            inspectionDate: dateStr,
+          },
+        };
+        saveLocalState({ weeklyPlan: updatedWeekly });
+        saveCloudState({ weeklyPlan: updatedWeekly }).catch(console.warn);
+        return updatedWeekly;
+      });
+    }
+  };
+
+  const handleSelectDateForDetail = (dateStr: string, dayKey?: DayKey) => {
+    const d = new Date(dateStr);
+    const dayNum = d.getDay();
+    let targetDayKey: DayKey = "monday";
+    if (dayNum === 2) targetDayKey = "tuesday";
+    else if (dayNum === 3) targetDayKey = "wednesday";
+    else if (dayNum === 4) targetDayKey = "thursday";
+    else if (dayNum === 5) targetDayKey = "friday";
+    else if (dayKey) targetDayKey = dayKey;
+
+    setSelectedDayKey(targetDayKey);
+
+    if (datePlans[dateStr]) {
+      const plan = datePlans[dateStr];
+      setWeeklyPlan((prev) => {
+        const cur = prev[targetDayKey] || DEFAULT_WEEKLY_PLAN[targetDayKey];
+        const updated: WeeklyPlan = {
+          ...prev,
+          [targetDayKey]: {
+            ...cur,
+            menuName: plan.menuName || cur.menuName,
+            category: plan.category || cur.category,
+            ingredients:
+              plan.ingredients && plan.ingredients.length > 0
+                ? plan.ingredients.map((i) => ({ ...i }))
+                : cur.ingredients,
+            inspectionDate: dateStr,
+          },
+        };
+        saveLocalState({ weeklyPlan: updated });
+        return updated;
+      });
+    }
+
+    setMenuPlanningView("WEEKLY");
   };
 
   const handleDeleteMenu = async () => {
@@ -1964,6 +2058,78 @@ export default function HomePage() {
               </div>
             )}
 
+            {/* View Mode Switcher: Calendar View vs Weekly Detail View */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 rounded-3xl border border-[#E7E4DC] shadow-card">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-extrabold text-[#18201C] flex items-center gap-1.5 pl-1">
+                  <SlidersHorizontal className="w-4 h-4 text-[#1F5E4B]" />
+                  <span>รูปแบบการวางแผน:</span>
+                </span>
+                <div className="flex items-center gap-1 bg-[#FAF9F6] p-1 rounded-2xl border border-[#E7E4DC]">
+                  <button
+                    type="button"
+                    onClick={() => setMenuPlanningView("CALENDAR")}
+                    className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                      menuPlanningView === "CALENDAR"
+                        ? "bg-[#1F5E4B] text-white shadow-xs"
+                        : "text-[#66746C] hover:text-[#18201C]"
+                    }`}
+                  >
+                    <Calendar className="w-3.5 h-3.5" />
+                    <span>📅 มุมมองปฏิทินทั้งงวด (20 วัน)</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setMenuPlanningView("WEEKLY")}
+                    className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+                      menuPlanningView === "WEEKLY"
+                        ? "bg-[#1F5E4B] text-white shadow-xs"
+                        : "text-[#66746C] hover:text-[#18201C]"
+                    }`}
+                  >
+                    <UtensilsCrossed className="w-3.5 h-3.5" />
+                    <span>📋 ตารางวัตถุดิบและราคาละเอียด</span>
+                  </button>
+                </div>
+              </div>
+
+              {menuPlanningView === "WEEKLY" ? (
+                <button
+                  type="button"
+                  onClick={() => setMenuPlanningView("CALENDAR")}
+                  className="px-3.5 py-1.5 rounded-xl border border-[#C7E2D6] bg-[#F2F8F5] text-[#1F5E4B] text-xs font-bold hover:bg-[#EBF4F0] transition-smooth flex items-center gap-1.5 self-start sm:self-auto"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  <span>กลับไปยังมุมมองปฏิทิน</span>
+                </button>
+              ) : (
+                <div className="flex items-center gap-2 text-xs text-[#66746C]">
+                  <span>คลิกที่แต่ละวันเพื่อเลือกเมนู หรือสลับไปดูตารางวัตถุดิบ</span>
+                </div>
+              )}
+            </div>
+
+            {/* Render Calendar View when selected */}
+            {menuPlanningView === "CALENDAR" && (
+              <MenuCalendarPlanner
+                datePlans={datePlans}
+                onUpdateDatePlan={handleUpdateDatePlan}
+                presetMenus={presetMenus}
+                settings={settings}
+                onSelectDateForDetail={handleSelectDateForDetail}
+                onSaveNewPreset={async (newPreset) => {
+                  const updated = [...presetMenus, newPreset];
+                  setPresetMenus(updated);
+                  saveLocalState({ presetMenus: updated });
+                  await saveCloudState({ presetMenus: updated }).catch(console.warn);
+                }}
+              />
+            )}
+
+            {/* Render Weekly 5-Day Ribbon & Canvas View when selected */}
+            {menuPlanningView === "WEEKLY" && (
+              <>
             {/* 5-Day Weekly Menu Schedule Switcher Dock */}
             <div className="bg-white rounded-3xl p-5 border border-[#E7E4DC] shadow-card space-y-3.5">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1">
@@ -2398,6 +2564,8 @@ export default function HomePage() {
                 </div>
               </div>
             </div>
+              </>
+            )}
           </div>
         )}
 

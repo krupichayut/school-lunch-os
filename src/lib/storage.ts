@@ -216,6 +216,151 @@ export const DEFAULT_WEEKLY_PLAN: WeeklyPlan = {
   },
 };
 
+export const DEFAULT_PRESET_MENUS: PresetMenu[] = [
+  {
+    id: "preset-1",
+    name: "ก๋วยเตี๋ยวน้ำใสไก่ฉีก",
+    category: "อาหารจานเดียว",
+    ingredients: [
+      { id: "p1-1", name: "เส้นก๋วยเตี๋ยว (เส้นเล็ก/หมี่ขาว)", qty: 7.0, unit: "กก.", unitPrice: 35 },
+      { id: "p1-2", name: "เนื้อไก่สด (อก/น่อง)", qty: 7.5, unit: "กก.", unitPrice: 85 },
+      { id: "p1-3", name: "ถั่วงอกสด", qty: 4.0, unit: "กก.", unitPrice: 25 },
+      { id: "p1-4", name: "ผักชี/ต้นหอม/กระเทียมเจียว", qty: 1.0, unit: "กก.", unitPrice: 80 },
+    ],
+  },
+  {
+    id: "preset-2",
+    name: "ข้าวมันไก่ตอน + น้ำซุปฟัก",
+    category: "อาหารจานเดียว",
+    ingredients: [
+      { id: "p2-1", name: "ข้าวสารหอมมะลิ", qty: 8.0, unit: "กก.", unitPrice: 38 },
+      { id: "p2-2", name: "ไก่ตอนสดทั้งตัว", qty: 8.0, unit: "กก.", unitPrice: 90 },
+      { id: "p2-3", name: "แตงกวาสด", qty: 3.5, unit: "กก.", unitPrice: 25 },
+      { id: "p2-4", name: "ฟักเขียว (ทำน้ำซุป)", qty: 4.0, unit: "กก.", unitPrice: 20 },
+      { id: "p2-5", name: "เต้าเจี้ยวและเครื่องปรุงน้ำจิ้ม", qty: 1.0, unit: "ชุด", unitPrice: 65 },
+    ],
+  },
+  {
+    id: "preset-3",
+    name: "ต้มจืดเต้าหู้หมูสับ/ข้าวสวย",
+    category: "กับข้าว",
+    ingredients: [
+      { id: "p3-1", name: "เนื้อหมูบดสด", qty: 7.0, unit: "กก.", unitPrice: 140 },
+      { id: "p3-2", name: "เต้าหู้ไข่ไก่", qty: 25.0, unit: "หลอด", unitPrice: 10 },
+      { id: "p3-3", name: "ผักกาดขาวสด", qty: 5.0, unit: "กก.", unitPrice: 25 },
+      { id: "p3-4", name: "ข้าวสาร", qty: 8.0, unit: "กก.", unitPrice: 35 },
+    ],
+  },
+  {
+    id: "preset-4",
+    name: "ผัดซีอิ๊วหมูใส่ผักคะน้า",
+    category: "อาหารจานเดียว",
+    ingredients: [
+      { id: "p4-1", name: "ก๋วยเตี๋ยวเส้นใหญ่", qty: 8.0, unit: "กก.", unitPrice: 35 },
+      { id: "p4-2", name: "เนื้อหมูสดสันนอก", qty: 7.0, unit: "กก.", unitPrice: 135 },
+      { id: "p4-3", name: "ผักคะน้าสด", qty: 5.0, unit: "กก.", unitPrice: 30 },
+      { id: "p4-4", name: "ไข่ไก่สด เบอร์ 3", qty: 45.0, unit: "ฟอง", unitPrice: 4 },
+    ],
+  },
+  {
+    id: "preset-5",
+    name: "แกงเขียวหวานไก่ใส่ฟัก/ข้าวสวย",
+    category: "กับข้าว",
+    ingredients: [
+      { id: "p5-1", name: "เนื้อไก่สด", qty: 7.5, unit: "กก.", unitPrice: 85 },
+      { id: "p5-2", name: "ฟักเขียว/มะเขือเปราะ", qty: 5.0, unit: "กก.", unitPrice: 25 },
+      { id: "p5-3", name: "กะทิสดคั้นแท้", qty: 4.0, unit: "กก.", unitPrice: 65 },
+      { id: "p5-4", name: "ข้าวสาร", qty: 8.0, unit: "กก.", unitPrice: 35 },
+    ],
+  },
+  {
+    id: "preset-6",
+    name: "แกงกะทิไก่ฟักทอง + ผัดวุ้นเส้น",
+    category: "กับข้าว",
+    ingredients: [
+      { id: "p6-1", name: "เนื้อไก่สด", qty: 7.5, unit: "กก.", unitPrice: 85 },
+      { id: "p6-2", name: "ฟักทองสด (หั่นชิ้น)", qty: 6.0, unit: "กก.", unitPrice: 30 },
+      { id: "p6-3", name: "กะทิสดคั้น", qty: 4.0, unit: "กก.", unitPrice: 65 },
+      { id: "p6-4", name: "วุ้นเส้นแห้ง", qty: 1.5, unit: "กก.", unitPrice: 75 },
+    ],
+  },
+  {
+    id: "preset-7",
+    name: "ก๋วยจั๊บน้ำใสหมูสับไข่ต้ม",
+    category: "อาหารจานเดียว",
+    ingredients: [
+      { id: "p7-1", name: "เส้นก๋วยจั๊บอบแห้ง", qty: 5.0, unit: "กก.", unitPrice: 40 },
+      { id: "p7-2", name: "เนื้อหมูสับสด", qty: 6.5, unit: "กก.", unitPrice: 135 },
+      { id: "p7-3", name: "เต้าหู้พวงทอด", qty: 3.0, unit: "พวง", unitPrice: 30 },
+      { id: "p7-4", name: "ไข่ไก่สด เบอร์ 3", qty: 45.0, unit: "ฟอง", unitPrice: 4 },
+    ],
+  },
+  {
+    id: "preset-8",
+    name: "ข้าวผัดหมูใส่ไข่ + ซุปแตงกวา",
+    category: "อาหารจานเดียว",
+    ingredients: [
+      { id: "p8-1", name: "ข้าวสารหอมมะลิ", qty: 8.5, unit: "กก.", unitPrice: 38 },
+      { id: "p8-2", name: "เนื้อหมูสด", qty: 6.5, unit: "กก.", unitPrice: 135 },
+      { id: "p8-3", name: "ไข่ไก่สด เบอร์ 3", qty: 45.0, unit: "ฟอง", unitPrice: 4 },
+      { id: "p8-4", name: "แตงกวา/ต้นหอม", qty: 3.5, unit: "กก.", unitPrice: 25 },
+    ],
+  },
+];
+
+/**
+ * Calculates all official weekday dates (Monday-Friday) between startDate and endDate
+ * Example: 2026-11-02 to 2026-11-27 produces exactly 20 school days
+ */
+export function getRoundSchoolDays(
+  startDateStr: string = "2026-11-02",
+  endDateStr: string = "2026-11-27"
+): string[] {
+  const result: string[] = [];
+  const start = new Date(startDateStr);
+  const end = new Date(endDateStr);
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) return [];
+
+  const cur = new Date(start);
+  while (cur <= end) {
+    const day = cur.getDay();
+    if (day >= 1 && day <= 5) {
+      const y = cur.getFullYear();
+      const m = String(cur.getMonth() + 1).padStart(2, "0");
+      const d = String(cur.getDate()).padStart(2, "0");
+      result.push(`${y}-${m}-${d}`);
+    }
+    cur.setDate(cur.getDate() + 1);
+  }
+  return result;
+}
+
+export function ensureDatePlans(
+  existingDatePlans?: Record<string, DayPlan>,
+  weeklyPlan?: WeeklyPlan
+): Record<string, DayPlan> {
+  const plans: Record<string, DayPlan> = { ...(existingDatePlans || {}) };
+  if (weeklyPlan) {
+    const weekdayMap: [DayKey, string][] = [
+      ["monday", DEFAULT_WEEKDAY_DATES.monday],
+      ["tuesday", DEFAULT_WEEKDAY_DATES.tuesday],
+      ["wednesday", DEFAULT_WEEKDAY_DATES.wednesday],
+      ["thursday", DEFAULT_WEEKDAY_DATES.thursday],
+      ["friday", DEFAULT_WEEKDAY_DATES.friday],
+    ];
+    for (const [key, dateStr] of weekdayMap) {
+      if (!plans[dateStr] && weeklyPlan[key]) {
+        plans[dateStr] = {
+          ...weeklyPlan[key],
+          inspectionDate: dateStr,
+          ingredients: (weeklyPlan[key].ingredients || []).map((i) => ({ ...i })),
+        };
+      }
+    }
+  }
+  return plans;
+}
+
 export interface FinancialTransactionDisplay {
   id: string;
   documentNo: string;
@@ -261,6 +406,7 @@ export function ensureRound1Income(txs?: FinancialTransactionDisplay[]): Financi
 export interface AppSyncPayload {
   settings?: SchoolSettings;
   weeklyPlan?: WeeklyPlan;
+  datePlans?: Record<string, DayPlan>;
   selectedDayKey?: DayKey;
   presetMenus?: PresetMenu[];
   selectedMenuId?: string;
@@ -606,6 +752,10 @@ export async function fetchCloudState(): Promise<AppSyncPayload | null> {
     const result: AppSyncPayload = {
       settings: normalizedSettings,
       weeklyPlan: normalizedWeeklyPlan,
+      datePlans:
+        cloudData.datePlans && typeof cloudData.datePlans === "object"
+          ? (cloudData.datePlans as Record<string, DayPlan>)
+          : undefined,
       selectedDayKey:
         typeof cloudData.selectedDayKey === "string"
           ? (cloudData.selectedDayKey as DayKey)
