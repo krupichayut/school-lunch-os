@@ -40,7 +40,16 @@ import {
   Save,
   RefreshCw,
   SlidersHorizontal,
+  Upload,
+  AlertCircle,
+  X,
 } from "lucide-react";
+import {
+  parseIngredientsExcel,
+  downloadExcelTemplate,
+  toMenuItems,
+  ExcelImportResult,
+} from "@/lib/excel-importer";
 import {
   loadLocalState,
   saveLocalState,
@@ -735,6 +744,18 @@ export default function HomePage() {
   const [showNewMenuModal, setShowNewMenuModal] = useState<boolean>(false);
   const [newMenuName, setNewMenuName] = useState<string>("");
 
+  // Excel Import States
+  const [showExcelImportModal, setShowExcelImportModal] = useState<boolean>(false);
+  const [excelImportResult, setExcelImportResult] = useState<ExcelImportResult | null>(null);
+  const [excelTargetDay, setExcelTargetDay] = useState<DayKey | "PRESET">("friday");
+  const [excelImportMode, setExcelImportMode] = useState<"replace" | "append">("replace");
+  const [excelMenuName, setExcelMenuName] = useState<string>("");
+  const [excelUploadedFileName, setExcelUploadedFileName] = useState<string>("");
+  const [isProcessingExcel, setIsProcessingExcel] = useState<boolean>(false);
+  const [excelErrorMessage, setExcelErrorMessage] = useState<string | null>(null);
+  const [excelSuccessToast, setExcelSuccessToast] = useState<string | null>(null);
+  const excelFileInputRef = useRef<HTMLInputElement>(null);
+
   // Modal Handlers
   const handleAddIncome = async () => {
     const val = parseFloat(incomeAmount);
@@ -960,6 +981,113 @@ export default function HomePage() {
       setSyncStatus("SYNCED");
       alert(`✓ บันทึกเมนู "${newMenu.name}" เข้าสู่ระบบ Cloud เรียบร้อยแล้ว`);
     }
+  };
+
+  // Excel File Upload & Parser Handler
+  const handleExcelFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsProcessingExcel(true);
+    setExcelErrorMessage(null);
+    setExcelUploadedFileName(file.name);
+
+    try {
+      const buffer = await file.arrayBuffer();
+      const result = parseIngredientsExcel(buffer);
+      if (result.error) {
+        setExcelErrorMessage(result.error);
+        setExcelImportResult(null);
+      } else {
+        setExcelImportResult(result);
+        if (result.detectedMenuName) {
+          setExcelMenuName(result.detectedMenuName);
+        } else if (!excelMenuName) {
+          const cleanName = file.name.replace(/\.[^/.]+$/, "").replace(/^[_\s-]+|[_\s-]+$/g, "");
+          setExcelMenuName(cleanName);
+        }
+      }
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setExcelErrorMessage(`ไม่สามารถอ่านไฟล์ได้: ${msg}`);
+      setExcelImportResult(null);
+    } finally {
+      setIsProcessingExcel(false);
+      e.target.value = "";
+    }
+  };
+
+  // Confirm Excel Import Handler
+  const handleConfirmExcelImport = async () => {
+    if (!excelImportResult || excelImportResult.items.length === 0) return;
+
+    const importedMenuItems = toMenuItems(excelImportResult.items);
+    if (importedMenuItems.length === 0) {
+      setExcelErrorMessage("ไม่มีรายการวัตถุดิบที่สมบูรณ์สำหรับนำเข้า");
+      return;
+    }
+
+    if (excelTargetDay === "PRESET") {
+      const targetMenuTitle =
+        excelMenuName.trim() || excelImportResult.detectedMenuName || "สูตรอาหารนำเข้าจาก Excel";
+      const newPreset: PresetMenu = {
+        id: `preset-${Date.now()}`,
+        name: targetMenuTitle,
+        category: "อาหารจานเดียว",
+        ingredients: importedMenuItems,
+      };
+      const updatedPresets = [...presetMenus, newPreset];
+      setPresetMenus(updatedPresets);
+      saveLocalState({ presetMenus: updatedPresets });
+      setSyncStatus("SAVING");
+      await saveCloudState({ presetMenus: updatedPresets });
+      setSyncStatus("SYNCED");
+      setExcelSuccessToast(
+        `✓ นำเข้าเป็นสูตรต้นแบบ "${targetMenuTitle}" (${importedMenuItems.length} รายการ) เรียบร้อยแล้ว`
+      );
+    } else {
+      const targetDay = excelTargetDay as DayKey;
+      const targetPlan = weeklyPlan[targetDay] || DEFAULT_WEEKLY_PLAN[targetDay];
+      const targetMenuTitle =
+        excelMenuName.trim() ||
+        excelImportResult.detectedMenuName ||
+        targetPlan.menuName ||
+        "เมนูอาหารกลางวัน";
+
+      const finalIngredients =
+        excelImportMode === "replace"
+          ? importedMenuItems
+          : [...(targetPlan.ingredients || []), ...importedMenuItems];
+
+      const updatedPlan: WeeklyPlan = {
+        ...weeklyPlan,
+        [targetDay]: {
+          ...targetPlan,
+          menuName: targetMenuTitle,
+          ingredients: finalIngredients,
+          isFrozen: false,
+          frozenAtTime: null,
+          inspectionItems: [],
+          isReceivingConfirmed: false,
+          confirmedAtTime: null,
+        },
+      };
+
+      setWeeklyPlan(updatedPlan);
+      setSelectedDayKey(targetDay);
+      saveLocalState({ weeklyPlan: updatedPlan });
+      setSyncStatus("SAVING");
+      await saveCloudState({ weeklyPlan: updatedPlan });
+      setSyncStatus("SYNCED");
+
+      const dayLabel = DAY_DEFINITIONS.find((d) => d.key === targetDay)?.label || targetDay;
+      setExcelSuccessToast(
+        `✓ นำเข้า ${importedMenuItems.length} รายการวัตถุดิบสู่วัน${dayLabel} เรียบร้อยแล้ว`
+      );
+    }
+
+    setShowExcelImportModal(false);
+    setTimeout(() => setExcelSuccessToast(null), 4000);
   };
 
   const handleExportCSV = () => {
@@ -1473,6 +1601,12 @@ export default function HomePage() {
                 <span>บันทึกรายการวัตถุดิบและราคาเรียบร้อยแล้ว! ข้อมูลถูกซิงก์ขึ้นระบบ Cloud ทันที</span>
               </div>
             )}
+            {excelSuccessToast && (
+              <div className="bg-emerald-600 text-white p-4 rounded-2xl shadow-lg flex items-center gap-2 text-xs font-bold animate-in fade-in duration-200">
+                <CheckCircle2 className="w-5 h-5 text-emerald-200" />
+                <span>{excelSuccessToast}</span>
+              </div>
+            )}
 
             {/* 5-Day Weekly Menu Schedule Switcher Dock */}
             <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs space-y-3">
@@ -1722,7 +1856,7 @@ export default function HomePage() {
                           <UtensilsCrossed className="w-8 h-8 mx-auto mb-2 opacity-30 text-slate-400" />
                           <span className="block text-xs font-bold text-slate-600">ยังไม่มีรายการวัตถุดิบในเมนูนี้</span>
                           <span className="block text-[11px] text-slate-400 mt-1">
-                            คลิกปุ่ม <strong>&quot;+ เพิ่มวัตถุดิบในเมนูนี้&quot;</strong> ด้านล่างเพื่อเริ่มระบุวัตถุดิบและราคา
+                            คลิกปุ่ม <strong>&quot;+ เพิ่มวัตถุดิบในเมนูนี้&quot;</strong> หรือ <strong>&quot;📥 นำเข้าจาก Excel&quot;</strong> ด้านล่างเพื่อเริ่มระบุวัตถุดิบและราคา
                           </span>
                         </td>
                       </tr>
@@ -1811,6 +1945,22 @@ export default function HomePage() {
                   >
                     <Sparkles className="w-4 h-4 text-amber-500" />
                     <span>เพิ่มเมนูอาหารใหม่</span>
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      setExcelImportResult(null);
+                      setExcelErrorMessage(null);
+                      setExcelUploadedFileName("");
+                      setExcelTargetDay(selectedDayKey);
+                      setExcelMenuName(activeDayPlan.menuName || "");
+                      setShowExcelImportModal(true);
+                    }}
+                    className="px-4 py-2.5 rounded-xl border border-emerald-300 bg-emerald-50/70 text-emerald-800 text-xs font-bold hover:bg-emerald-100 transition-all flex items-center gap-1.5 shadow-2xs"
+                    title="นำเข้ารายการอาหารและวัตถุดิบจากไฟล์ Excel"
+                  >
+                    <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                    <span>📥 นำเข้าจาก Excel</span>
                   </button>
                 </div>
 
@@ -2846,6 +2996,260 @@ export default function HomePage() {
                   className="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-semibold hover:bg-black"
                 >
                   เพิ่มรายการวัตถุดิบ
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL 6: นำเข้ารายการอาหารและวัตถุดิบจาก Excel */}
+        {showExcelImportModal && (
+          <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-white w-full max-w-2xl rounded-3xl p-6 shadow-2xl border border-slate-200 my-8">
+              {/* Header */}
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
+                <div className="flex items-center gap-2.5">
+                  <div className="p-2 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-100">
+                    <FileSpreadsheet className="w-5 h-5 text-emerald-600" />
+                  </div>
+                  <div>
+                    <h3 className="text-base font-bold text-slate-900">
+                      นำเข้ารายการอาหารและวัตถุดิบจาก Excel
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      รองรับไฟล์ .xlsx, .xls และ .csv สำหรับจัดซื้ออาหารกลางวัน
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowExcelImportModal(false)}
+                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                  aria-label="ปิดหน้าต่างนำเข้า Excel"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              {/* Upload Dropzone & Template Download Button */}
+              <div className="mt-4 space-y-3">
+                <input
+                  type="file"
+                  ref={excelFileInputRef}
+                  onChange={handleExcelFileUpload}
+                  accept=".xlsx,.xls,.csv"
+                  className="hidden"
+                />
+
+                <div
+                  onClick={() => excelFileInputRef.current?.click()}
+                  className="border-2 border-dashed border-emerald-200 hover:border-emerald-400 bg-emerald-50/30 hover:bg-emerald-50/60 rounded-2xl p-6 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-2 group"
+                >
+                  <div className="p-3 rounded-full bg-white shadow-xs group-hover:scale-105 transition-transform text-emerald-600 border border-emerald-100">
+                    <Upload className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <span className="text-xs font-bold text-slate-800 block">
+                      {isProcessingExcel
+                        ? "กำลังประมวลผลไฟล์..."
+                        : excelUploadedFileName
+                        ? `ไฟล์ที่เลือก: ${excelUploadedFileName}`
+                        : "คลิกเพื่อเลือกไฟล์ Excel หรือลากไฟล์มาวางที่นี่"}
+                    </span>
+                    <span className="text-[11px] text-slate-400 block mt-0.5">
+                      รองรับไฟล์ .xlsx, .xls, .csv (หัวตาราง: ชื่อวัตถุดิบ, จำนวน, หน่วยนับ, ราคาต่อหน่วย)
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap items-center justify-between gap-2 text-xs pt-1">
+                  <span className="text-slate-500 text-[11px]">ยังไม่มีไฟล์ตัวอย่าง?</span>
+                  <button
+                    type="button"
+                    onClick={() => downloadExcelTemplate()}
+                    className="inline-flex items-center gap-1.5 text-emerald-700 hover:text-emerald-800 font-bold text-xs bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg border border-emerald-200 transition-colors shadow-2xs"
+                  >
+                    <Download className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>ดาวน์โหลดแบบฟอร์ม Excel ตัวอย่าง (.xlsx)</span>
+                  </button>
+                </div>
+
+                {/* Error Banner */}
+                {excelErrorMessage && (
+                  <div className="bg-rose-50 border border-rose-200 text-rose-700 p-3 rounded-xl text-xs flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                    <span>{excelErrorMessage}</span>
+                  </div>
+                )}
+
+                {/* Settings: Target Day, Mode, and Menu Name */}
+                <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 space-y-3 mt-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                    <div>
+                      <label className="font-bold text-slate-700 block mb-1">
+                        นำเข้าข้อมูลไปยัง:
+                      </label>
+                      <select
+                        value={excelTargetDay}
+                        onChange={(e) => setExcelTargetDay(e.target.value as DayKey | "PRESET")}
+                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900/10 shadow-2xs"
+                      >
+                        {DAY_DEFINITIONS.map((d) => (
+                          <option key={d.key} value={d.key}>
+                            {d.label} {d.key === selectedDayKey ? "(วันที่เลือกอยู่ขณะนี้)" : ""}
+                          </option>
+                        ))}
+                        <option value="PRESET">💾 บันทึกเป็นสูตรต้นแบบใหม่ (Preset Recipe)</option>
+                      </select>
+                    </div>
+
+                    {excelTargetDay !== "PRESET" && (
+                      <div>
+                        <label className="font-bold text-slate-700 block mb-1">
+                          รูปแบบการใส่ข้อมูล:
+                        </label>
+                        <div className="flex items-center gap-3 pt-2">
+                          <label className="inline-flex items-center gap-1.5 cursor-pointer font-medium text-slate-700">
+                            <input
+                              type="radio"
+                              name="excelMode"
+                              checked={excelImportMode === "replace"}
+                              onChange={() => setExcelImportMode("replace")}
+                              className="accent-slate-900"
+                            />
+                            <span>แทนที่รายการเดิม</span>
+                          </label>
+                          <label className="inline-flex items-center gap-1.5 cursor-pointer font-medium text-slate-700">
+                            <input
+                              type="radio"
+                              name="excelMode"
+                              checked={excelImportMode === "append"}
+                              onChange={() => setExcelImportMode("append")}
+                              className="accent-slate-900"
+                            />
+                            <span>เพิ่มต่อท้ายรายการเดิม</span>
+                          </label>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="font-bold text-slate-700 block mb-1 text-xs">
+                      ชื่อเมนูอาหารกลางวัน:
+                    </label>
+                    <input
+                      type="text"
+                      value={excelMenuName}
+                      onChange={(e) => setExcelMenuName(e.target.value)}
+                      placeholder="เช่น ข้าวมันไก่ตอน, แกงกะทิไก่ฟักทอง, ข้าวผัดไข่"
+                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 shadow-2xs"
+                    />
+                  </div>
+                </div>
+
+                {/* Data Preview */}
+                {excelImportResult && (
+                  <div className="space-y-3 pt-2">
+                    <div className="flex items-center justify-between bg-slate-900 text-white rounded-2xl px-4 py-3">
+                      <div>
+                        <span className="text-[10px] uppercase font-mono tracking-wider text-slate-400 font-bold block">
+                          รายการที่อ่านได้จาก Excel
+                        </span>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <span className="text-xs font-bold text-emerald-400">
+                            ✓ สมบูรณ์ {excelImportResult.validCount} รายการ
+                          </span>
+                          {excelImportResult.invalidCount > 0 && (
+                            <span className="text-xs font-bold text-amber-400">
+                              ⚠️ ไม่สมบูรณ์ {excelImportResult.invalidCount} รายการ
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-[10px] uppercase font-mono tracking-wider text-slate-400 font-bold block">
+                          ยอดเงินรวมวัตถุดิบ
+                        </span>
+                        <span className="text-lg font-black font-mono text-emerald-300">
+                          {excelImportResult.totalCost.toLocaleString(undefined, {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}{" "}
+                          ฿
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="border border-slate-200 rounded-2xl overflow-hidden max-h-56 overflow-y-auto">
+                      <table className="w-full text-left text-xs text-slate-600">
+                        <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200 sticky top-0 text-[11px]">
+                          <tr>
+                            <th className="py-2.5 px-3 w-10 text-center">#</th>
+                            <th className="py-2.5 px-3">รายการวัตถุดิบ</th>
+                            <th className="py-2.5 px-3 text-center">จำนวน</th>
+                            <th className="py-2.5 px-3 text-center">หน่วย</th>
+                            <th className="py-2.5 px-3 text-right">ราคา/หน่วย</th>
+                            <th className="py-2.5 px-3 text-right">รวมเงิน (฿)</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100">
+                          {excelImportResult.items.map((item, idx) => (
+                            <tr
+                              key={item.id}
+                              className={item.isValid ? "hover:bg-slate-50/60" : "bg-rose-50/50"}
+                            >
+                              <td className="py-2 px-3 text-center font-mono text-[11px] text-slate-400">
+                                {idx + 1}
+                              </td>
+                              <td className="py-2 px-3 font-bold text-slate-900">
+                                {item.name}
+                                {item.validationError && (
+                                  <span className="block text-[10px] font-normal text-rose-600">
+                                    {item.validationError}
+                                  </span>
+                                )}
+                              </td>
+                              <td className="py-2 px-3 text-center font-mono">{item.qty}</td>
+                              <td className="py-2 px-3 text-center text-slate-500">{item.unit}</td>
+                              <td className="py-2 px-3 text-right font-mono">
+                                {item.unitPrice.toLocaleString(undefined, {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })}
+                              </td>
+                              <td className="py-2 px-3 text-right font-bold font-mono text-slate-900">
+                                {item.totalPrice.toLocaleString(undefined, {
+                                  minimumFractionDigits: 2,
+                                  maximumFractionDigits: 2,
+                                })}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Actions */}
+              <div className="mt-6 flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowExcelImportModal(false)}
+                  className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="button"
+                  disabled={!excelImportResult || excelImportResult.validCount === 0 || isProcessingExcel}
+                  onClick={handleConfirmExcelImport}
+                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold transition-all flex items-center gap-2 shadow-xs"
+                >
+                  <Check className="w-4 h-4" />
+                  <span>ยืนยันการนำเข้า ({excelImportResult?.validCount || 0} รายการ)</span>
                 </button>
               </div>
             </div>
