@@ -83,6 +83,15 @@ const PRESET_MENUS: PresetMenu[] = [
   },
 ];
 
+// Helper to safely parse numbers with commas, whitespace, and guard against NaN
+function parseCleanNumber(val: unknown): number {
+  if (typeof val === "number") return isNaN(val) ? 0 : val;
+  if (!val) return 0;
+  const cleaned = String(val).replace(/,/g, "").trim();
+  const num = parseFloat(cleaned);
+  return isNaN(num) ? 0 : num;
+}
+
 export default function HomePage() {
   // Navigation State
   const [activeTab, setActiveTab] = useState<
@@ -204,9 +213,9 @@ export default function HomePage() {
 
   // Auto-detect Day of Week & Today's Duty Teachers
   const todayDutyInfo = useMemo(() => {
-    const day = new Date().getDay(); // 0 = Sun, 1 = Mon, ..., 4 = Thu, 5 = Fri
-    let dayLabel = "วันพฤหัสบดี (วันปฏิบัติการ)";
-    let teachers = settings.dutyRoster.thursday;
+    const day = new Date().getDay(); // 0 = Sun, 1 = Mon, ..., 5 = Fri, 6 = Sat
+    let dayLabel = "วันจันทร์ (เตรียมสัปดาห์ใหม่)";
+    let teachers = settings.dutyRoster.monday;
     switch (day) {
       case 1:
         dayLabel = "วันจันทร์";
@@ -227,6 +236,14 @@ export default function HomePage() {
       case 5:
         dayLabel = "วันศุกร์";
         teachers = settings.dutyRoster.friday;
+        break;
+      case 6:
+        dayLabel = "วันเสาร์ (วันหยุดราชการ)";
+        teachers = settings.dutyRoster.monday;
+        break;
+      case 0:
+        dayLabel = "วันอาทิตย์ (วันหยุดราชการ)";
+        teachers = settings.dutyRoster.monday;
         break;
     }
     const safeTeachers = teachers && teachers.length > 0 ? teachers : ["ครูเวรประจำวัน"];
@@ -402,10 +419,7 @@ export default function HomePage() {
   ) => {
     setWeeklyPlan((prev) => {
       const curDay = prev[selectedDayKey] || DEFAULT_WEEKLY_PLAN[selectedDayKey];
-      const sourceIngredients =
-        curDay.ingredients && curDay.ingredients.length > 0
-          ? curDay.ingredients
-          : dailyIngredients;
+      const sourceIngredients = curDay.ingredients || [];
       const updatedIngredients = sourceIngredients.map((item) =>
         item.id === id ? { ...item, [field]: val } : item
       );
@@ -431,10 +445,7 @@ export default function HomePage() {
   const handleDeleteDayIngredient = (id: string) => {
     setWeeklyPlan((prev) => {
       const curDay = prev[selectedDayKey] || DEFAULT_WEEKLY_PLAN[selectedDayKey];
-      const sourceIngredients =
-        curDay.ingredients && curDay.ingredients.length > 0
-          ? curDay.ingredients
-          : dailyIngredients;
+      const sourceIngredients = curDay.ingredients || [];
       const updatedIngredients = sourceIngredients.filter((item) => item.id !== id);
       const updatedPlan: WeeklyPlan = {
         ...prev,
@@ -497,6 +508,7 @@ export default function HomePage() {
   }, [activeDayPlan.inspectionItems, activeDayPlan.ingredients]);
 
   const handleUpdateReceivedQty = (id: string, newQty: number) => {
+    const cleanQty = Math.round(Math.max(0, newQty) * 10) / 10;
     setWeeklyPlan((prev) => {
       const curDay = prev[selectedDayKey] || DEFAULT_WEEKLY_PLAN[selectedDayKey];
       const currentList =
@@ -505,14 +517,14 @@ export default function HomePage() {
           : inspectionItems;
       const updatedList = currentList.map((item) => {
         if (item.id === id) {
-          const shortage = newQty < item.ordered;
+          const shortage = cleanQty < item.ordered;
           return {
             ...item,
-            received: newQty,
-            accepted: newQty,
+            received: cleanQty,
+            accepted: cleanQty,
             status: shortage ? ("DISCREPANCY" as const) : ("ACCEPTED" as const),
             note: shortage
-              ? `ขาด ${Number((item.ordered - newQty).toFixed(2))} ${item.unit}`
+              ? `ขาด ${Number((item.ordered - cleanQty).toFixed(2))} ${item.unit}`
               : undefined,
           };
         }
@@ -564,27 +576,52 @@ export default function HomePage() {
     if (file) {
       const reader = new FileReader();
       reader.onload = (e) => {
-        const dataUrl = e.target?.result as string;
-        setWeeklyPlan((prev) => {
-          const curDay = prev[selectedDayKey] || DEFAULT_WEEKLY_PLAN[selectedDayKey];
-          const currentList =
-            curDay.inspectionItems && curDay.inspectionItems.length > 0
-              ? curDay.inspectionItems
-              : inspectionItems;
-          const updatedList = currentList.map((item) =>
-            item.id === id ? { ...item, photoUrl: dataUrl } : item
-          );
-          const updatedPlan: WeeklyPlan = {
-            ...prev,
-            [selectedDayKey]: {
-              ...curDay,
-              inspectionItems: updatedList,
-            },
-          };
-          saveLocalState({ weeklyPlan: updatedPlan });
-          saveCloudState({ weeklyPlan: updatedPlan }).catch(console.warn);
-          return updatedPlan;
-        });
+        const rawUrl = e.target?.result as string;
+        // Defensive compression to prevent localStorage QuotaExceededError
+        const img = new Image();
+        img.onload = () => {
+          const maxDim = 800;
+          let width = img.width;
+          let height = img.height;
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, width, height);
+            const compressedUrl = canvas.toDataURL("image/jpeg", 0.7);
+            setWeeklyPlan((prev) => {
+              const curDay = prev[selectedDayKey] || DEFAULT_WEEKLY_PLAN[selectedDayKey];
+              const currentList =
+                curDay.inspectionItems && curDay.inspectionItems.length > 0
+                  ? curDay.inspectionItems
+                  : inspectionItems;
+              const updatedList = currentList.map((item) =>
+                item.id === id ? { ...item, photoUrl: compressedUrl } : item
+              );
+              const updatedPlan: WeeklyPlan = {
+                ...prev,
+                [selectedDayKey]: {
+                  ...curDay,
+                  inspectionItems: updatedList,
+                },
+              };
+              saveLocalState({ weeklyPlan: updatedPlan });
+              saveCloudState({ weeklyPlan: updatedPlan }).catch(console.warn);
+              return updatedPlan;
+            });
+          }
+        };
+        img.src = rawUrl;
       };
       reader.readAsDataURL(file);
     }
@@ -594,16 +631,27 @@ export default function HomePage() {
     const nowTime = new Date().toLocaleTimeString("th-TH");
     setSyncStatus("SAVING");
 
-    // Calculate total received cost
-    const totalReceivedCost = inspectionItems.reduce(
-      (sum, item) => sum + item.received * item.unitPrice,
-      0
-    );
+    // Calculate total received cost ONLY for scheduled items (exclude ad-hoc to prevent double counting)
+    const totalReceivedCost = inspectionItems
+      .filter((item) => !item.isAdHoc)
+      .reduce(
+        (sum, item) => sum + item.received * item.unitPrice,
+        0
+      );
 
-    // Auto-create ledger expense if not already created for this document
+    // Auto-create or update ledger expense for this receiving record
     let updatedTx = transactions;
-    const existingTx = transactions.find((t) => t.documentNo.includes(receivingDocNo));
-    if (!existingTx && totalReceivedCost > 0) {
+    const existingTxIndex = transactions.findIndex((t) => t.documentNo.includes(receivingDocNo));
+    if (existingTxIndex >= 0) {
+      const updatedList = [...transactions];
+      updatedList[existingTxIndex] = {
+        ...updatedList[existingTxIndex],
+        amount: totalReceivedCost,
+        description: `ตัดจ่ายค่าวัตถุดิบอาหารสด (${activeMenu.name}) ประจำ${activeDayDefinition.label}`,
+      };
+      updatedTx = updatedList;
+      setTransactions(updatedTx);
+    } else if (totalReceivedCost > 0) {
       const dailyExpenseTx: FinancialTransactionDisplay = {
         id: `tx-recv-${Date.now()}`,
         documentNo: `FIN-${receivingDocNo}`,
@@ -651,17 +699,23 @@ export default function HomePage() {
     const ingredientsToFreeze = curDay.ingredients || [];
     const nowTime = new Date().toLocaleTimeString("th-TH");
 
-    const newItems: InspectionItemState[] = ingredientsToFreeze.map((item) => ({
-      id: item.id,
-      name: item.name,
-      ordered: item.qty,
-      received: item.qty,
-      accepted: item.qty,
-      rejected: 0,
-      unit: item.unit,
-      unitPrice: item.unitPrice,
-      status: "ACCEPTED",
-    }));
+    // Preserve existing ad-hoc items if present
+    const existingAdHoc = (curDay.inspectionItems || []).filter((item) => item.isAdHoc);
+
+    const newItems: InspectionItemState[] = [
+      ...ingredientsToFreeze.map((item) => ({
+        id: item.id,
+        name: item.name,
+        ordered: item.qty,
+        received: item.qty,
+        accepted: item.qty,
+        rejected: 0,
+        unit: item.unit,
+        unitPrice: item.unitPrice,
+        status: "ACCEPTED" as const,
+      })),
+      ...existingAdHoc,
+    ];
 
     const updatedPlan: WeeklyPlan = {
       ...weeklyPlan,
@@ -700,10 +754,12 @@ export default function HomePage() {
 
   const handleDeleteTransaction = async (id: string) => {
     if (confirm("ต้องการลบรายการนี้ออกจากสมุดบัญชีใช่หรือไม่?")) {
+      setSyncStatus("SAVING");
       const updated = transactions.filter((t) => t.id !== id);
       setTransactions(updated);
       saveLocalState({ transactions: updated });
       await saveCloudState({ transactions: updated });
+      setSyncStatus("SYNCED");
     }
   };
 
@@ -758,7 +814,7 @@ export default function HomePage() {
 
   // Modal Handlers
   const handleAddIncome = async () => {
-    const val = parseFloat(incomeAmount);
+    const val = parseCleanNumber(incomeAmount);
     if (val > 0) {
       const newTx: FinancialTransactionDisplay = {
         id: `tx-${Date.now()}`,
@@ -780,7 +836,7 @@ export default function HomePage() {
   };
 
   const handleAddExpense = async () => {
-    const val = parseFloat(expenseAmount);
+    const val = parseCleanNumber(expenseAmount);
     if (val > 0) {
       const newTx: FinancialTransactionDisplay = {
         id: `tx-${Date.now()}`,
@@ -802,8 +858,8 @@ export default function HomePage() {
   };
 
   const handleAddAdHocItem = async () => {
-    const qty = parseFloat(adHocQty) || 1;
-    const price = parseFloat(adHocPrice) || 0;
+    const qty = parseCleanNumber(adHocQty) || 1;
+    const price = parseCleanNumber(adHocPrice) || 0;
 
     if (adHocName.trim() && price > 0) {
       const newItem: InspectionItemState = {
@@ -865,8 +921,8 @@ export default function HomePage() {
   };
 
   const handleAddNewDailyIngredient = async () => {
-    const qty = parseFloat(newIngQty) || 1;
-    const price = parseFloat(newIngPrice) || 0;
+    const qty = parseCleanNumber(newIngQty) || 1;
+    const price = parseCleanNumber(newIngPrice) || 0;
     if (newIngName.trim() && price > 0) {
       const newItem: MenuItem = {
         id: `ing-${Date.now()}`,
@@ -1075,6 +1131,7 @@ export default function HomePage() {
 
       setWeeklyPlan(updatedPlan);
       setSelectedDayKey(targetDay);
+      setDailyIngredients(finalIngredients);
       saveLocalState({ weeklyPlan: updatedPlan });
       setSyncStatus("SAVING");
       await saveCloudState({ weeklyPlan: updatedPlan });
@@ -1107,9 +1164,10 @@ export default function HomePage() {
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.setAttribute("href", url);
+    const safeSchoolName = settings.schoolName.replace(/[/\\:*?"<>|]/g, "_").replace(/\s+/g, "_");
     link.setAttribute(
       "download",
-      `รายงานการเงินอาหารกลางวัน_${settings.schoolName.replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.csv`
+      `รายงานการเงินอาหารกลางวัน_${safeSchoolName}_${new Date().toISOString().slice(0, 10)}.csv`
     );
     document.body.appendChild(link);
     link.click();
@@ -1126,23 +1184,37 @@ export default function HomePage() {
       .filter((t) => t.type === "EXPENSE" && t.category === "ค่าวัตถุดิบ")
       .reduce((sum, t) => sum + t.amount, 0);
 
-    const operationalExpense = transactions
-      .filter((t) => t.type === "EXPENSE" && (t.category.includes("ก๊าซ") || t.category.includes("แม่ครัว")))
-      .reduce((sum, t) => sum + t.amount, 0);
-
     const adhocExpense = transactions
       .filter((t) => t.type === "EXPENSE" && t.category.includes("หน้างาน"))
       .reduce((sum, t) => sum + t.amount, 0);
 
-    const totalExpense = rawIngredientsExpense + operationalExpense + adhocExpense || 1;
-    const rawPercent = Math.round((rawIngredientsExpense / totalExpense) * 100);
-    const opPercent = Math.round((operationalExpense / totalExpense) * 100);
-    const adhocPercent = 100 - rawPercent - opPercent;
+    // Any other expense is operational (gas, cook wages, cleaning materials, kitchen utensils)
+    const operationalExpense = transactions
+      .filter(
+        (t) =>
+          t.type === "EXPENSE" &&
+          t.category !== "ค่าวัตถุดิบ" &&
+          !t.category.includes("หน้างาน")
+      )
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const totalActualExp = rawIngredientsExpense + operationalExpense + adhocExpense;
+    const hasExpenses = totalActualExp > 0;
+
+    const rawPercent = hasExpenses ? Math.round((rawIngredientsExpense / totalActualExp) * 100) : 0;
+    const opPercent = hasExpenses ? Math.round((operationalExpense / totalActualExp) * 100) : 0;
+    const adhocPercent = hasExpenses ? Math.max(0, 100 - rawPercent - opPercent) : 0;
 
     // Daily Average & Estimated Days remaining
-    const avgDailySpend = 1240;
+    const weeklyPlanTotal = Object.values(weeklyPlan).reduce(
+      (sum, dp) => sum + (dp.ingredients || []).reduce((s, ing) => s + ing.qty * ing.unitPrice, 0),
+      0
+    );
+    const avgDailySpend = weeklyPlanTotal > 0 ? Math.round(weeklyPlanTotal / 5) : 1240;
     const estimatedDaysRemaining =
-      avgDailySpend > 0 ? Math.floor(netCashRemaining / avgDailySpend) : 100;
+      avgDailySpend > 0 && netCashRemaining > 0
+        ? Math.floor(netCashRemaining / avgDailySpend)
+        : 0;
 
     return {
       rawIngredientsExpense,
@@ -1154,7 +1226,7 @@ export default function HomePage() {
       avgDailySpend,
       estimatedDaysRemaining,
     };
-  }, [transactions, netCashRemaining]);
+  }, [transactions, netCashRemaining, weeklyPlan]);
 
   const acceptedCount = inspectionItems.filter((i) => i.status === "ACCEPTED").length;
   const progressPercent =
@@ -2069,7 +2141,9 @@ export default function HomePage() {
                   {totalActualExpenses.toLocaleString()} <span className="text-xs font-sans font-normal text-[#66746C]">฿</span>
                 </div>
                 <div className="text-xs text-[#66746C] mt-1 font-medium">
-                  คิดเป็น {Math.round((totalActualExpenses / (totalIncomeReceived || 1)) * 100)}% ของงบที่รับแล้ว
+                  {totalIncomeReceived > 0
+                    ? `คิดเป็น ${Math.round((totalActualExpenses / totalIncomeReceived) * 100)}% ของงบที่รับแล้ว`
+                    : "ยังไม่มีรายการบันทึกเงินงวด"}
                 </div>
               </div>
 
@@ -2078,13 +2152,29 @@ export default function HomePage() {
                   <span className="text-xs font-bold tracking-wider">
                     งบประมาณคงเหลือจริง
                   </span>
-                  <CheckCircle2 className="w-4 h-4 text-[#1F5E4B]" />
+                  {netCashRemaining >= 0 ? (
+                    <CheckCircle2 className="w-4 h-4 text-[#1F5E4B]" />
+                  ) : (
+                    <AlertCircle className="w-4 h-4 text-[#D97757]" />
+                  )}
                 </div>
-                <div className="text-2xl font-black font-mono tabular-nums text-[#1F5E4B] mt-2">
-                  {netCashRemaining.toLocaleString()} <span className="text-xs font-sans font-normal text-[#1F5E4B]">฿</span>
+                <div
+                  className={`text-2xl font-black font-mono tabular-nums mt-2 ${
+                    netCashRemaining >= 0 ? "text-[#1F5E4B]" : "text-[#B55232]"
+                  }`}
+                >
+                  {netCashRemaining.toLocaleString()} <span className="text-xs font-sans font-normal">฿</span>
                 </div>
-                <div className="text-xs text-[#1F5E4B] mt-1 font-medium flex items-center gap-1">
-                  <span>✓ สถานะเงินสดปลอดภัย</span>
+                <div
+                  className={`text-xs mt-1 font-medium flex items-center gap-1 ${
+                    netCashRemaining >= 0 ? "text-[#1F5E4B]" : "text-[#B55232]"
+                  }`}
+                >
+                  {netCashRemaining >= 0 ? (
+                    <span>✓ สถานะเงินสดปลอดภัย</span>
+                  ) : (
+                    <span>⚠️ ยอดเงินติดลบ เกินวงเงินที่ได้รับจัดสรร</span>
+                  )}
                 </div>
               </div>
 

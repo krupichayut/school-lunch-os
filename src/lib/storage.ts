@@ -35,7 +35,7 @@ export function getTodayDayKey(): DayKey {
     case 5:
       return "friday";
     default:
-      return "thursday";
+      return "monday";
   }
 }
 
@@ -120,7 +120,7 @@ export type WeeklyPlan = Record<DayKey, DayPlan>;
 
 export const DEFAULT_WEEKLY_PLAN: WeeklyPlan = {
   monday: {
-    menuName: "เมนูวันจันทร์",
+    menuName: "ก๋วยเตี๋ยวน้ำใสไก่ฉีก",
     category: "อาหารจานเดียว",
     ingredients: [],
     isFrozen: false,
@@ -130,7 +130,7 @@ export const DEFAULT_WEEKLY_PLAN: WeeklyPlan = {
     confirmedAtTime: null,
   },
   tuesday: {
-    menuName: "เมนูวันอังคาร",
+    menuName: "ข้าวมันไก่ตอน",
     category: "อาหารจานเดียว",
     ingredients: [],
     isFrozen: false,
@@ -140,8 +140,8 @@ export const DEFAULT_WEEKLY_PLAN: WeeklyPlan = {
     confirmedAtTime: null,
   },
   wednesday: {
-    menuName: "เมนูวันพุธ",
-    category: "อาหารจานเดียว",
+    menuName: "ต้มจืดเต้าหู้หมูสับ/ข้าวสวย",
+    category: "กับข้าว",
     ingredients: [],
     isFrozen: false,
     frozenAtTime: null,
@@ -150,7 +150,7 @@ export const DEFAULT_WEEKLY_PLAN: WeeklyPlan = {
     confirmedAtTime: null,
   },
   thursday: {
-    menuName: "เมนูวันพฤหัสบดี",
+    menuName: "ผัดกะเพราหมูสับ/ไข่ต้ม",
     category: "อาหารจานเดียว",
     ingredients: [],
     isFrozen: false,
