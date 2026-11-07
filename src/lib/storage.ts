@@ -224,6 +224,38 @@ export interface FinancialTransactionDisplay {
   amount: number;
 }
 
+export const DEFAULT_ROUND_1_INCOME_TRANSACTION: FinancialTransactionDisplay = {
+  id: "tx-round-1-grant",
+  documentNo: "FIN-2569-000001",
+  date: "2 พ.ย. 2569",
+  type: "INCOME",
+  category: "เงินอุดหนุน",
+  description: "รับเงินจัดสรรงบอาหารกลางวัน งวดที่ 1 (2 พ.ย. – 27 พ.ย. 2569) (86 คน × 27 บ. × 20 วัน)",
+  amount: 46440.0,
+};
+
+export const DEFAULT_FINANCIAL_TRANSACTIONS: FinancialTransactionDisplay[] = [
+  DEFAULT_ROUND_1_INCOME_TRANSACTION,
+];
+
+export function ensureRound1Income(txs?: FinancialTransactionDisplay[]): FinancialTransactionDisplay[] {
+  if (!txs || txs.length === 0) {
+    return [DEFAULT_ROUND_1_INCOME_TRANSACTION];
+  }
+  const hasIncome = txs.some(
+    (t) =>
+      t.type === "INCOME" ||
+      t.id === "tx-round-1-grant" ||
+      t.description.includes("งวดที่ 1")
+  );
+  if (!hasIncome) {
+    return [DEFAULT_ROUND_1_INCOME_TRANSACTION, ...txs].sort(
+      (a, b) => parseDateToTimestamp(a.date) - parseDateToTimestamp(b.date)
+    );
+  }
+  return txs;
+}
+
 export interface AppSyncPayload {
   settings?: SchoolSettings;
   weeklyPlan?: WeeklyPlan;

@@ -73,6 +73,9 @@ import {
   toISODate,
   getDayDefaultDate,
   parseDateToTimestamp,
+  DEFAULT_ROUND_1_INCOME_TRANSACTION,
+  DEFAULT_FINANCIAL_TRANSACTIONS,
+  ensureRound1Income,
   SchoolSettings,
   DutyRoster,
   DayKey,
@@ -179,7 +182,10 @@ export default function HomePage() {
         const cleaned = local.transactions.filter(
           (t) => !["tx-1", "tx-2", "tx-3", "tx-4", "tx-5"].includes(t.id)
         );
-        setTransactions(cleaned);
+        const verified = ensureRound1Income(cleaned);
+        setTransactions(verified);
+      } else {
+        setTransactions(DEFAULT_FINANCIAL_TRANSACTIONS);
       }
     }
 
@@ -207,7 +213,14 @@ export default function HomePage() {
             const cleaned = cloud.transactions.filter(
               (t) => !["tx-1", "tx-2", "tx-3", "tx-4", "tx-5"].includes(t.id)
             );
-            setTransactions(cleaned);
+            const verified = ensureRound1Income(cleaned);
+            setTransactions(verified);
+            saveLocalState({ transactions: verified });
+          } else {
+            const verified = [DEFAULT_ROUND_1_INCOME_TRANSACTION];
+            setTransactions(verified);
+            saveLocalState({ transactions: verified });
+            saveCloudState({ transactions: verified }).catch(console.warn);
           }
           setSyncStatus("SYNCED");
           setLastSyncTime(
@@ -791,7 +804,8 @@ export default function HomePage() {
   // =========================================================================
   // 4. FINANCIAL LEDGER STATE
   // =========================================================================
-  const [transactions, setTransactions] = useState<FinancialTransactionDisplay[]>([]);
+  const [transactions, setTransactions] =
+    useState<FinancialTransactionDisplay[]>(DEFAULT_FINANCIAL_TRANSACTIONS);
 
   const handleDeleteTransaction = async (id: string) => {
     if (confirm("ต้องการลบรายการนี้ออกจากสมุดบัญชีใช่หรือไม่?")) {
