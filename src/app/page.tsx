@@ -43,7 +43,9 @@ import {
   Upload,
   AlertCircle,
   X,
+  Printer,
 } from "lucide-react";
+import OfficialReportModal, { OfficialFormType } from "@/components/OfficialReportModal";
 import {
   parseIngredientsExcel,
   downloadExcelTemplate,
@@ -827,6 +829,15 @@ export default function HomePage() {
   const [excelSuccessToast, setExcelSuccessToast] = useState<string | null>(null);
   const excelFileInputRef = useRef<HTMLInputElement>(null);
 
+  // Official Report Modal States
+  const [showReportModal, setShowReportModal] = useState<boolean>(false);
+  const [reportFormType, setReportFormType] = useState<OfficialFormType>("RECEIVING");
+
+  const handleOpenReportModal = (formType: OfficialFormType) => {
+    setReportFormType(formType);
+    setShowReportModal(true);
+  };
+
   // Modal Handlers
   const handleAddIncome = async () => {
     const val = parseCleanNumber(incomeAmount);
@@ -1512,7 +1523,18 @@ export default function HomePage() {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleOpenReportModal("RECEIVING")}
+                    className="px-3.5 py-2 rounded-xl bg-white hover:bg-[#FAF9F6] border border-[#C7E2D6] text-[#1F5E4B] text-xs font-bold transition-smooth flex items-center gap-1.5 shadow-xs"
+                    title="พิมพ์ใบตรวจรับพัสดุราชการ (แบบ ตร.01)"
+                  >
+                    <Printer className="w-4 h-4 text-[#1F5E4B]" />
+                    <span className="hidden sm:inline">พิมพ์ใบตรวจรับ (แบบ ตร.01)</span>
+                    <span className="sm:hidden">พิมพ์ ตร.01</span>
+                  </button>
+
                   <button
                     onClick={() => setShowAdHocModal(true)}
                     className="px-3.5 py-2 rounded-xl bg-[#FDF4F0] hover:bg-[#FBEDE6] border border-[#F2D7CA] text-[#B55232] text-xs font-bold transition-smooth flex items-center gap-1.5 shadow-xs"
@@ -1686,11 +1708,11 @@ export default function HomePage() {
             </div>
 
             {/* Confirm Receiving Floating Bar */}
-            <div className="sticky bottom-4 pt-2">
+            <div className="sticky bottom-4 pt-2 flex items-center gap-2">
               <button
                 onClick={handleConfirmMorningReceiving}
                 disabled={isReceivingConfirmed}
-                className={`w-full py-4 rounded-2xl text-sm font-extrabold tracking-tight shadow-floating transition-smooth flex items-center justify-center gap-2 active:scale-98 ${
+                className={`flex-1 py-4 rounded-2xl text-sm font-extrabold tracking-tight shadow-floating transition-smooth flex items-center justify-center gap-2 active:scale-98 ${
                   isReceivingConfirmed
                     ? "bg-[#1F5E4B] text-white cursor-default"
                     : "bg-[#1F5E4B] hover:bg-[#143B30] text-white"
@@ -1708,6 +1730,18 @@ export default function HomePage() {
                   </>
                 )}
               </button>
+
+              {isReceivingConfirmed && (
+                <button
+                  type="button"
+                  onClick={() => handleOpenReportModal("RECEIVING")}
+                  className="py-4 px-5 rounded-2xl bg-white border border-[#C7E2D6] text-[#1F5E4B] hover:bg-[#F2F8F5] text-xs font-bold transition-smooth flex items-center gap-2 shadow-floating shrink-0"
+                  title="พิมพ์ใบตรวจรับพัสดุราชการ (แบบ ตร.01)"
+                >
+                  <Printer className="w-4 h-4 text-[#1F5E4B]" />
+                  <span>พิมพ์ ตร.01</span>
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -2090,6 +2124,16 @@ export default function HomePage() {
                     <FileSpreadsheet className="w-4 h-4 text-[#B55232]" />
                     <span>📥 นำเข้าจาก Excel</span>
                   </button>
+
+                  <button
+                    type="button"
+                    onClick={() => handleOpenReportModal("WEEKLY_PLAN")}
+                    className="px-4 py-2.5 rounded-xl border border-[#C7E2D6] bg-white text-[#1F5E4B] text-xs font-bold hover:bg-[#F2F8F5] transition-smooth flex items-center gap-1.5 shadow-xs"
+                    title="พิมพ์รายงานสรุปแผนอาหารประจำสัปดาห์ (แบบ อห.02)"
+                  >
+                    <Printer className="w-4 h-4 text-[#1F5E4B]" />
+                    <span>พิมพ์แผนสัปดาห์ (แบบ อห.02)</span>
+                  </button>
                 </div>
 
                 <div className="flex items-center gap-2">
@@ -2439,6 +2483,16 @@ export default function HomePage() {
                 >
                   <Flame className="w-4 h-4 text-[#D97757]" />
                   <span>รายการนอก (ค่าแก๊ส/แม่ครัว)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleOpenReportModal("LEDGER")}
+                  className="px-3.5 py-2 rounded-xl border border-[#C7E2D6] bg-white text-[#1F5E4B] hover:bg-[#F2F8F5] text-xs font-bold transition-smooth flex items-center gap-1.5 shadow-2xs"
+                  title="พิมพ์ทะเบียนคุมรายรับ-รายจ่าย (แบบ ทค.03)"
+                >
+                  <Printer className="w-4 h-4 text-[#1F5E4B]" />
+                  <span>พิมพ์ทะเบียนคุมเงิน (แบบ ทค.03)</span>
                 </button>
 
                 <button
@@ -3411,6 +3465,21 @@ export default function HomePage() {
             </div>
           </div>
         )}
+        {/* MODAL 7: แบบฟอร์มเอกสารรายงานราชการ (Official Report Suite) */}
+        <OfficialReportModal
+          isOpen={showReportModal}
+          onClose={() => setShowReportModal(false)}
+          initialFormType={reportFormType}
+          settings={settings}
+          selectedDayKey={selectedDayKey}
+          activeDayDefinition={activeDayDefinition}
+          activeDayPlan={activeDayPlan}
+          inspectionItems={inspectionItems}
+          weeklyPlan={weeklyPlan}
+          financialTransactions={transactions}
+          receivingDocNo={receivingDocNo}
+          confirmedAtTime={confirmedAtTime}
+        />
       </main>
     </div>
   );
