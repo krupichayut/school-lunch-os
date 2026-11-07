@@ -1601,29 +1601,99 @@ export default function HomePage() {
     const opPercent = hasExpenses ? Math.round((operationalExpense / totalActualExp) * 100) : 0;
     const adhocPercent = hasExpenses ? Math.max(0, 100 - rawPercent - opPercent) : 0;
 
-    // Daily Average & Estimated Days remaining
-    const weeklyPlanTotal = Object.values(weeklyPlan).reduce(
-      (sum, dp) => sum + (dp.ingredients || []).reduce((s, ing) => s + ing.qty * ing.unitPrice, 0),
-      0
-    );
+    // Daily Average & Estimated Days remaining based on actual government benchmark allocation
     const benchmarkDailySpend = (settings.studentCount || 86) * (settings.subsidyPerHead || 27);
-    const avgDailySpend = weeklyPlanTotal > 0 ? Math.round(weeklyPlanTotal / 5) : benchmarkDailySpend;
+    const avgDailySpend = benchmarkDailySpend;
+    const daysPerInstallment = settings.daysPerInstallment || 20;
     const estimatedDaysRemaining =
       avgDailySpend > 0 && netCashRemaining > 0
-        ? Math.floor(netCashRemaining / avgDailySpend)
+        ? Math.min(daysPerInstallment, Math.floor(netCashRemaining / avgDailySpend))
         : 0;
+
+    // Dynamic 4-Week Breakdown of Round 1 (Nov 2026: 20 school days)
+    const weeksConfig = [
+      { weekNum: 1, name: "สัปดาห์ที่ 1", dates: "2 พ.ย. - 6 พ.ย.", startDate: "2026-11-02", endDate: "2026-11-06" },
+      { weekNum: 2, name: "สัปดาห์ที่ 2", dates: "9 พ.ย. - 13 พ.ย.", startDate: "2026-11-09", endDate: "2026-11-13" },
+      { weekNum: 3, name: "สัปดาห์ที่ 3", dates: "16 พ.ย. - 20 พ.ย.", startDate: "2026-11-16", endDate: "2026-11-20" },
+      { weekNum: 4, name: "สัปดาห์ที่ 4", dates: "23 พ.ย. - 27 พ.ย.", startDate: "2026-11-23", endDate: "2026-11-27" },
+    ];
+
+    const weeklyAllocation = benchmarkDailySpend * 5;
+    const now = new Date();
+    const todayIso = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+
+    const weeklyAnalyticsData = weeksConfig.map((w) => {
+      // 1. Calculate actual spend from transactions
+      const actualSpend = transactions
+        .filter((t) => t.type === "EXPENSE" && t.date >= w.startDate && t.date <= w.endDate)
+        .reduce((sum, t) => sum + t.amount, 0);
+
+      // 2. Calculate planned spend from datePlans for days in this week
+      let plannedSpend = 0;
+      let planDaysCount = 0;
+      const dCur = new Date(w.startDate);
+      const dEnd = new Date(w.endDate);
+      while (dCur <= dEnd) {
+        if (dCur.getDay() >= 1 && dCur.getDay() <= 5) {
+          const iso = `${dCur.getFullYear()}-${String(dCur.getMonth() + 1).padStart(2, "0")}-${String(dCur.getDate()).padStart(2, "0")}`;
+          const dp = datePlans[iso];
+          if (dp && dp.ingredients && dp.ingredients.length > 0) {
+            const dayCost = dp.ingredients.reduce((s, ing) => s + (ing.qty || 0) * (ing.unitPrice || 0), 0);
+            plannedSpend += dayCost;
+            planDaysCount++;
+          }
+        }
+        dCur.setDate(dCur.getDate() + 1);
+      }
+
+      const isPast = todayIso > w.endDate;
+      const isCurrent = (todayIso >= w.startDate && todayIso <= w.endDate) || (w.weekNum === 1 && todayIso <= w.endDate);
+      const isFuture = todayIso < w.startDate && !isCurrent;
+
+      let status = "รอเริ่มสัปดาห์";
+      if (actualSpend > 0 && isCurrent) {
+        status = "สัปดาห์ปัจจุบัน (จ่ายจริงแล้ว)";
+      } else if (actualSpend > 0) {
+        status = "จ่ายจริงแล้ว";
+      } else if (isCurrent) {
+        status = "สัปดาห์ปัจจุบัน (กำลังดำเนินการ)";
+      } else if (plannedSpend > 0) {
+        status = "ประมาณการตามแผน";
+      } else {
+        status = "รอเริ่มสัปดาห์";
+      }
+
+      const displaySpend = actualSpend > 0 ? actualSpend : plannedSpend;
+
+      return {
+        ...w,
+        actualSpend,
+        plannedSpend,
+        displaySpend,
+        max: weeklyAllocation,
+        isPast,
+        isCurrent,
+        isFuture,
+        status,
+        planDaysCount,
+      };
+    });
 
     return {
       rawIngredientsExpense,
       operationalExpense,
       adhocExpense,
+      totalActualExp,
       rawPercent,
       opPercent,
       adhocPercent,
+      benchmarkDailySpend,
       avgDailySpend,
       estimatedDaysRemaining,
+      weeklyAnalyticsData,
+      weeklyAllocation,
     };
-  }, [transactions, netCashRemaining, weeklyPlan, settings.studentCount, settings.subsidyPerHead]);
+  }, [transactions, netCashRemaining, datePlans, settings.studentCount, settings.subsidyPerHead, settings.daysPerInstallment]);
 
   const acceptedCount = inspectionItems.filter((i) => i.status === "ACCEPTED").length;
   const progressPercent =
@@ -2828,127 +2898,328 @@ export default function HomePage() {
                   {analyticsSummary.estimatedDaysRemaining} <span className="text-xs font-sans font-normal text-[#66746C]">วันเปิดเรียน</span>
                 </div>
                 <div className="text-xs text-[#66746C] mt-1 font-medium">
-                  อัตราเฉลี่ย ~{analyticsSummary.avgDailySpend.toLocaleString()} ฿ / วัน
+                  เกณฑ์ ~{analyticsSummary.benchmarkDailySpend.toLocaleString()} ฿ / วัน (คงเหลืองวดที่ 1 อีก {analyticsSummary.estimatedDaysRemaining} จาก {settings.daysPerInstallment || 20} วัน)
                 </div>
               </div>
             </div>
 
-            {/* Visual Weekly Spending Comparison & Category Distribution */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-              {/* Left 2 Cols: Weekly Spending Bar Chart */}
-              <div className="lg:col-span-2 bg-white p-6 rounded-3xl border border-[#E7E4DC] shadow-card space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-extrabold text-[#18201C] text-sm tracking-tight">
-                      เปรียบเทียบยอดใช้จ่ายแยกตามสัปดาห์
-                    </h3>
-                    <p className="text-xs text-[#66746C] mt-0.5">
-                      แสดงยอดใช้จ่ายค่าวัตถุดิบและค่าใช้จ่ายดำเนินการในแต่ละสัปดาห์
-                    </p>
+            {/* Conditional Views based on analyticsTimeframe */}
+            {analyticsTimeframe === "WEEKLY" && (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                {/* Left 2 Cols: Weekly Spending Bar Chart */}
+                <div className="lg:col-span-2 bg-white p-6 rounded-3xl border border-[#E7E4DC] shadow-card space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h3 className="font-extrabold text-[#18201C] text-sm tracking-tight">
+                        เปรียบเทียบยอดใช้จ่ายแยกตามสัปดาห์
+                      </h3>
+                      <p className="text-xs text-[#66746C] mt-0.5">
+                        คำนวณจากยอดเบิกจ่ายจริงและรายการแผนเมนูอาหารในแต่ละสัปดาห์ (กรอบงบ {analyticsSummary.weeklyAllocation.toLocaleString()} ฿ / สัปดาห์)
+                      </p>
+                    </div>
+                    <span className="text-xs font-semibold text-[#1F5E4B] bg-[#F2F8F5] px-2.5 py-1 rounded-lg border border-[#C7E2D6]">
+                      งวดที่ 1 (พฤศจิกายน 2569)
+                    </span>
                   </div>
-                  <span className="text-xs font-semibold text-[#1F5E4B] bg-[#F2F8F5] px-2.5 py-1 rounded-lg border border-[#C7E2D6]">
-                    พฤศจิกายน 2569
-                  </span>
+
+                  {/* CSS Bar Chart */}
+                  <div className="pt-4 space-y-4">
+                    {analyticsSummary.weeklyAnalyticsData.map((bar) => {
+                      const pct = Math.min(100, Math.round((bar.displaySpend / (bar.max || 1)) * 100));
+                      return (
+                        <div key={bar.weekNum} className="space-y-1.5">
+                          <div className="flex items-center justify-between text-xs font-bold">
+                            <span className={bar.isCurrent ? "text-[#18201C] font-extrabold flex items-center gap-1.5" : "text-[#66746C] flex items-center gap-1.5"}>
+                              {bar.isCurrent && <span className="w-2 h-2 rounded-full bg-[#1F5E4B] animate-pulse" />}
+                              <span>{bar.name} ({bar.dates})</span>
+                            </span>
+                            <span className="font-mono tabular-nums text-[#18201C]">
+                              {bar.displaySpend > 0 ? (
+                                <>
+                                  {bar.displaySpend.toLocaleString()} ฿{" "}
+                                  <span className={`text-[10px] font-normal ${bar.actualSpend > 0 ? "text-[#1F5E4B] font-semibold" : "text-[#8C9890]"}`}>
+                                    ({bar.status})
+                                  </span>
+                                </>
+                              ) : (
+                                <span className="text-[11px] text-[#8C9890] font-normal">
+                                  รอเริ่มสัปดาห์ ({bar.status})
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                          <div className="w-full h-3.5 bg-[#FAF9F6] rounded-full overflow-hidden border border-[#E7E4DC] p-0.5">
+                            <div
+                              className={`h-full rounded-full transition-all duration-500 ${
+                                bar.actualSpend > 0
+                                  ? "bg-gradient-to-r from-[#1F5E4B] to-[#31866B]"
+                                  : bar.plannedSpend > 0
+                                  ? "bg-[#88A89A]"
+                                  : "bg-[#E7E4DC]"
+                              }`}
+                              style={{ width: `${Math.max(bar.displaySpend > 0 ? 3 : 0, pct)}%` }}
+                            />
+                          </div>
+                          <div className="flex justify-between text-[10px] text-[#8C9890]">
+                            <span>
+                              {bar.actualSpend > 0
+                                ? `เบิกจ่ายจริง ${bar.actualSpend.toLocaleString()} ฿`
+                                : bar.plannedSpend > 0
+                                ? `แผนวัตถุดิบ ${bar.plannedSpend.toLocaleString()} ฿ (${bar.planDaysCount} วัน)`
+                                : "ยังไม่มีรายการเบิกจ่าย"}
+                            </span>
+                            <span>กรอบงบสัปดาห์ {bar.max.toLocaleString()} ฿</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
 
-                {/* CSS Bar Chart */}
-                <div className="pt-4 space-y-3.5">
-                  {[
-                    { week: "สัปดาห์ที่ 1 (27 ต.ค. - 31 ต.ค.)", spend: 5800, max: 7500, status: "ปิดรอบแล้ว" },
-                    { week: "สัปดาห์ที่ 2 (3 พ.ย. - 7 พ.ย. สัปดาห์ปัจจุบัน)", spend: 6240, max: 7500, status: "กำลังดำเนินการ", isCurrent: true },
-                    { week: "สัปดาห์ที่ 3 (10 พ.ย. - 14 พ.ย.)", spend: 6000, max: 7500, status: "ประมาณการ" },
-                    { week: "สัปดาห์ที่ 4 (17 พ.ย. - 21 พ.ย.)", spend: 6000, max: 7500, status: "ประมาณการ" },
-                  ].map((bar, i) => (
-                    <div key={i} className="space-y-1">
-                      <div className="flex items-center justify-between text-xs font-bold">
-                        <span className={bar.isCurrent ? "text-[#18201C] font-extrabold flex items-center gap-1.5" : "text-[#66746C]"}>
-                          {bar.isCurrent && <span className="w-2 h-2 rounded-full bg-[#1F5E4B] animate-pulse" />}
-                          {bar.week}
+                {/* Right 1 Col: Category Proportion */}
+                <div className="bg-white p-6 rounded-3xl border border-[#E7E4DC] shadow-card space-y-4">
+                  <div>
+                    <h3 className="font-extrabold text-[#18201C] text-sm tracking-tight">
+                      สัดส่วนหมวดหมู่ค่าใช้จ่าย
+                    </h3>
+                    <p className="text-xs text-[#66746C] mt-0.5">แบ่งตามประเภทการตัดจ่ายจริง</p>
+                  </div>
+
+                  <div className="space-y-3 pt-2">
+                    <div>
+                      <div className="flex justify-between text-xs font-semibold mb-1">
+                        <span className="text-[#18201C] flex items-center gap-1.5">
+                          <span className="w-2.5 h-2.5 rounded-full bg-[#1F5E4B] inline-block" />
+                          ค่าวัตถุดิบสดตามเมนู
                         </span>
-                        <span className="font-mono tabular-nums text-[#18201C]">
-                          {bar.spend.toLocaleString()} ฿{" "}
-                          <span className="text-[10px] text-[#8C9890] font-normal">({bar.status})</span>
+                        <span className="font-mono tabular-nums font-bold text-[#18201C]">
+                          {analyticsSummary.rawPercent}%
                         </span>
                       </div>
-                      <div className="w-full h-3 bg-[#FAF9F6] rounded-full overflow-hidden border border-[#E7E4DC]">
-                        <div
-                          className={`h-full rounded-full transition-all duration-500 ${
-                            bar.isCurrent
-                              ? "bg-gradient-to-r from-[#1F5E4B] to-[#31866B]"
-                              : "bg-[#D5D0C5]"
-                          }`}
-                          style={{ width: `${(bar.spend / bar.max) * 100}%` }}
-                        />
+                      <div className="text-[11px] font-mono tabular-nums text-[#66746C]">
+                        {analyticsSummary.rawIngredientsExpense.toLocaleString()} ฿
                       </div>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-xs font-semibold mb-1">
+                        <span className="text-[#18201C] flex items-center gap-1.5">
+                          <span className="w-2.5 h-2.5 rounded-full bg-[#D97757] inline-block" />
+                          ของซื้อเพิ่มหน้างาน
+                        </span>
+                        <span className="font-mono tabular-nums font-bold text-[#18201C]">
+                          {analyticsSummary.adhocPercent}%
+                        </span>
+                      </div>
+                      <div className="text-[11px] font-mono tabular-nums text-[#66746C]">
+                        {analyticsSummary.adhocExpense.toLocaleString()} ฿
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-xs font-semibold mb-1">
+                        <span className="text-[#18201C] flex items-center gap-1.5">
+                          <span className="w-2.5 h-2.5 rounded-full bg-[#D49B38] inline-block" />
+                          ค่าแก๊สและค่าจ้างแม่ครัว
+                        </span>
+                        <span className="font-mono tabular-nums font-bold text-[#18201C]">
+                          {analyticsSummary.opPercent}%
+                        </span>
+                      </div>
+                      <div className="text-[11px] font-mono tabular-nums text-[#66746C]">
+                        {analyticsSummary.operationalExpense.toLocaleString()} ฿
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-4 border-t border-[#ECE8DE]">
+                    <div className="p-3.5 bg-[#F2F8F5] rounded-2xl border border-[#C7E2D6] text-[#1F5E4B] text-xs">
+                      <strong className="block font-bold mb-0.5">✓ สรุปการตรวจสอบ (Audit Insight)</strong>
+                      สัดส่วนค่าอาหารสดอยู่ในเกณฑ์มาตรฐาน สตง. (สูงกว่า 80% ของงบประมาณรวม)
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* MONTHLY VIEW */}
+            {analyticsTimeframe === "MONTHLY" && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* Month 1: November 2026 */}
+                <div className="bg-white p-6 rounded-3xl border border-[#E7E4DC] shadow-card space-y-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className="text-xs font-bold text-[#1F5E4B] bg-[#F2F8F5] px-2.5 py-1 rounded-lg border border-[#C7E2D6]">
+                        เดือนปัจจุบัน (งวดที่ 1)
+                      </span>
+                      <h3 className="font-black text-[#18201C] text-lg mt-2">
+                        พฤศจิกายน 2569
+                      </h3>
+                      <p className="text-xs text-[#66746C]">
+                        งวดที่ 1 (2 พ.ย. - 27 พ.ย. 2569 • 20 วันทำการ)
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs text-[#8C9890] font-medium">งบที่ได้รับ</div>
+                      <div className="text-lg font-black font-mono text-[#18201C]">
+                        {totalIncomeReceived.toLocaleString()} ฿
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-[#FAF9F6] rounded-2xl border border-[#E7E4DC] space-y-2.5 text-xs">
+                    <div className="flex justify-between">
+                      <span className="text-[#66746C]">ยอดเบิกจ่ายจริงสะสม:</span>
+                      <span className="font-mono font-bold text-[#18201C]">{totalActualExpenses.toLocaleString()} ฿</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-[#66746C]">ประมาณการใช้จ่าย {analyticsSummary.estimatedDaysRemaining} วันที่เหลือ:</span>
+                      <span className="font-mono font-bold text-[#18201C]">
+                        {(analyticsSummary.estimatedDaysRemaining * analyticsSummary.benchmarkDailySpend).toLocaleString()} ฿
+                      </span>
+                    </div>
+                    <div className="flex justify-between pt-2 border-t border-[#E7E4DC] font-bold text-[#1F5E4B]">
+                      <span>งบประมาณคงเหลือจริงสุทธิ:</span>
+                      <span className="font-mono text-sm">{netCashRemaining.toLocaleString()} ฿</span>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-[#F2F8F5] rounded-xl border border-[#C7E2D6] text-xs text-[#1F5E4B]">
+                    ✓ สถานะเงินสดคล่องตัว เบิกจ่ายไปแล้ว {totalIncomeReceived > 0 ? ((totalActualExpenses / totalIncomeReceived) * 100).toFixed(1) : 0}% ของงบงวดที่ 1
+                  </div>
+                </div>
+
+                {/* Month 2: December 2026 */}
+                <div className="bg-white p-6 rounded-3xl border border-[#E7E4DC] shadow-card space-y-4">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className="text-xs font-bold text-[#B55232] bg-[#FDF6F0] px-2.5 py-1 rounded-lg border border-[#F0D5C3]">
+                        รอบถัดไป (งวดที่ 2)
+                      </span>
+                      <h3 className="font-black text-[#18201C] text-lg mt-2">
+                        ธันวาคม 2569
+                      </h3>
+                      <p className="text-xs text-[#66746C]">
+                        งวดที่ 2 (เตรียมเสนอขอจัดสรร • 20 วันทำการ)
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-xs text-[#8C9890] font-medium">ประมาณการงบ</div>
+                      <div className="text-lg font-black font-mono text-[#18201C]">
+                        {((settings.studentCount || 86) * (settings.subsidyPerHead || 27) * (settings.daysPerInstallment || 20)).toLocaleString()} ฿
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-4 bg-[#FAF9F6] rounded-2xl border border-[#E7E4DC] space-y-2.5 text-xs">
+                    <div className="flex justify-between text-[#66746C]">
+                      <span>สถานะการโอนเงินงวด:</span>
+                      <span className="font-semibold text-[#B55232]">รอยืนยันการโอนจาก อปท./สพป.</span>
+                    </div>
+                    <div className="flex justify-between text-[#66746C]">
+                      <span>แผนเมนูอาหารล่วงหน้า:</span>
+                      <span className="font-semibold text-[#18201C]">สามารถจัดเตรียมไว้ในปฏิทินล่วงหน้าได้</span>
+                    </div>
+                    <div className="flex justify-between pt-2 border-t border-[#E7E4DC] font-bold text-[#66746C]">
+                      <span>จำนวนวันเปิดเรียน:</span>
+                      <span className="font-mono text-sm text-[#18201C]">20 วันทำการ</span>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-[#FAF9F6] rounded-xl border border-[#E7E4DC] text-xs text-[#66746C]">
+                    ℹ️ เมื่อได้รับเงินโอนงวดที่ 2 สามารถเพิ่มรายการเงินงวดได้ที่แท็บ &quot;สมุดบัญชี&quot; ระบบจะคำนวณสะสมให้อัตโนมัติ
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* SEMESTER VIEW */}
+            {analyticsTimeframe === "SEMESTER" && (
+              <div className="bg-white p-6 rounded-3xl border border-[#E7E4DC] shadow-card space-y-6">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                  <div>
+                    <h3 className="font-extrabold text-[#18201C] text-base">
+                      ภาพรวมงบประมาณทั้งภาคเรียน ({settings.semester || "ภาคเรียนที่ 2/2569"})
+                    </h3>
+                    <p className="text-xs text-[#66746C] mt-0.5">
+                      จัดสรร 5 งวด รวม 100 วันเปิดเรียน ({settings.studentCount || 86} คน × {settings.subsidyPerHead || 27} ฿ × 100 วัน = {((settings.studentCount || 86) * (settings.subsidyPerHead || 27) * 100).toLocaleString()} ฿)
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-xs font-bold text-[#1F5E4B] bg-[#F2F8F5] px-3 py-1.5 rounded-xl border border-[#C7E2D6]">
+                      เบิกจ่ายแล้ว 1 จาก 5 งวด
+                    </span>
+                  </div>
+                </div>
+
+                {/* Semester Progress Bar */}
+                <div className="space-y-2">
+                  <div className="flex justify-between text-xs font-bold">
+                    <span className="text-[#18201C]">
+                      ความคืบหน้างบที่ได้รับจัดสรรเข้าบัญชี ({totalIncomeReceived.toLocaleString()} / {((settings.studentCount || 86) * (settings.subsidyPerHead || 27) * 100).toLocaleString()} ฿)
+                    </span>
+                    <span className="font-mono text-[#1F5E4B]">
+                      {(((totalIncomeReceived || 46440) / ((settings.studentCount || 86) * (settings.subsidyPerHead || 27) * 100)) * 100).toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className="w-full h-4 bg-[#FAF9F6] rounded-full overflow-hidden border border-[#E7E4DC] p-0.5">
+                    <div
+                      className="h-full rounded-full bg-[#1F5E4B] transition-all duration-500"
+                      style={{
+                        width: `${Math.min(100, Math.round(((totalIncomeReceived || 46440) / ((settings.studentCount || 86) * (settings.subsidyPerHead || 27) * 100)) * 100))}%`,
+                      }}
+                    />
+                  </div>
+                </div>
+
+                {/* 5 Installment Cards Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-5 gap-3 pt-2">
+                  <div className="bg-white p-4 rounded-2xl border-2 border-[#1F5E4B] text-center space-y-1 shadow-xs">
+                    <span className="text-[10px] font-bold text-[#1F5E4B] bg-[#F2F8F5] px-2 py-0.5 rounded-md">
+                      งวดที่ 1 (ปัจจุบัน)
+                    </span>
+                    <div className="font-black text-sm text-[#18201C] font-mono mt-1">46,440 ฿</div>
+                    <div className="text-[10px] text-[#1F5E4B] font-semibold">✓ รับเงินแล้ว</div>
+                    <div className="text-[9px] text-[#8C9890]">2 พ.ย. - 27 พ.ย. 69</div>
+                  </div>
+                  {[2, 3, 4, 5].map((roundNum) => (
+                    <div
+                      key={roundNum}
+                      className="bg-[#FAF9F6] p-4 rounded-2xl border border-[#E7E4DC] text-center space-y-1 opacity-75"
+                    >
+                      <span className="text-[10px] font-bold text-[#8C9890]">
+                        งวดที่ {roundNum}
+                      </span>
+                      <div className="font-black text-sm text-[#66746C] font-mono mt-1">46,440 ฿</div>
+                      <div className="text-[10px] text-[#8C9890]">รอรับจัดสรร</div>
+                      <div className="text-[9px] text-[#8C9890]">20 วันเปิดเรียน</div>
                     </div>
                   ))}
                 </div>
-              </div>
 
-              {/* Right 1 Col: Category Proportion */}
-              <div className="bg-white p-6 rounded-3xl border border-[#E7E4DC] shadow-card space-y-4">
-                <div>
-                  <h3 className="font-extrabold text-[#18201C] text-sm tracking-tight">
-                    สัดส่วนหมวดหมู่ค่าใช้จ่าย
-                  </h3>
-                  <p className="text-xs text-[#66746C] mt-0.5">แบ่งตามประเภทการตัดจ่ายจริง</p>
-                </div>
-
-                <div className="space-y-3 pt-2">
-                  <div>
-                    <div className="flex justify-between text-xs font-semibold mb-1">
-                      <span className="text-[#18201C] flex items-center gap-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-[#1F5E4B] inline-block" />
-                        ค่าวัตถุดิบสดตามเมนู
-                      </span>
-                      <span className="font-mono tabular-nums font-bold text-[#18201C]">
-                        {analyticsSummary.rawPercent}%
-                      </span>
-                    </div>
-                    <div className="text-[11px] font-mono tabular-nums text-[#66746C]">
-                      {analyticsSummary.rawIngredientsExpense.toLocaleString()} ฿
-                    </div>
+                {/* Semester Summary Metrics */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-[#ECE8DE] text-xs">
+                  <div className="p-3 bg-[#FAF9F6] rounded-xl border border-[#E7E4DC]">
+                    <span className="text-[#8C9890] block text-[11px]">งบที่ยังรอรับจัดสรร (งวด 2–5):</span>
+                    <strong className="text-sm font-mono text-[#18201C]">
+                      {(4 * 46440).toLocaleString()} ฿
+                    </strong>
                   </div>
-
-                  <div>
-                    <div className="flex justify-between text-xs font-semibold mb-1">
-                      <span className="text-[#18201C] flex items-center gap-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-[#D97757] inline-block" />
-                        ของซื้อเพิ่มหน้างาน
-                      </span>
-                      <span className="font-mono tabular-nums font-bold text-[#18201C]">
-                        {analyticsSummary.adhocPercent}%
-                      </span>
-                    </div>
-                    <div className="text-[11px] font-mono tabular-nums text-[#66746C]">
-                      {analyticsSummary.adhocExpense.toLocaleString()} ฿
-                    </div>
+                  <div className="p-3 bg-[#FAF9F6] rounded-xl border border-[#E7E4DC]">
+                    <span className="text-[#8C9890] block text-[11px]">ยอดเบิกจ่ายจริงสะสมทั้งเทอม:</span>
+                    <strong className="text-sm font-mono text-[#18201C]">
+                      {totalActualExpenses.toLocaleString()} ฿
+                    </strong>
                   </div>
-
-                  <div>
-                    <div className="flex justify-between text-xs font-semibold mb-1">
-                      <span className="text-[#18201C] flex items-center gap-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-[#D49B38] inline-block" />
-                        ค่าแก๊สและค่าจ้างแม่ครัว
-                      </span>
-                      <span className="font-mono tabular-nums font-bold text-[#18201C]">
-                        {analyticsSummary.opPercent}%
-                      </span>
-                    </div>
-                    <div className="text-[11px] font-mono tabular-nums text-[#66746C]">
-                      {analyticsSummary.operationalExpense.toLocaleString()} ฿
-                    </div>
-                  </div>
-                </div>
-
-                <div className="pt-4 border-t border-[#ECE8DE]">
-                  <div className="p-3.5 bg-[#F2F8F5] rounded-2xl border border-[#C7E2D6] text-[#1F5E4B] text-xs">
-                    <strong className="block font-bold mb-0.5">✓ สรุปการตรวจสอบ (Audit Insight)</strong>
-                    สัดส่วนค่าอาหารสดอยู่ในเกณฑ์มาตรฐาน สตง. (สูงกว่า 80% ของงบประมาณรวม)
+                  <div className="p-3 bg-[#FAF9F6] rounded-xl border border-[#E7E4DC]">
+                    <span className="text-[#8C9890] block text-[11px]">งบคงเหลือจริงสุทธิปัจจุบัน:</span>
+                    <strong className="text-sm font-mono text-[#1F5E4B]">
+                      {netCashRemaining.toLocaleString()} ฿
+                    </strong>
                   </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 
