@@ -4,8 +4,12 @@
 
 @layer base {
   :root {
-    --background: #f8fafc;
-    --foreground: #0f172a;
+    --background: #FAF9F6;
+    --foreground: #18201C;
+    --card: #FFFFFF;
+    --border: #E7E4DC;
+    --primary: #1F5E4B;
+    --accent: #D97757;
   }
 
   body {
@@ -17,7 +21,33 @@
   }
 }
 
-/* Custom smooth scroll and subtle transition tokens */
+/* Custom Nordic Botanical fine borders & typography */
 * {
-  border-color: #e2e8f0;
+  border-color: #E7E4DC;
+}
+
+/* Tabular numbers for clean financial alignment */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Smooth micro-interactions */
+button, a, input, select {
+  transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Custom delicate scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #DDD8CE;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #C7C1B4;
 }

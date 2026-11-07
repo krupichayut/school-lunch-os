@@ -1163,52 +1163,52 @@ export default function HomePage() {
       : 0;
 
   return (
-    <div className="min-h-screen bg-[#F6F8FA] text-[#090D16] font-sans antialiased selection:bg-slate-900 selection:text-white">
+    <div className="min-h-screen bg-[#FAF9F6] text-[#18201C] font-sans antialiased selection:bg-[#1F5E4B] selection:text-white">
       {/* ========================================================================= */}
-      {/* 1. TOP EXECUTIVE COMMAND BAR (TITANIUM GLASS) */}
+      {/* 1. TOP EXECUTIVE COMMAND BAR (NORDIC BOTANICAL ATELIER) */}
       {/* ========================================================================= */}
-      <header className="sticky top-0 z-40 backdrop-blur-xl bg-white/85 border-b border-slate-200/80 shadow-xs">
+      <header className="sticky top-0 z-40 backdrop-blur-xl bg-white/90 border-b border-[#E7E4DC] shadow-soft">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-col md:flex-row md:items-center justify-between gap-3">
           {/* Brand & School Identity */}
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950 flex items-center justify-center text-white shadow-md shadow-slate-900/10">
-              <UtensilsCrossed className="w-5 h-5 text-amber-400" />
+            <div className="w-10 h-10 rounded-2xl bg-[#1F5E4B] flex items-center justify-center text-white shadow-md shadow-[#1F5E4B]/15">
+              <UtensilsCrossed className="w-5 h-5 text-[#EAD598]" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-[10px] font-mono tracking-widest uppercase font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200/70">
-                  SCHOOL LUNCH OS • TITANIUM
+                <span className="text-[11px] font-bold tracking-wider uppercase text-[#1F5E4B]">
+                  ระบบบริหารจัดการอาหารกลางวัน
                 </span>
-                <span className="text-xs text-slate-400 font-mono">v2.1</span>
+                <span className="text-[11px] text-[#8C9890] font-mono">v2.2</span>
               </div>
-              <h1 className="text-base font-extrabold text-slate-950 tracking-tight leading-tight mt-0.5 flex items-center gap-2">
+              <h1 className="text-base font-extrabold text-[#18201C] tracking-tight leading-tight mt-0.5 flex items-center gap-2">
                 <span>{settings.schoolName}</span>
-                <span className="text-xs font-semibold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-[#F2F8F5] text-[#1F5E4B] border border-[#C7E2D6]">
                   {settings.semester} / {settings.academicYear}
                 </span>
               </h1>
             </div>
           </div>
 
-          {/* Dynamic Duty Teacher Badge & Live Clock */}
+          {/* Dynamic Duty Teacher Badge & Live Budget Pill */}
           <div className="flex flex-wrap items-center gap-2.5">
-            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-white border border-slate-200/80 shadow-xs max-w-xs sm:max-w-md">
-              <UserCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+            <div className="flex items-center gap-2.5 px-3.5 py-1.5 rounded-2xl bg-white border border-[#E7E4DC] shadow-xs max-w-xs sm:max-w-md">
+              <UserCheck className="w-4 h-4 text-[#1F5E4B] shrink-0" />
               <div className="text-xs leading-tight truncate">
-                <span className="text-[10px] font-mono text-slate-400 block">
-                  คณะครูเวรประจำ{todayDutyInfo.dayLabel} ({todayDutyInfo.teachers.length} ท่าน)
+                <span className="text-[11px] text-[#8C9890] block">
+                  ครูเวรประจำ{todayDutyInfo.dayLabel} ({todayDutyInfo.teachers.length} ท่าน)
                 </span>
-                <span className="font-bold text-slate-900 truncate block">
+                <span className="font-bold text-[#18201C] truncate block">
                   {todayDutyInfo.teachersSummary}
                 </span>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-slate-900 text-white shadow-xs">
-              <Wallet className="w-3.5 h-3.5 text-amber-400" />
+            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-2xl bg-white border border-[#E7E4DC] shadow-xs">
+              <Wallet className="w-4 h-4 text-[#D97757]" />
               <div className="text-xs leading-tight">
-                <span className="text-[10px] font-mono text-slate-400 block">งบคงเหลือสุทธิ</span>
-                <span className="font-bold font-mono text-emerald-400">
+                <span className="text-[11px] text-[#8C9890] block">งบคงเหลือสุทธิ</span>
+                <span className="font-extrabold font-mono text-[#1F5E4B] tabular-nums">
                   {netCashRemaining.toLocaleString()} ฿
                 </span>
               </div>
@@ -1220,65 +1220,65 @@ export default function HomePage() {
         {/* 2. FLOATING SEGMENTED DOCK (5 MASTER TABS) */}
         {/* ========================================================================= */}
         <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-2.5 pt-1 overflow-x-auto">
-          <nav className="flex items-center gap-1.5 bg-slate-100/90 p-1 rounded-2xl border border-slate-200/80 w-max">
+          <nav className="flex items-center gap-1 bg-[#F4F2EB] p-1 rounded-2xl border border-[#E7E4DC] w-max">
             <button
               onClick={() => setActiveTab("KITCHEN_HUD")}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                 activeTab === "KITCHEN_HUD"
-                  ? "bg-white text-slate-900 shadow-sm shadow-slate-200"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
+                  ? "bg-white text-[#1F5E4B] shadow-sm"
+                  : "text-[#66746C] hover:text-[#18201C] hover:bg-white/60 font-medium"
               }`}
             >
-              <Smartphone className="w-3.5 h-3.5 text-amber-600" />
-              <span>1. ครูเวรตรวจรับ (Mobile HUD)</span>
+              <Smartphone className="w-3.5 h-3.5 text-[#D97757]" />
+              <span>ตรวจรับของสด</span>
             </button>
 
             <button
               onClick={() => setActiveTab("MENU_PLAN")}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                 activeTab === "MENU_PLAN"
-                  ? "bg-white text-slate-900 shadow-sm shadow-slate-200"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
+                  ? "bg-white text-[#1F5E4B] shadow-sm"
+                  : "text-[#66746C] hover:text-[#18201C] hover:bg-white/60 font-medium"
               }`}
             >
-              <UtensilsCrossed className="w-3.5 h-3.5 text-blue-600" />
-              <span>2. วางแผนเมนู & ราคาวัตถุดิบ</span>
+              <UtensilsCrossed className="w-3.5 h-3.5 text-[#1F5E4B]" />
+              <span>วางแผนเมนูอาหาร</span>
             </button>
 
             <button
               onClick={() => setActiveTab("ANALYTICS")}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                 activeTab === "ANALYTICS"
-                  ? "bg-white text-slate-900 shadow-sm shadow-slate-200"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
+                  ? "bg-white text-[#1F5E4B] shadow-sm"
+                  : "text-[#66746C] hover:text-[#18201C] hover:bg-white/60 font-medium"
               }`}
             >
-              <BarChart3 className="w-3.5 h-3.5 text-indigo-600" />
-              <span>3. แดชบอร์ดสรุปรายสัปดาห์ / เดือน</span>
+              <BarChart3 className="w-3.5 h-3.5 text-[#2E6B8E]" />
+              <span>ภาพรวมงบประมาณ</span>
             </button>
 
             <button
               onClick={() => setActiveTab("FINANCE_LEDGER")}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                 activeTab === "FINANCE_LEDGER"
-                  ? "bg-white text-slate-900 shadow-sm shadow-slate-200"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
+                  ? "bg-white text-[#1F5E4B] shadow-sm"
+                  : "text-[#66746C] hover:text-[#18201C] hover:bg-white/60 font-medium"
               }`}
             >
-              <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-600" />
-              <span>4. สมุดบัญชีรายรับ-จ่าย (Excel)</span>
+              <FileSpreadsheet className="w-3.5 h-3.5 text-[#1F5E4B]" />
+              <span>สมุดบัญชี</span>
             </button>
 
             <button
               onClick={() => setActiveTab("SETTINGS")}
               className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
                 activeTab === "SETTINGS"
-                  ? "bg-white text-slate-900 shadow-sm shadow-slate-200"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
+                  ? "bg-white text-[#1F5E4B] shadow-sm"
+                  : "text-[#66746C] hover:text-[#18201C] hover:bg-white/60 font-medium"
               }`}
             >
-              <Settings className="w-3.5 h-3.5 text-slate-600" />
-              <span>5. ตั้งค่าโรงเรียน & ครูเวร</span>
+              <Settings className="w-3.5 h-3.5 text-[#66746C]" />
+              <span>ตั้งค่าโรงเรียน</span>
             </button>
           </nav>
         </div>
@@ -1294,7 +1294,7 @@ export default function HomePage() {
         {activeTab === "KITCHEN_HUD" && (
           <div className="max-w-2xl mx-auto space-y-4">
             {/* 5-Day Switcher in Kitchen HUD */}
-            <div className="flex items-center gap-1.5 bg-slate-100/90 p-1.5 rounded-2xl border border-slate-200/80 overflow-x-auto w-full">
+            <div className="flex items-center gap-1.5 bg-[#F4F2EB] p-1.5 rounded-2xl border border-[#E7E4DC] overflow-x-auto w-full shadow-xs">
               {DAY_DEFINITIONS.map(({ key, shortLabel, dotColor }) => {
                 const isSelected = selectedDayKey === key;
                 const isToday = todayDayKey === key;
@@ -1305,16 +1305,16 @@ export default function HomePage() {
                     onClick={() => {
                       setSelectedDayKey(key);
                     }}
-                    className={`flex-1 min-w-[70px] py-1.5 px-2 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 whitespace-nowrap ${
+                    className={`flex-1 min-w-[70px] py-2 px-2.5 rounded-xl text-xs font-bold transition-smooth flex items-center justify-center gap-1.5 whitespace-nowrap ${
                       isSelected
-                        ? "bg-white text-slate-900 shadow-xs ring-1 ring-slate-900/10"
-                        : "text-slate-600 hover:text-slate-900 hover:bg-white/50"
+                        ? "bg-white text-[#1F5E4B] shadow-xs border border-[#C7E2D6]"
+                        : "text-[#66746C] hover:text-[#18201C] hover:bg-white/60"
                     }`}
                   >
                     <span className={`w-2 h-2 rounded-full ${dotColor}`} />
                     <span>{shortLabel}</span>
                     {isToday && (
-                      <span className="text-[9px] bg-slate-900 text-white px-1 py-0.2 rounded-sm font-bold">
+                      <span className="text-[10px] bg-[#1F5E4B] text-white px-1.5 py-0.2 rounded-sm font-bold">
                         วันนี้
                       </span>
                     )}
@@ -1324,49 +1324,48 @@ export default function HomePage() {
             </div>
 
             {/* Terminal Header */}
-            <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-amber-500/5 rounded-full blur-2xl pointer-events-none" />
-              <div className="flex items-start justify-between gap-3 pb-4 border-b border-slate-100">
+            <div className="bg-white rounded-3xl p-6 border border-[#E7E4DC] shadow-card relative overflow-hidden space-y-4">
+              <div className="flex items-start justify-between gap-3 pb-4 border-b border-[#ECE8DE]">
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold">
-                      KITCHEN TERMINAL • 06:30 น.
+                    <span className="text-xs font-bold text-[#1F5E4B] uppercase tracking-wider">
+                      จุดตรวจรับของสดหน้าเตา • 06:30 น.
                     </span>
-                    <span className="inline-flex items-center text-[10px] font-mono px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200/80 font-bold">
+                    <span className="inline-flex items-center text-xs font-mono font-bold px-2 py-0.5 rounded-md bg-[#FAF9F6] text-[#4B5850] border border-[#E7E4DC]">
                       {receivingDocNo}
                     </span>
                   </div>
-                  <h2 className="text-xl font-extrabold text-slate-900 mt-1 tracking-tight">
+                  <h2 className="text-xl font-extrabold text-[#18201C] mt-1 tracking-tight">
                     ตรวจรับของสดในโรงครัว
                   </h2>
-                  <p className="text-xs text-slate-600 mt-1 flex items-center gap-1.5">
+                  <p className="text-xs text-[#66746C] mt-1 flex items-center gap-1.5">
                     <span>เมนู{activeDayDefinition.label}:</span>
-                    <strong className="text-slate-900 bg-slate-100 px-2 py-0.5 rounded-md">
+                    <strong className="text-[#18201C] bg-[#FAF9F6] px-2.5 py-0.5 rounded-lg border border-[#E7E4DC]">
                       {activeDayPlan.menuName}
                     </strong>
                   </p>
                 </div>
 
                 <div className="text-right">
-                  <span className="text-[10px] font-mono text-slate-400 block">
-                    คณะครูเวรประจำ{activeDayDefinition.label}
+                  <span className="text-[11px] text-[#8C9890] block">
+                    ครูเวรประจำ{activeDayDefinition.label}
                   </span>
-                  <div className="text-xs font-bold text-slate-900 mt-0.5 space-y-0.5">
+                  <div className="text-xs font-bold text-[#18201C] mt-0.5 space-y-0.5">
                     {((settings.dutyRoster?.[selectedDayKey] && settings.dutyRoster[selectedDayKey].length > 0)
                       ? settings.dutyRoster[selectedDayKey]
                       : ["ครูเวรประจำวัน"]
                     ).map((t, idx) => (
-                      <div key={idx} className="flex items-center justify-end gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 inline-block" />
+                      <div key={idx} className="flex items-center justify-end gap-1.5">
+                        <span className="w-1.5 h-1.5 rounded-full bg-[#1F5E4B] inline-block" />
                         <span>{t}</span>
                       </div>
                     ))}
                   </div>
                   <span
-                    className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full mt-1 border ${
+                    className={`inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-0.5 rounded-full mt-1.5 border ${
                       isReceivingConfirmed
-                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                        : "bg-amber-50 text-amber-700 border-amber-200"
+                        ? "bg-[#EBF4F0] text-[#1F5E4B] border-[#C7E2D6]"
+                        : "bg-[#FDF4F0] text-[#B55232] border-[#F2D7CA]"
                     }`}
                   >
                     {isReceivingConfirmed ? "บันทึกสต็อกแล้ว ✓" : "กำลังตรวจเช็ค"}
@@ -1375,17 +1374,17 @@ export default function HomePage() {
               </div>
 
               {/* Progress & Quick Action Buttons */}
-              <div className="pt-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex-1">
                   <div className="flex items-center justify-between text-xs mb-1 font-semibold">
-                    <span className="text-slate-500">ความคืบหน้าการตรวจรับ</span>
-                    <span className="font-mono text-slate-900">
+                    <span className="text-[#66746C]">ความคืบหน้าการตรวจรับ</span>
+                    <span className="font-mono tabular-nums text-[#18201C] font-bold">
                       {acceptedCount} / {inspectionItems.length} รายการ ({progressPercent}%)
                     </span>
                   </div>
-                  <div className="w-full h-2.5 bg-slate-100 rounded-full overflow-hidden border border-slate-200/60">
+                  <div className="w-full h-2.5 bg-[#FAF9F6] rounded-full overflow-hidden border border-[#E7E4DC]">
                     <div
-                      className="h-full bg-gradient-to-r from-emerald-500 to-emerald-400 transition-all duration-300"
+                      className="h-full bg-gradient-to-r from-[#1F5E4B] to-[#31866B] transition-all duration-300"
                       style={{ width: `${progressPercent}%` }}
                     />
                   </div>
@@ -1394,7 +1393,7 @@ export default function HomePage() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={() => setShowAdHocModal(true)}
-                    className="px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm active:scale-95"
+                    className="px-3.5 py-2 rounded-xl bg-[#FDF4F0] hover:bg-[#FBEDE6] border border-[#F2D7CA] text-[#B55232] text-xs font-bold transition-smooth flex items-center gap-1.5 shadow-xs"
                   >
                     <Plus className="w-4 h-4" />
                     <span>+ ซื้อของเพิ่มหน้างาน</span>
@@ -1402,9 +1401,9 @@ export default function HomePage() {
 
                   <button
                     onClick={handle1ClickAcceptAll}
-                    className="px-3 py-2 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm active:scale-95"
+                    className="px-3.5 py-2 rounded-xl bg-[#1F5E4B] hover:bg-[#143B30] text-white text-xs font-bold transition-smooth flex items-center gap-1.5 shadow-soft"
                   >
-                    <CheckCheck className="w-4 h-4 text-emerald-400" />
+                    <CheckCheck className="w-4 h-4 text-[#EAD598]" />
                     <span>รับครบ 100% (ปุ่มด่วน)</span>
                   </button>
                 </div>
@@ -1414,19 +1413,19 @@ export default function HomePage() {
             {/* High-Legibility Food Cards */}
             <div className="space-y-3">
               {inspectionItems.length === 0 ? (
-                <div className="bg-white rounded-3xl p-10 border border-slate-200/80 text-center space-y-3 shadow-xs">
-                  <div className="w-14 h-14 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-center mx-auto text-amber-600">
+                <div className="bg-white rounded-3xl p-10 border border-[#E7E4DC] text-center space-y-3 shadow-card">
+                  <div className="w-14 h-14 rounded-2xl bg-[#F2F8F5] border border-[#C7E2D6] flex items-center justify-center mx-auto text-[#1F5E4B]">
                     <UtensilsCrossed className="w-7 h-7" />
                   </div>
                   <div>
-                    <h3 className="font-extrabold text-slate-900 text-sm tracking-tight">ยังไม่มีรายการตรวจรับวัตถุดิบสำหรับวันนี้</h3>
-                    <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto leading-relaxed">
-                      คณะครูเวรสามารถตรวจรับของสดได้เมื่อมีการกำหนดเมนูที่แท็บ <strong>&quot;2. วางแผนเมนู & ราคาวัตถุดิบ&quot;</strong> แล้วกดปุ่ม <strong>&quot;ตรึง Snapshot และส่งให้ครูเวร&quot;</strong>
+                    <h3 className="font-bold text-[#18201C] text-sm">ยังไม่มีรายการตรวจรับวัตถุดิบสำหรับวันนี้</h3>
+                    <p className="text-xs text-[#66746C] mt-1 max-w-md mx-auto leading-relaxed">
+                      คณะครูเวรสามารถตรวจรับของสดได้เมื่อมีการกำหนดเมนูที่แท็บ <strong>&quot;วางแผนเมนูอาหาร&quot;</strong> แล้วกดปุ่ม <strong>&quot;ตรึง Snapshot และส่งให้ครูเวร&quot;</strong>
                     </p>
                   </div>
                   <button
                     onClick={() => setActiveTab("MENU_PLAN")}
-                    className="px-4 py-2.5 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-black inline-flex items-center gap-1.5 transition-all shadow-xs"
+                    className="px-4 py-2.5 rounded-xl bg-[#1F5E4B] hover:bg-[#143B30] text-white text-xs font-bold inline-flex items-center gap-1.5 transition-smooth shadow-soft"
                   >
                     <span>ไปกำหนดเมนูและวัตถุดิบวันนี้</span>
                     <ArrowRight className="w-3.5 h-3.5" />
@@ -1436,32 +1435,32 @@ export default function HomePage() {
                 inspectionItems.map((item) => (
                 <div
                   key={item.id}
-                  className={`bg-white rounded-2xl p-4 border transition-all duration-200 shadow-xs ${
+                  className={`bg-white rounded-2xl p-4.5 border transition-smooth shadow-xs ${
                     item.isAdHoc
-                      ? "border-amber-400 bg-amber-50/20 ring-1 ring-amber-400/30"
+                      ? "border-[#F2D7CA] bg-[#FDF4F0]/30 ring-1 ring-[#D97757]/30"
                       : item.status === "ACCEPTED"
-                      ? "border-emerald-500/30 bg-emerald-50/[0.15]"
+                      ? "border-[#C7E2D6] bg-[#F2F8F5]/40"
                       : item.status === "DISCREPANCY"
-                      ? "border-amber-500/40 bg-amber-50/[0.25]"
-                      : "border-slate-200/80 hover:border-slate-300"
+                      ? "border-[#F2D7CA] bg-[#FDF4F0]/40"
+                      : "border-[#E7E4DC] hover:border-[#C7E2D6]"
                   }`}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
-                        <h3 className="font-bold text-slate-900 text-base tracking-tight">{item.name}</h3>
+                        <h3 className="font-bold text-[#18201C] text-base tracking-tight">{item.name}</h3>
                         {item.isAdHoc && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500 text-white shadow-xs">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#D97757] text-white shadow-2xs">
                             ซื้อเพิ่มหน้างาน
                           </span>
                         )}
                         {item.status === "ACCEPTED" && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-200/70">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#EBF4F0] text-[#1F5E4B] border border-[#C7E2D6]">
                             ครบ ✓
                           </span>
                         )}
                         {item.status === "DISCREPANCY" && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-200/70">
+                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FDF4F0] text-[#B55232] border border-[#F2D7CA]">
                             มีส่วนต่าง
                           </span>
                         )}
@@ -1470,36 +1469,36 @@ export default function HomePage() {
                       {/* Quantitative Data Tokens */}
                       <div className="flex items-baseline gap-4 mt-2">
                         <div>
-                          <div className="text-[10px] font-mono text-slate-400">
+                          <div className="text-[11px] text-[#8C9890]">
                             {item.isAdHoc ? "จำนวนที่ซื้อ" : "จำนวนที่สั่ง"}
                           </div>
-                          <div className="text-sm font-semibold text-slate-700">
-                            {item.ordered} <span className="text-xs font-normal text-slate-500">{item.unit}</span>
+                          <div className="text-sm font-semibold text-[#18201C] tabular-nums">
+                            {item.ordered} <span className="text-xs font-normal text-[#66746C]">{item.unit}</span>
                           </div>
                         </div>
 
-                        <div className="h-6 w-px bg-slate-200" />
+                        <div className="h-6 w-px bg-[#E7E4DC]" />
 
                         <div>
-                          <div className="text-[10px] font-mono text-slate-400">ส่งจริงเช้านี้</div>
-                          <div className="text-lg font-bold font-mono text-slate-900">
-                            {item.received} <span className="text-xs font-normal text-slate-500">{item.unit}</span>
+                          <div className="text-[11px] text-[#8C9890]">ส่งจริงเช้านี้</div>
+                          <div className="text-base font-extrabold font-mono tabular-nums text-[#1F5E4B]">
+                            {item.received} <span className="text-xs font-normal text-[#66746C]">{item.unit}</span>
                           </div>
                         </div>
 
-                        <div className="h-6 w-px bg-slate-200" />
+                        <div className="h-6 w-px bg-[#E7E4DC]" />
 
                         <div>
-                          <div className="text-[10px] font-mono text-slate-400">ราคาคำนวณ</div>
-                          <div className="text-sm font-semibold font-mono text-slate-700">
+                          <div className="text-[11px] text-[#8C9890]">ราคาคำนวณ</div>
+                          <div className="text-sm font-bold font-mono tabular-nums text-[#18201C]">
                             {(item.received * item.unitPrice).toLocaleString()} ฿
                           </div>
                         </div>
                       </div>
 
                       {item.note && (
-                        <div className="mt-2 text-xs font-semibold text-amber-800 bg-amber-100/60 p-2 rounded-xl border border-amber-200 flex items-center gap-1.5">
-                          <AlertTriangle className="w-3.5 h-3.5 text-amber-700 shrink-0" />
+                        <div className="mt-2 text-xs font-semibold text-[#B55232] bg-[#FDF4F0] p-2 rounded-xl border border-[#F2D7CA] flex items-center gap-1.5">
+                          <AlertTriangle className="w-3.5 h-3.5 text-[#D97757] shrink-0" />
                           <span>{item.note}</span>
                         </div>
                       )}
@@ -1507,19 +1506,21 @@ export default function HomePage() {
 
                     {/* Step Adjust Controls */}
                     <div className="flex flex-col items-end gap-2">
-                      <div className="flex items-center bg-slate-100 rounded-xl p-1 border border-slate-200/80">
+                      <div className="flex items-center bg-[#FAF9F6] rounded-xl p-1 border border-[#E7E4DC]">
                         <button
                           onClick={() => handleUpdateReceivedQty(item.id, Math.max(0, item.received - 0.5))}
-                          className="w-8 h-8 rounded-lg bg-white shadow-xs font-bold text-slate-700 hover:text-slate-900 transition-all flex items-center justify-center active:scale-95"
+                          className="w-8 h-8 rounded-lg bg-white border border-[#E7E4DC] shadow-xs font-bold text-[#18201C] hover:bg-[#F2F0E8] transition-smooth flex items-center justify-center active:scale-95"
+                          title="ลดลง 0.5"
                         >
                           -
                         </button>
-                        <span className="w-12 text-center text-xs font-bold font-mono text-slate-900">
+                        <span className="w-12 text-center text-xs font-bold font-mono tabular-nums text-[#18201C]">
                           {item.received}
                         </span>
                         <button
                           onClick={() => handleUpdateReceivedQty(item.id, item.received + 0.5)}
-                          className="w-8 h-8 rounded-lg bg-white shadow-xs font-bold text-slate-700 hover:text-slate-900 transition-all flex items-center justify-center active:scale-95"
+                          className="w-8 h-8 rounded-lg bg-white border border-[#E7E4DC] shadow-xs font-bold text-[#18201C] hover:bg-[#F2F0E8] transition-smooth flex items-center justify-center active:scale-95"
+                          title="เพิ่มขึ้น 0.5"
                         >
                           +
                         </button>
@@ -1532,7 +1533,7 @@ export default function HomePage() {
                             <img
                               src={item.photoUrl}
                               alt="รูปตาชั่ง"
-                              className="w-8 h-8 rounded-lg object-cover border border-emerald-300 shadow-2xs cursor-pointer hover:scale-105 transition-transform"
+                              className="w-8 h-8 rounded-lg object-cover border border-[#C7E2D6] shadow-2xs cursor-pointer hover:scale-105 transition-transform"
                               onClick={() => {
                                 const w = window.open("");
                                 if (w) {
@@ -1541,11 +1542,11 @@ export default function HomePage() {
                               }}
                               title="คลิกดูภาพเต็ม"
                             />
-                            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
+                            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[#1F5E4B] ring-2 ring-white" />
                           </div>
                         )}
-                        <label className="cursor-pointer inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 transition-all text-slate-700 shadow-xs">
-                          <Camera className="w-3.5 h-3.5 text-slate-500" />
+                        <label className="cursor-pointer inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1.5 rounded-xl border border-[#E7E4DC] bg-white hover:bg-[#FAF9F6] transition-smooth text-[#18201C] shadow-xs">
+                          <Camera className="w-3.5 h-3.5 text-[#66746C]" />
                           <span>{item.photoUrl ? "เปลี่ยนรูป" : "ถ่ายตาชั่ง"}</span>
                           <input
                             type="file"
@@ -1567,20 +1568,20 @@ export default function HomePage() {
               <button
                 onClick={handleConfirmMorningReceiving}
                 disabled={isReceivingConfirmed}
-                className={`w-full py-3.5 rounded-2xl text-sm font-extrabold tracking-tight shadow-lg transition-all flex items-center justify-center gap-2 active:scale-98 ${
+                className={`w-full py-4 rounded-2xl text-sm font-extrabold tracking-tight shadow-floating transition-smooth flex items-center justify-center gap-2 active:scale-98 ${
                   isReceivingConfirmed
-                    ? "bg-emerald-600 text-white cursor-default"
-                    : "bg-slate-900 hover:bg-black text-white shadow-slate-900/20"
+                    ? "bg-[#1F5E4B] text-white cursor-default"
+                    : "bg-[#1F5E4B] hover:bg-[#143B30] text-white"
                 }`}
               >
                 {isReceivingConfirmed ? (
                   <>
-                    <CheckCircle2 className="w-5 h-5 text-emerald-300" />
+                    <CheckCircle2 className="w-5 h-5 text-[#C7E2D6]" />
                     <span>บันทึกตรวจรับเรียบร้อยแล้ว ({confirmedAtTime})</span>
                   </>
                 ) : (
                   <>
-                    <ClipboardCheck className="w-5 h-5 text-amber-400" />
+                    <ClipboardCheck className="w-5 h-5 text-[#EAD598]" />
                     <span>ลงนามยืนยันการตรวจรับ (คณะครูเวร {todayDutyInfo.teachers.length} ท่าน)</span>
                   </>
                 )}
@@ -1609,36 +1610,38 @@ export default function HomePage() {
             )}
 
             {/* 5-Day Weekly Menu Schedule Switcher Dock */}
-            <div className="bg-white rounded-3xl p-5 border border-slate-200/80 shadow-xs space-y-3">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+            <div className="bg-white rounded-3xl p-5 border border-[#E7E4DC] shadow-card space-y-3.5">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1">
                 <div>
                   <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-slate-700" />
-                    <h3 className="text-sm font-extrabold text-slate-900 tracking-tight">
+                    <div className="w-7 h-7 rounded-lg bg-[#F2F8F5] text-[#1F5E4B] flex items-center justify-center">
+                      <Calendar className="w-4 h-4" />
+                    </div>
+                    <h3 className="text-sm font-extrabold text-[#18201C] tracking-tight">
                       ตารางอาหารกลางวัน 5 วันทำการ (จันทร์ – ศุกร์)
                     </h3>
                   </div>
-                  <p className="text-[11px] text-slate-500 mt-0.5">
-                    คลิกเลือกวันเพื่อกำหนดชื่อเมนูและรายการวัตถุดิบประจำวัน ระบบจะเชื่อมต่อไปยังครูเวรตรวจรับของสดในแท็บ 1 ทันที
+                  <p className="text-xs text-[#66746C] mt-0.5">
+                    คลิกเลือกวันเพื่อกำหนดชื่อเมนูและจัดสรรวัตถุดิบ ข้อมูลจะเชื่อมต่อไปยังครูเวรตรวจรับของสดหน้าเตาทันที
                   </p>
                 </div>
-                <div className="text-right">
-                  <span className="text-[10px] font-mono text-slate-400 block font-bold uppercase">
+                <div className="text-right bg-[#FAF9F6] px-3.5 py-1.5 rounded-2xl border border-[#E7E4DC]">
+                  <span className="text-[10px] text-[#8C9890] block font-semibold">
                     ประมาณการรวม 5 วันทั้งสัปดาห์
                   </span>
-                  <span className="text-base font-black font-mono text-slate-900">
+                  <span className="text-base font-extrabold text-[#1F5E4B] tabular-nums">
                     {totalWeeklyPlannedCost.toLocaleString(undefined, {
                       minimumFractionDigits: 2,
                       maximumFractionDigits: 2,
                     })}{" "}
-                    <span className="text-xs font-normal text-slate-500">฿</span>
+                    <span className="text-xs font-normal text-[#66746C]">฿</span>
                   </span>
                 </div>
               </div>
 
-              {/* 5 Day Cards Grid */}
+              {/* 5 Day Cards Grid (Unified Ribbon) */}
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-1">
-                {DAY_DEFINITIONS.map(({ key, shortLabel, dotColor, activeBadge }) => {
+                {DAY_DEFINITIONS.map(({ key, shortLabel, dotColor }) => {
                   const isSelected = selectedDayKey === key;
                   const isToday = todayDayKey === key;
                   const dayData = weeklyPlan[key] || DEFAULT_WEEKLY_PLAN[key];
@@ -1655,33 +1658,35 @@ export default function HomePage() {
                       onClick={() => {
                         setSelectedDayKey(key);
                       }}
-                      className={`relative p-3.5 rounded-2xl text-left border transition-all flex flex-col justify-between ${
+                      className={`relative p-3.5 rounded-2xl text-left border transition-smooth flex flex-col justify-between ${
                         isSelected
-                          ? `bg-white shadow-md ring-2 ring-slate-900 ${activeBadge}`
-                          : "bg-slate-50/70 border-slate-200/80 hover:bg-slate-100/70 text-slate-700"
+                          ? "bg-[#F2F8F5] border-2 border-[#1F5E4B] shadow-card"
+                          : "bg-white border-[#E7E4DC] hover:border-[#C7E2D6] hover:bg-[#FAF9F6] text-[#18201C]"
                       }`}
                     >
                       <div className="flex items-center justify-between mb-2">
                         <div className="flex items-center gap-1.5 font-bold text-xs">
-                          <span className={`w-2.5 h-2.5 rounded-full ${dotColor}`} />
-                          <span>{shortLabel}</span>
+                          <span className={`w-2 h-2 rounded-full ${dotColor}`} />
+                          <span className={isSelected ? "text-[#1F5E4B] font-extrabold" : "text-[#18201C]"}>
+                            {shortLabel}
+                          </span>
                         </div>
                         {isToday && (
-                          <span className="text-[9px] bg-slate-900 text-white px-1.5 py-0.5 rounded-md font-extrabold tracking-wide">
+                          <span className="text-[10px] bg-[#1F5E4B] text-white px-1.5 py-0.5 rounded-md font-bold">
                             วันนี้
                           </span>
                         )}
                       </div>
 
-                      <div className="text-xs font-bold text-slate-900 truncate mb-2" title={dayData.menuName}>
+                      <div className="text-xs font-bold text-[#18201C] truncate mb-2" title={dayData.menuName}>
                         {dayData.menuName || "ยังไม่ระบุเมนู"}
                       </div>
 
-                      <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between text-[11px] font-mono">
-                        <span className="text-slate-500 font-sans text-[10px]">
+                      <div className="pt-2 border-t border-[#E7E4DC]/70 flex items-center justify-between text-xs tabular-nums">
+                        <span className="text-[#8C9890] text-[11px]">
                           {dayIngredientsCount} รายการ
                         </span>
-                        <span className="font-bold text-slate-900">
+                        <span className={`font-bold ${isSelected ? "text-[#1F5E4B]" : "text-[#18201C]"}`}>
                           {dayCost.toLocaleString()} ฿
                         </span>
                       </div>
@@ -1691,186 +1696,172 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Planner Header Card */}
-            <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
-                <div className="flex-1 space-y-3">
-                  <div>
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block">
-                        DAILY PROCUREMENT ENGINE • {activeDayDefinition.label}
-                      </span>
-                      {selectedDayKey === todayDayKey && (
-                        <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-900 text-white">
-                          ตรงกับวันนี้
-                        </span>
-                      )}
-                    </div>
-                    <label className="text-xs font-bold text-slate-700 block mb-1">
-                      ชื่อเมนูอาหารกลางวัน{activeDayDefinition.label} (พิมพ์เปลี่ยนชื่อได้โดยตรง):
-                    </label>
-                    <div className="flex flex-wrap items-center gap-2 max-w-2xl">
-                      <input
-                        type="text"
-                        value={activeDayPlan.menuName}
-                        onChange={(e) => handleUpdateMenuName(e.target.value)}
-                        placeholder={`พิมพ์ชื่อเมนูอาหารกลางวัน${activeDayDefinition.label} เช่น ข้าวผัดไข่หมูสับ, ก๋วยเตี๋ยวน้ำใส`}
-                        className="flex-1 min-w-[240px] bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 shadow-2xs"
-                      />
-
-                      {/* Move/Swap Menu Dropdown */}
-                      <select
-                        defaultValue=""
-                        onChange={(e) => {
-                          const target = e.target.value as DayKey;
-                          if (!target) return;
-                          handleMoveOrSwapMenu(target, "swap");
-                          e.target.value = "";
-                        }}
-                        className="bg-slate-50 border border-slate-200 rounded-xl px-3 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-100 transition-colors cursor-pointer shadow-2xs"
-                        title="สลับเมนูนี้กับวันอื่น"
-                      >
-                        <option value="" disabled>
-                          ⇄ สลับเมนูกับวัน...
-                        </option>
-                        {DAY_DEFINITIONS.filter((d) => d.key !== selectedDayKey).map((d) => (
-                          <option key={d.key} value={d.key}>
-                            สลับกับ {d.label}
-                          </option>
-                        ))}
-                      </select>
-
-                      <button
-                        type="button"
-                        onClick={handleDeleteMenu}
-                        className="p-2.5 rounded-xl border border-rose-200 bg-rose-50/50 text-rose-500 hover:text-rose-700 hover:bg-rose-100 transition-colors shadow-2xs"
-                        title={`ล้างเมนูและรายการวัตถุดิบ${activeDayDefinition.label}`}
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+            {/* Unified Single Canvas Card */}
+            <div className="bg-white rounded-3xl p-6 border border-[#E7E4DC] shadow-card space-y-5">
+              {/* Menu Title Hero & Quick Actions */}
+              <div className="space-y-4 pb-4 border-b border-[#ECE8DE]">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-bold px-3 py-1 rounded-full bg-[#EBF4F0] text-[#1F5E4B] border border-[#C7E2D6]">
+                      {activeDayDefinition.label}
+                    </span>
+                    <span
+                      className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full border ${
+                        activeDayPlan.isFrozen
+                          ? "bg-[#EBF4F0] text-[#1F5E4B] border-[#C7E2D6]"
+                          : "bg-[#FDF4F0] text-[#B55232] border-[#F2D7CA]"
+                      }`}
+                    >
+                      {activeDayPlan.isFrozen ? "ตรึง Snapshot แล้ว ✓" : "กำลังร่างรายการ"}
+                    </span>
                   </div>
 
-                  {presetMenus.length > 0 && (
-                    <div className="flex items-center gap-2">
-                      <label className="text-[11px] font-semibold text-slate-500 whitespace-nowrap">
-                        หรือดึงสูตรเมนูต้นแบบมาใส่ใน{activeDayDefinition.label}:
-                      </label>
-                      <select
-                        value=""
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          if (!val) return;
-                          const selected = presetMenus.find((m) => m.id === val);
-                          if (selected) {
-                            const clonedIngs = selected.ingredients.map((ing) => ({
-                              ...ing,
-                              id: `ing-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-                            }));
-                            setWeeklyPlan((prev) => {
-                              const updatedPlan: WeeklyPlan = {
-                                ...prev,
-                                [selectedDayKey]: {
-                                  menuName: selected.name,
-                                  category: selected.category || "อาหารจานเดียว",
-                                  ingredients: clonedIngs,
-                                  isFrozen: false,
-                                },
-                              };
-                              saveLocalState({ weeklyPlan: updatedPlan });
-                              saveCloudState({ weeklyPlan: updatedPlan }).catch(console.warn);
-                              return updatedPlan;
-                            });
-                            setIsPlanFrozen(false);
-                          }
-                        }}
-                        className="bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-xs font-medium text-slate-700 focus:outline-none max-w-xs"
-                      >
-                        <option value="">-- ดึงสูตรอาหารต้นแบบมาใส่ในวันนี้ --</option>
-                        {presetMenus.map((m) => {
-                          const assignedDay = DAY_DEFINITIONS.find(
-                            (d) => weeklyPlan[d.key]?.menuName === m.name && d.key !== selectedDayKey
-                          );
-                          return (
-                            <option key={m.id} value={m.id}>
-                              {m.name} {assignedDay ? `(ใช้อยู่ใน${assignedDay.label})` : ""}
-                            </option>
-                          );
-                        })}
-                      </select>
-                    </div>
-                  )}
-                </div>
-
-                {/* Right Metric Summary */}
-                <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 flex items-center gap-6">
-                  <div>
-                    <span className="text-[10px] font-mono text-slate-400 uppercase font-bold block">
-                      ยอดรวมค่าวัตถุดิบ ({activeDayDefinition.shortLabel})
-                    </span>
-                    <span className="text-2xl font-black font-mono text-slate-950">
+                  <div className="flex items-center gap-2 text-right">
+                    <span className="text-xs text-[#66746C]">ยอดรวมวัตถุดิบวันนี้:</span>
+                    <span className="text-xl font-black tabular-nums text-[#1F5E4B]">
                       {activeDayCost.toLocaleString(undefined, {
                         minimumFractionDigits: 2,
                         maximumFractionDigits: 2,
                       })}{" "}
-                      <span className="text-sm font-sans font-normal text-slate-500">฿</span>
-                    </span>
-                  </div>
-
-                  <div className="h-10 w-px bg-slate-200" />
-
-                  <div>
-                    <span className="text-[10px] font-mono text-slate-400 uppercase font-bold block">
-                      สถานะรายการ
-                    </span>
-                    <span
-                      className={`inline-flex items-center gap-1 text-xs font-bold px-2.5 py-1 rounded-full mt-0.5 ${
-                        activeDayPlan.isFrozen
-                          ? "bg-emerald-100 text-emerald-800"
-                          : "bg-amber-100 text-amber-800"
-                      }`}
-                    >
-                      {activeDayPlan.isFrozen ? "ตรึง Snapshot แล้ว ✓" : "กำลังกำหนดรายการ"}
+                      <span className="text-xs font-normal text-[#66746C]">฿</span>
                     </span>
                   </div>
                 </div>
+
+                {/* Menu Name Input */}
+                <div>
+                  <label className="text-xs font-bold text-[#18201C] block mb-1.5">
+                    ชื่อเมนูอาหารกลางวัน{activeDayDefinition.label}:
+                  </label>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <input
+                      type="text"
+                      value={activeDayPlan.menuName}
+                      onChange={(e) => handleUpdateMenuName(e.target.value)}
+                      placeholder={`พิมพ์ชื่อเมนูอาหารกลางวัน เช่น แกงกะทิไก่ฟักทอง, ข้าวผัดไข่`}
+                      className="flex-1 min-w-[260px] bg-[#FAF9F6] border border-[#E7E4DC] hover:border-[#9ECBB9] focus:border-[#1F5E4B] focus:bg-white rounded-2xl px-4 py-2.5 text-sm font-bold text-[#18201C] outline-none shadow-xs"
+                    />
+
+                    {/* Move/Swap Menu Dropdown */}
+                    <select
+                      defaultValue=""
+                      onChange={(e) => {
+                        const target = e.target.value as DayKey;
+                        if (!target) return;
+                        handleMoveOrSwapMenu(target, "swap");
+                        e.target.value = "";
+                      }}
+                      className="bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3 py-2.5 text-xs font-bold text-[#4B5850] hover:bg-[#F2F0E8] transition-colors cursor-pointer shadow-xs"
+                      title="สลับเมนูนี้กับวันอื่น"
+                    >
+                      <option value="" disabled>
+                        ⇄ สลับเมนูกับวัน...
+                      </option>
+                      {DAY_DEFINITIONS.filter((d) => d.key !== selectedDayKey).map((d) => (
+                        <option key={d.key} value={d.key}>
+                          สลับกับ {d.label}
+                        </option>
+                      ))}
+                    </select>
+
+                    <button
+                      type="button"
+                      onClick={handleDeleteMenu}
+                      className="p-2.5 rounded-xl border border-[#F2D7CA] bg-[#FDF4F0] text-[#B55232] hover:bg-[#FBEDE6] transition-colors shadow-xs"
+                      title={`ล้างเมนูและรายการวัตถุดิบ${activeDayDefinition.label}`}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Preset Recipe Pull */}
+                {presetMenus.length > 0 && (
+                  <div className="flex items-center gap-2 pt-1">
+                    <label className="text-xs text-[#66746C] whitespace-nowrap">
+                      หรือดึงสูตรเมนูต้นแบบ:
+                    </label>
+                    <select
+                      value=""
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (!val) return;
+                        const selected = presetMenus.find((m) => m.id === val);
+                        if (selected) {
+                          const clonedIngs = selected.ingredients.map((ing) => ({
+                            ...ing,
+                            id: `ing-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+                          }));
+                          setWeeklyPlan((prev) => {
+                            const updatedPlan: WeeklyPlan = {
+                              ...prev,
+                              [selectedDayKey]: {
+                                menuName: selected.name,
+                                category: selected.category || "อาหารจานเดียว",
+                                ingredients: clonedIngs,
+                                isFrozen: false,
+                              },
+                            };
+                            saveLocalState({ weeklyPlan: updatedPlan });
+                            saveCloudState({ weeklyPlan: updatedPlan }).catch(console.warn);
+                            return updatedPlan;
+                          });
+                          setIsPlanFrozen(false);
+                        }
+                      }}
+                      className="bg-white border border-[#E7E4DC] rounded-xl px-3 py-1.5 text-xs font-medium text-[#18201C] focus:outline-none focus:border-[#1F5E4B] max-w-sm"
+                    >
+                      <option value="">-- เลือกดึงสูตรอาหารต้นแบบมาใส่ในวันนี้ --</option>
+                      {presetMenus.map((m) => {
+                        const assignedDay = DAY_DEFINITIONS.find(
+                          (d) => weeklyPlan[d.key]?.menuName === m.name && d.key !== selectedDayKey
+                        );
+                        return (
+                          <option key={m.id} value={m.id}>
+                            {m.name} {assignedDay ? `(ใช้อยู่ใน${assignedDay.label})` : ""}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+                )}
               </div>
 
               {/* Direct Daily Ingredients Table */}
-              <div className="overflow-x-auto mt-4">
-                <table className="w-full text-left text-xs text-slate-600">
-                  <thead className="bg-slate-50/80 text-slate-700 font-bold border-y border-slate-200/80 uppercase tracking-wider text-[11px]">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs text-[#18201C]">
+                  <thead className="bg-[#FAF9F6] text-[#66746C] font-bold border-y border-[#E7E4DC] text-xs">
                     <tr>
-                      <th className="py-3.5 px-4">รายการวัตถุดิบ</th>
-                      <th className="py-3.5 px-4 text-center">จำนวนที่สั่ง</th>
-                      <th className="py-3.5 px-4 text-center">หน่วยนับ</th>
-                      <th className="py-3.5 px-4 text-center">ราคา / หน่วย (฿)</th>
-                      <th className="py-3.5 px-4 text-right">รวมเป็นเงิน (฿)</th>
-                      <th className="py-3.5 px-3 text-center w-12">จัดการ</th>
+                      <th className="py-3 px-4">รายการวัตถุดิบ</th>
+                      <th className="py-3 px-4 text-center">จำนวนที่สั่ง</th>
+                      <th className="py-3 px-4 text-center">หน่วยนับ</th>
+                      <th className="py-3 px-4 text-center">ราคา / หน่วย (฿)</th>
+                      <th className="py-3 px-4 text-right">รวมเป็นเงิน (฿)</th>
+                      <th className="py-3 px-3 text-center w-12">จัดการ</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-100 font-medium">
+                  <tbody className="divide-y divide-[#F0ECE4] font-medium">
                     {(activeDayPlan.ingredients || []).length === 0 ? (
                       <tr>
-                        <td colSpan={6} className="py-12 text-center text-slate-400">
-                          <UtensilsCrossed className="w-8 h-8 mx-auto mb-2 opacity-30 text-slate-400" />
-                          <span className="block text-xs font-bold text-slate-600">ยังไม่มีรายการวัตถุดิบในเมนูนี้</span>
-                          <span className="block text-[11px] text-slate-400 mt-1">
+                        <td colSpan={6} className="py-12 text-center text-[#8C9890]">
+                          <UtensilsCrossed className="w-8 h-8 mx-auto mb-2 opacity-30 text-[#1F5E4B]" />
+                          <span className="block text-sm font-bold text-[#18201C]">ยังไม่มีรายการวัตถุดิบในเมนูนี้</span>
+                          <span className="block text-xs text-[#66746C] mt-1">
                             คลิกปุ่ม <strong>&quot;+ เพิ่มวัตถุดิบในเมนูนี้&quot;</strong> หรือ <strong>&quot;📥 นำเข้าจาก Excel&quot;</strong> ด้านล่างเพื่อเริ่มระบุวัตถุดิบและราคา
                           </span>
                         </td>
                       </tr>
                     ) : (
                       (activeDayPlan.ingredients || []).map((item) => (
-                      <tr key={item.id} className="hover:bg-slate-50/70 transition-colors">
-                        <td className="py-3 px-4 font-bold text-slate-900 text-sm">
+                      <tr key={item.id} className="hover:bg-[#FAF9F6]/80 transition-smooth">
+                        <td className="py-3 px-4 font-bold text-[#18201C] text-sm">
                           <input
                             type="text"
                             value={item.name}
                             onChange={(e) =>
                               handleUpdateIngredient(item.id, "name", e.target.value)
                             }
-                            className="w-full bg-transparent border-b border-transparent hover:border-slate-300 focus:border-slate-900 focus:outline-none py-0.5"
+                            className="w-full bg-transparent border-b border-transparent hover:border-[#C7E2D6] focus:border-[#1F5E4B] focus:outline-none py-1"
                           />
                         </td>
                         <td className="py-3 px-4 text-center">
@@ -1881,7 +1872,7 @@ export default function HomePage() {
                             onChange={(e) =>
                               handleUpdateIngredient(item.id, "qty", parseFloat(e.target.value) || 0)
                             }
-                            className="w-20 px-2 py-1 text-center font-bold font-mono text-slate-900 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/10 shadow-2xs"
+                            className="w-20 px-2 py-1.5 text-center font-bold font-mono tabular-nums text-[#18201C] bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl focus:outline-none focus:ring-1 focus:ring-[#1F5E4B] shadow-2xs"
                           />
                         </td>
                         <td className="py-3 px-4 text-center">
@@ -1891,7 +1882,7 @@ export default function HomePage() {
                             onChange={(e) =>
                               handleUpdateIngredient(item.id, "unit", e.target.value)
                             }
-                            className="w-16 px-1.5 py-1 text-center font-mono text-slate-700 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/10 shadow-2xs"
+                            className="w-16 px-1.5 py-1.5 text-center text-[#4B5850] bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl focus:outline-none focus:ring-1 focus:ring-[#1F5E4B] shadow-2xs"
                             title="พิมพ์เปลี่ยนหน่วยได้โดยตรง"
                           />
                         </td>
@@ -1903,10 +1894,10 @@ export default function HomePage() {
                             onChange={(e) =>
                               handleUpdateIngredient(item.id, "unitPrice", parseFloat(e.target.value) || 0)
                             }
-                            className="w-20 px-2 py-1 text-center font-mono text-slate-900 bg-white border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-slate-900/10 shadow-2xs"
+                            className="w-20 px-2 py-1.5 text-center font-mono tabular-nums text-[#18201C] bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl focus:outline-none focus:ring-1 focus:ring-[#1F5E4B] shadow-2xs"
                           />
                         </td>
-                        <td className="py-3 px-4 text-right font-bold font-mono text-slate-900 text-sm">
+                        <td className="py-3 px-4 text-right font-bold font-mono tabular-nums text-[#18201C] text-sm">
                           {(item.qty * item.unitPrice).toLocaleString(undefined, {
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2,
@@ -1916,7 +1907,7 @@ export default function HomePage() {
                         <td className="py-3 px-3 text-center">
                           <button
                             onClick={() => handleDeleteIngredient(item.id)}
-                            className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                            className="p-1.5 rounded-lg text-[#8C9890] hover:text-[#B55232] hover:bg-[#FDF4F0] transition-colors"
                             title="ลบรายการนี้"
                           >
                             <Trash2 className="w-4 h-4" />
@@ -1929,21 +1920,21 @@ export default function HomePage() {
               </div>
 
               {/* Actions Footer */}
-              <div className="pt-4 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 mt-2">
-                <div className="flex items-center gap-2">
+              <div className="pt-4 border-t border-[#ECE8DE] flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-wrap items-center gap-2">
                   <button
                     onClick={() => setShowAddIngredientModal(true)}
-                    className="px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 text-xs font-bold hover:bg-slate-50 transition-all flex items-center gap-1.5 shadow-2xs"
+                    className="px-4 py-2.5 rounded-xl border border-[#E7E4DC] bg-white text-[#18201C] text-xs font-bold hover:bg-[#FAF9F6] transition-smooth flex items-center gap-1.5 shadow-xs"
                   >
-                    <Plus className="w-4 h-4 text-slate-600" />
-                    <span>+ เพิ่มวัตถุดิบในเมนูนี้</span>
+                    <Plus className="w-4 h-4 text-[#1F5E4B]" />
+                    <span>+ เพิ่มวัตถุดิบ</span>
                   </button>
 
                   <button
                     onClick={() => setShowNewMenuModal(true)}
-                    className="px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-slate-700 text-xs font-bold hover:bg-slate-50 transition-all flex items-center gap-1.5 shadow-2xs"
+                    className="px-4 py-2.5 rounded-xl border border-[#E7E4DC] bg-white text-[#18201C] text-xs font-bold hover:bg-[#FAF9F6] transition-smooth flex items-center gap-1.5 shadow-xs"
                   >
-                    <Sparkles className="w-4 h-4 text-amber-500" />
+                    <Sparkles className="w-4 h-4 text-[#D97757]" />
                     <span>เพิ่มเมนูอาหารใหม่</span>
                   </button>
 
@@ -1956,10 +1947,10 @@ export default function HomePage() {
                       setExcelMenuName(activeDayPlan.menuName || "");
                       setShowExcelImportModal(true);
                     }}
-                    className="px-4 py-2.5 rounded-xl border border-emerald-300 bg-emerald-50/70 text-emerald-800 text-xs font-bold hover:bg-emerald-100 transition-all flex items-center gap-1.5 shadow-2xs"
+                    className="px-4 py-2.5 rounded-xl border border-[#F2D7CA] bg-[#FDF4F0] text-[#B55232] text-xs font-bold hover:bg-[#FBEDE6] transition-smooth flex items-center gap-1.5 shadow-xs"
                     title="นำเข้ารายการอาหารและวัตถุดิบจากไฟล์ Excel"
                   >
-                    <FileSpreadsheet className="w-4 h-4 text-emerald-600" />
+                    <FileSpreadsheet className="w-4 h-4 text-[#B55232]" />
                     <span>📥 นำเข้าจาก Excel</span>
                   </button>
                 </div>
@@ -1973,17 +1964,17 @@ export default function HomePage() {
                       setIngredientSaveToast(true);
                       setTimeout(() => setIngredientSaveToast(false), 3000);
                     }}
-                    className="px-4 py-2.5 rounded-xl border border-slate-300 bg-white text-slate-800 text-xs font-bold hover:bg-slate-50 transition-all flex items-center gap-1.5 shadow-2xs"
+                    className="px-4 py-2.5 rounded-xl border border-[#E7E4DC] bg-white text-[#18201C] text-xs font-bold hover:bg-[#FAF9F6] transition-smooth flex items-center gap-1.5 shadow-xs"
                   >
-                    <Save className="w-3.5 h-3.5 text-blue-600" />
+                    <Save className="w-3.5 h-3.5 text-[#1F5E4B]" />
                     <span>บันทึกวัตถุดิบ</span>
                   </button>
 
                   <button
                     onClick={handleConfirmPlan}
-                    className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-bold tracking-tight transition-all flex items-center gap-2 shadow-sm"
+                    className="px-5 py-2.5 rounded-xl bg-[#1F5E4B] hover:bg-[#143B30] text-white text-xs font-bold tracking-tight transition-smooth flex items-center gap-2 shadow-soft"
                   >
-                    <Lock className="w-4 h-4 text-emerald-400" />
+                    <Lock className="w-4 h-4 text-[#EAD598]" />
                     <span>
                       {isPlanFrozen
                         ? "ตรึง Snapshot แล้ว ✓"
@@ -2002,47 +1993,47 @@ export default function HomePage() {
         {activeTab === "ANALYTICS" && (
           <div className="space-y-6">
             {/* Analytics Header & Timeframe Switch */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-3xl border border-[#E7E4DC] shadow-card">
               <div>
-                <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block">
-                  FINANCIAL INTELLIGENCE • AUDIT READY
+                <span className="text-xs font-bold uppercase tracking-wider text-[#1F5E4B] block">
+                  รายงานวิเคราะห์การเงินและโภชนาการ
                 </span>
-                <h2 className="text-xl font-extrabold text-slate-900 tracking-tight mt-0.5">
+                <h2 className="text-xl font-extrabold text-[#18201C] tracking-tight mt-0.5">
                   แดชบอร์ดสรุปผลการใช้งบประมาณอาหารกลางวัน
                 </h2>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  วิเคราะห์อัตราการเผาผลาญงบ (Burn-rate) และพยากรณ์ความเพียงพอของงบประมาณตลอดภาคเรียน
+                <p className="text-xs text-[#66746C] mt-0.5">
+                  วิเคราะห์อัตราการใช้งบประมาณรายสัปดาห์และความเพียงพอของงบประมาณตลอดภาคเรียน
                 </p>
               </div>
 
               {/* Timeframe Pill Switcher */}
-              <div className="flex bg-slate-100 p-1 rounded-2xl border border-slate-200/70 text-xs font-bold">
+              <div className="flex bg-[#F4F2EB] p-1 rounded-2xl border border-[#E7E4DC] text-xs font-bold">
                 <button
                   onClick={() => setAnalyticsTimeframe("WEEKLY")}
-                  className={`px-3.5 py-1.5 rounded-xl transition-all ${
+                  className={`px-3.5 py-1.5 rounded-xl transition-smooth ${
                     analyticsTimeframe === "WEEKLY"
-                      ? "bg-white text-slate-950 shadow-xs"
-                      : "text-slate-500 hover:text-slate-900"
+                      ? "bg-white text-[#1F5E4B] shadow-xs"
+                      : "text-[#66746C] hover:text-[#18201C]"
                   }`}
                 >
-                  รายสัปดาห์ (Weekly)
+                  รายสัปดาห์
                 </button>
                 <button
                   onClick={() => setAnalyticsTimeframe("MONTHLY")}
-                  className={`px-3.5 py-1.5 rounded-xl transition-all ${
+                  className={`px-3.5 py-1.5 rounded-xl transition-smooth ${
                     analyticsTimeframe === "MONTHLY"
-                      ? "bg-white text-slate-950 shadow-xs"
-                      : "text-slate-500 hover:text-slate-900"
+                      ? "bg-white text-[#1F5E4B] shadow-xs"
+                      : "text-[#66746C] hover:text-[#18201C]"
                   }`}
                 >
-                  รายเดือน (Monthly)
+                  รายเดือน
                 </button>
                 <button
                   onClick={() => setAnalyticsTimeframe("SEMESTER")}
-                  className={`px-3.5 py-1.5 rounded-xl transition-all ${
+                  className={`px-3.5 py-1.5 rounded-xl transition-smooth ${
                     analyticsTimeframe === "SEMESTER"
-                      ? "bg-white text-slate-950 shadow-xs"
-                      : "text-slate-500 hover:text-slate-900"
+                      ? "bg-white text-[#1F5E4B] shadow-xs"
+                      : "text-[#66746C] hover:text-[#18201C]"
                   }`}
                 >
                   ทั้งภาคเรียน ({settings.semester})
@@ -2052,62 +2043,62 @@ export default function HomePage() {
 
             {/* 4 Key Performance Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs">
-                <div className="flex items-center justify-between text-slate-400">
-                  <span className="text-[11px] font-mono font-bold tracking-wider uppercase">
+              <div className="bg-white p-5 rounded-3xl border border-[#E7E4DC] shadow-card">
+                <div className="flex items-center justify-between text-[#8C9890]">
+                  <span className="text-xs font-bold tracking-wider">
                     งบที่ได้รับแล้ว (เงินงวดสะสม)
                   </span>
-                  <Wallet className="w-4 h-4 text-emerald-600" />
+                  <Wallet className="w-4 h-4 text-[#1F5E4B]" />
                 </div>
-                <div className="text-2xl font-black font-mono text-slate-900 mt-2">
-                  {totalIncomeReceived.toLocaleString()} <span className="text-xs font-sans font-normal text-slate-500">฿</span>
+                <div className="text-2xl font-black font-mono tabular-nums text-[#18201C] mt-2">
+                  {totalIncomeReceived.toLocaleString()} <span className="text-xs font-sans font-normal text-[#66746C]">฿</span>
                 </div>
-                <div className="text-xs text-slate-500 mt-1 font-medium">
+                <div className="text-xs text-[#66746C] mt-1 font-medium">
                   คำนวณจากเงินงวดที่โอนเข้าบัญชีจริง
                 </div>
               </div>
 
-              <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs">
-                <div className="flex items-center justify-between text-slate-400">
-                  <span className="text-[11px] font-mono font-bold tracking-wider uppercase">
+              <div className="bg-white p-5 rounded-3xl border border-[#E7E4DC] shadow-card">
+                <div className="flex items-center justify-between text-[#8C9890]">
+                  <span className="text-xs font-bold tracking-wider">
                     รายจ่ายจริงสะสม
                   </span>
-                  <TrendingUp className="w-4 h-4 text-amber-500" />
+                  <TrendingUp className="w-4 h-4 text-[#D97757]" />
                 </div>
-                <div className="text-2xl font-black font-mono text-slate-900 mt-2">
-                  {totalActualExpenses.toLocaleString()} <span className="text-xs font-sans font-normal text-slate-500">฿</span>
+                <div className="text-2xl font-black font-mono tabular-nums text-[#18201C] mt-2">
+                  {totalActualExpenses.toLocaleString()} <span className="text-xs font-sans font-normal text-[#66746C]">฿</span>
                 </div>
-                <div className="text-xs text-slate-500 mt-1 font-medium">
+                <div className="text-xs text-[#66746C] mt-1 font-medium">
                   คิดเป็น {Math.round((totalActualExpenses / (totalIncomeReceived || 1)) * 100)}% ของงบที่รับแล้ว
                 </div>
               </div>
 
-              <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs">
-                <div className="flex items-center justify-between text-slate-400">
-                  <span className="text-[11px] font-mono font-bold tracking-wider uppercase">
+              <div className="bg-white p-5 rounded-3xl border border-[#E7E4DC] shadow-card">
+                <div className="flex items-center justify-between text-[#8C9890]">
+                  <span className="text-xs font-bold tracking-wider">
                     งบประมาณคงเหลือจริง
                   </span>
-                  <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                  <CheckCircle2 className="w-4 h-4 text-[#1F5E4B]" />
                 </div>
-                <div className="text-2xl font-black font-mono text-emerald-700 mt-2">
-                  {netCashRemaining.toLocaleString()} <span className="text-xs font-sans font-normal text-emerald-600">฿</span>
+                <div className="text-2xl font-black font-mono tabular-nums text-[#1F5E4B] mt-2">
+                  {netCashRemaining.toLocaleString()} <span className="text-xs font-sans font-normal text-[#1F5E4B]">฿</span>
                 </div>
-                <div className="text-xs text-emerald-700 mt-1 font-medium flex items-center gap-1">
+                <div className="text-xs text-[#1F5E4B] mt-1 font-medium flex items-center gap-1">
                   <span>✓ สถานะเงินสดปลอดภัย</span>
                 </div>
               </div>
 
-              <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-xs">
-                <div className="flex items-center justify-between text-slate-400">
-                  <span className="text-[11px] font-mono font-bold tracking-wider uppercase">
+              <div className="bg-white p-5 rounded-3xl border border-[#E7E4DC] shadow-card">
+                <div className="flex items-center justify-between text-[#8C9890]">
+                  <span className="text-xs font-bold tracking-wider">
                     ประมาณการวันคงเหลือ
                   </span>
-                  <Clock className="w-4 h-4 text-indigo-500" />
+                  <Clock className="w-4 h-4 text-[#2E6B8E]" />
                 </div>
-                <div className="text-2xl font-black font-mono text-slate-900 mt-2">
-                  {analyticsSummary.estimatedDaysRemaining} <span className="text-xs font-sans font-normal text-slate-500">วันเปิดเรียน</span>
+                <div className="text-2xl font-black font-mono tabular-nums text-[#18201C] mt-2">
+                  {analyticsSummary.estimatedDaysRemaining} <span className="text-xs font-sans font-normal text-[#66746C]">วันเปิดเรียน</span>
                 </div>
-                <div className="text-xs text-slate-500 mt-1 font-medium">
+                <div className="text-xs text-[#66746C] mt-1 font-medium">
                   อัตราเฉลี่ย ~{analyticsSummary.avgDailySpend.toLocaleString()} ฿ / วัน
                 </div>
               </div>
@@ -2116,23 +2107,23 @@ export default function HomePage() {
             {/* Visual Weekly Spending Comparison & Category Distribution */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
               {/* Left 2 Cols: Weekly Spending Bar Chart */}
-              <div className="lg:col-span-2 bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-4">
+              <div className="lg:col-span-2 bg-white p-6 rounded-3xl border border-[#E7E4DC] shadow-card space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="font-extrabold text-slate-900 text-sm tracking-tight">
-                      เปรียบเทียบยอดใช้จ่ายแยกตามสัปดาห์ (Weekly Spend Telemetry)
+                    <h3 className="font-extrabold text-[#18201C] text-sm tracking-tight">
+                      เปรียบเทียบยอดใช้จ่ายแยกตามสัปดาห์
                     </h3>
-                    <p className="text-xs text-slate-500 mt-0.5">
+                    <p className="text-xs text-[#66746C] mt-0.5">
                       แสดงยอดใช้จ่ายค่าวัตถุดิบและค่าใช้จ่ายดำเนินการในแต่ละสัปดาห์
                     </p>
                   </div>
-                  <span className="text-xs font-mono font-bold text-slate-500 bg-slate-100 px-2.5 py-1 rounded-lg">
+                  <span className="text-xs font-semibold text-[#1F5E4B] bg-[#F2F8F5] px-2.5 py-1 rounded-lg border border-[#C7E2D6]">
                     พฤศจิกายน 2569
                   </span>
                 </div>
 
                 {/* CSS Bar Chart */}
-                <div className="pt-4 space-y-3">
+                <div className="pt-4 space-y-3.5">
                   {[
                     { week: "สัปดาห์ที่ 1 (27 ต.ค. - 31 ต.ค.)", spend: 5800, max: 7500, status: "ปิดรอบแล้ว" },
                     { week: "สัปดาห์ที่ 2 (3 พ.ย. - 7 พ.ย. สัปดาห์ปัจจุบัน)", spend: 6240, max: 7500, status: "กำลังดำเนินการ", isCurrent: true },
@@ -2141,21 +2132,21 @@ export default function HomePage() {
                   ].map((bar, i) => (
                     <div key={i} className="space-y-1">
                       <div className="flex items-center justify-between text-xs font-bold">
-                        <span className={bar.isCurrent ? "text-slate-900 font-extrabold flex items-center gap-1.5" : "text-slate-600"}>
-                          {bar.isCurrent && <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />}
+                        <span className={bar.isCurrent ? "text-[#18201C] font-extrabold flex items-center gap-1.5" : "text-[#66746C]"}>
+                          {bar.isCurrent && <span className="w-2 h-2 rounded-full bg-[#1F5E4B] animate-pulse" />}
                           {bar.week}
                         </span>
-                        <span className="font-mono text-slate-900">
+                        <span className="font-mono tabular-nums text-[#18201C]">
                           {bar.spend.toLocaleString()} ฿{" "}
-                          <span className="text-[10px] text-slate-400 font-normal">({bar.status})</span>
+                          <span className="text-[10px] text-[#8C9890] font-normal">({bar.status})</span>
                         </span>
                       </div>
-                      <div className="w-full h-3 bg-slate-100 rounded-full overflow-hidden border border-slate-200/50">
+                      <div className="w-full h-3 bg-[#FAF9F6] rounded-full overflow-hidden border border-[#E7E4DC]">
                         <div
                           className={`h-full rounded-full transition-all duration-500 ${
                             bar.isCurrent
-                              ? "bg-gradient-to-r from-blue-600 to-indigo-600"
-                              : "bg-slate-300"
+                              ? "bg-gradient-to-r from-[#1F5E4B] to-[#31866B]"
+                              : "bg-[#D5D0C5]"
                           }`}
                           style={{ width: `${(bar.spend / bar.max) * 100}%` }}
                         />
@@ -2166,64 +2157,64 @@ export default function HomePage() {
               </div>
 
               {/* Right 1 Col: Category Proportion */}
-              <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-4">
+              <div className="bg-white p-6 rounded-3xl border border-[#E7E4DC] shadow-card space-y-4">
                 <div>
-                  <h3 className="font-extrabold text-slate-900 text-sm tracking-tight">
+                  <h3 className="font-extrabold text-[#18201C] text-sm tracking-tight">
                     สัดส่วนหมวดหมู่ค่าใช้จ่าย
                   </h3>
-                  <p className="text-xs text-slate-500 mt-0.5">แบ่งตามประเภทการตัดจ่ายจริง</p>
+                  <p className="text-xs text-[#66746C] mt-0.5">แบ่งตามประเภทการตัดจ่ายจริง</p>
                 </div>
 
                 <div className="space-y-3 pt-2">
                   <div>
                     <div className="flex justify-between text-xs font-semibold mb-1">
-                      <span className="text-slate-700 flex items-center gap-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-blue-600 inline-block" />
+                      <span className="text-[#18201C] flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#1F5E4B] inline-block" />
                         ค่าวัตถุดิบสดตามเมนู
                       </span>
-                      <span className="font-mono font-bold text-slate-900">
+                      <span className="font-mono tabular-nums font-bold text-[#18201C]">
                         {analyticsSummary.rawPercent}%
                       </span>
                     </div>
-                    <div className="text-[11px] font-mono text-slate-400">
+                    <div className="text-[11px] font-mono tabular-nums text-[#66746C]">
                       {analyticsSummary.rawIngredientsExpense.toLocaleString()} ฿
                     </div>
                   </div>
 
                   <div>
                     <div className="flex justify-between text-xs font-semibold mb-1">
-                      <span className="text-slate-700 flex items-center gap-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" />
+                      <span className="text-[#18201C] flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#D97757] inline-block" />
                         ของซื้อเพิ่มหน้างาน
                       </span>
-                      <span className="font-mono font-bold text-slate-900">
+                      <span className="font-mono tabular-nums font-bold text-[#18201C]">
                         {analyticsSummary.adhocPercent}%
                       </span>
                     </div>
-                    <div className="text-[11px] font-mono text-slate-400">
+                    <div className="text-[11px] font-mono tabular-nums text-[#66746C]">
                       {analyticsSummary.adhocExpense.toLocaleString()} ฿
                     </div>
                   </div>
 
                   <div>
                     <div className="flex justify-between text-xs font-semibold mb-1">
-                      <span className="text-slate-700 flex items-center gap-1.5">
-                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 inline-block" />
+                      <span className="text-[#18201C] flex items-center gap-1.5">
+                        <span className="w-2.5 h-2.5 rounded-full bg-[#D49B38] inline-block" />
                         ค่าแก๊สและค่าจ้างแม่ครัว
                       </span>
-                      <span className="font-mono font-bold text-slate-900">
+                      <span className="font-mono tabular-nums font-bold text-[#18201C]">
                         {analyticsSummary.opPercent}%
                       </span>
                     </div>
-                    <div className="text-[11px] font-mono text-slate-400">
+                    <div className="text-[11px] font-mono tabular-nums text-[#66746C]">
                       {analyticsSummary.operationalExpense.toLocaleString()} ฿
                     </div>
                   </div>
                 </div>
 
-                <div className="pt-4 border-t border-slate-100">
-                  <div className="p-3 bg-emerald-50 rounded-2xl border border-emerald-200/80 text-emerald-800 text-xs">
-                    <strong className="block font-bold">✓ สรุปการตรวจสอบ (Audit Insight)</strong>
+                <div className="pt-4 border-t border-[#ECE8DE]">
+                  <div className="p-3.5 bg-[#F2F8F5] rounded-2xl border border-[#C7E2D6] text-[#1F5E4B] text-xs">
+                    <strong className="block font-bold mb-0.5">✓ สรุปการตรวจสอบ (Audit Insight)</strong>
                     สัดส่วนค่าอาหารสดอยู่ในเกณฑ์มาตรฐาน สตง. (สูงกว่า 80% ของงบประมาณรวม)
                   </div>
                 </div>
@@ -2236,43 +2227,43 @@ export default function HomePage() {
         {/* TAB 4: FINANCIAL LEDGER (สมุดบัญชีรายรับ-จ่าย) */}
         {/* ========================================================================= */}
         {activeTab === "FINANCE_LEDGER" && (
-          <div className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-xs space-y-5">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-slate-100">
+          <div className="bg-white rounded-3xl p-6 border border-[#E7E4DC] shadow-card space-y-5">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-[#ECE8DE]">
               <div>
-                <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block">
-                  FINANCIAL LEDGER • SINGLE SOURCE OF TRUTH
+                <span className="text-xs font-bold uppercase tracking-wider text-[#1F5E4B] block">
+                  สมุดบัญชีโครงการอาหารกลางวัน
                 </span>
-                <h3 className="text-base font-extrabold text-slate-900 mt-0.5">
-                  สมุดบัญชีคุมรายรับ-รายจ่ายโครงการอาหารกลางวัน
+                <h3 className="text-base font-extrabold text-[#18201C] mt-0.5">
+                  สมุดบัญชีคุมรายรับ-รายจ่าย
                 </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  บันทึกรายการแบบ Append-Only ยืนยันความโปร่งใส ส่งออกไฟล์ Excel พร้อมใช้งานได้ทันที
+                <p className="text-xs text-[#66746C] mt-0.5">
+                  บันทึกรายการแบบโปร่งใส ตรวจสอบย้อนหลังได้ พร้อมส่งออกไฟล์ Excel นำไปใช้งานราชการ
                 </p>
               </div>
 
               <div className="flex flex-wrap items-center gap-2">
                 {/* Filter */}
-                <div className="flex bg-slate-100 p-0.5 rounded-xl border border-slate-200 text-xs">
+                <div className="flex bg-[#F4F2EB] p-0.5 rounded-xl border border-[#E7E4DC] text-xs">
                   <button
                     onClick={() => setLedgerFilter("ALL")}
-                    className={`px-3 py-1 rounded-lg font-bold transition-all ${
-                      ledgerFilter === "ALL" ? "bg-white text-slate-900 shadow-xs" : "text-slate-500"
+                    className={`px-3 py-1 rounded-lg font-bold transition-smooth ${
+                      ledgerFilter === "ALL" ? "bg-white text-[#18201C] shadow-xs" : "text-[#66746C]"
                     }`}
                   >
                     ทั้งหมด
                   </button>
                   <button
                     onClick={() => setLedgerFilter("INCOME")}
-                    className={`px-3 py-1 rounded-lg font-bold transition-all ${
-                      ledgerFilter === "INCOME" ? "bg-white text-emerald-700 shadow-xs" : "text-slate-500"
+                    className={`px-3 py-1 rounded-lg font-bold transition-smooth ${
+                      ledgerFilter === "INCOME" ? "bg-white text-[#1F5E4B] shadow-xs" : "text-[#66746C]"
                     }`}
                   >
                     รายรับ
                   </button>
                   <button
                     onClick={() => setLedgerFilter("EXPENSE")}
-                    className={`px-3 py-1 rounded-lg font-bold transition-all ${
-                      ledgerFilter === "EXPENSE" ? "bg-white text-rose-700 shadow-xs" : "text-slate-500"
+                    className={`px-3 py-1 rounded-lg font-bold transition-smooth ${
+                      ledgerFilter === "EXPENSE" ? "bg-white text-[#B55232] shadow-xs" : "text-[#66746C]"
                     }`}
                   >
                     รายจ่าย
@@ -2281,25 +2272,25 @@ export default function HomePage() {
 
                 <button
                   onClick={() => setShowAddIncomeModal(true)}
-                  className="px-3.5 py-2 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 text-xs font-bold hover:bg-emerald-100 transition-all flex items-center gap-1 shadow-2xs"
+                  className="px-3.5 py-2 rounded-xl border border-[#C7E2D6] bg-[#EBF4F0] text-[#1F5E4B] text-xs font-bold hover:bg-[#DDF0E7] transition-smooth flex items-center gap-1.5 shadow-2xs"
                 >
                   <Plus className="w-4 h-4" />
-                  <span>+ รับงบงวดใหม่</span>
+                  <span>รับงบงวดใหม่</span>
                 </button>
 
                 <button
                   onClick={() => setShowAddExpenseModal(true)}
-                  className="px-3.5 py-2 rounded-xl border border-amber-200 bg-amber-50 text-amber-900 text-xs font-bold hover:bg-amber-100 transition-all flex items-center gap-1 shadow-2xs"
+                  className="px-3.5 py-2 rounded-xl border border-[#F2D7CA] bg-[#FDF4F0] text-[#B55232] text-xs font-bold hover:bg-[#FBEDE6] transition-smooth flex items-center gap-1.5 shadow-2xs"
                 >
-                  <Flame className="w-4 h-4 text-amber-600" />
-                  <span>+ รายการนอก (ค่าแก๊ส/แม่ครัว)</span>
+                  <Flame className="w-4 h-4 text-[#D97757]" />
+                  <span>รายการนอก (ค่าแก๊ส/แม่ครัว)</span>
                 </button>
 
                 <button
                   onClick={handleExportCSV}
-                  className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-xs"
+                  className="px-3.5 py-2 rounded-xl bg-[#1F5E4B] hover:bg-[#143B30] text-white text-xs font-bold transition-smooth flex items-center gap-1.5 shadow-soft"
                 >
-                  <Download className="w-4 h-4 text-emerald-400" />
+                  <Download className="w-4 h-4 text-[#EAD598]" />
                   <span>ส่งออก Excel</span>
                 </button>
               </div>
@@ -2307,8 +2298,8 @@ export default function HomePage() {
 
             {/* Ledger Table */}
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs text-slate-600">
-                <thead className="bg-slate-50 text-slate-700 font-bold border-y border-slate-200/80 uppercase tracking-wider text-[11px]">
+              <table className="w-full text-left text-xs text-[#18201C]">
+                <thead className="bg-[#FAF9F6] text-[#66746C] font-bold border-y border-[#E7E4DC] text-xs">
                   <tr>
                     <th className="py-3 px-3">เลขที่เอกสาร</th>
                     <th className="py-3 px-3">วันที่</th>
@@ -2319,14 +2310,14 @@ export default function HomePage() {
                     <th className="py-3 px-3 text-center w-12">จัดการ</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 font-medium">
+                <tbody className="divide-y divide-[#F0ECE4] font-medium">
                   {transactions.filter((t) => (ledgerFilter === "ALL" ? true : t.type === ledgerFilter))
                     .length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="py-12 text-center text-slate-400">
-                        <FileSpreadsheet className="w-8 h-8 mx-auto mb-2 opacity-30 text-slate-400" />
-                        <span className="block text-xs font-bold text-slate-600">ยังไม่มีรายการบันทึกในสมุดบัญชี</span>
-                        <span className="block text-[11px] text-slate-400 mt-1">
+                      <td colSpan={7} className="py-12 text-center text-[#8C9890]">
+                        <FileSpreadsheet className="w-8 h-8 mx-auto mb-2 opacity-30 text-[#1F5E4B]" />
+                        <span className="block text-sm font-bold text-[#18201C]">ยังไม่มีรายการบันทึกในสมุดบัญชี</span>
+                        <span className="block text-xs text-[#66746C] mt-1">
                           คลิกปุ่ม <strong>&quot;+ รับงบงวดใหม่&quot;</strong> เพื่อบันทึกเงินอุดหนุนที่โอนเข้า หรือเมื่อครูเวรตรวจรับของสดในแท็บ 1 ระบบจะลงบัญชีให้อัตโนมัติ
                         </span>
                       </td>
@@ -2335,25 +2326,25 @@ export default function HomePage() {
                     transactions
                       .filter((t) => (ledgerFilter === "ALL" ? true : t.type === ledgerFilter))
                       .map((tx) => (
-                        <tr key={tx.id} className="hover:bg-slate-50/70 transition-colors">
-                          <td className="py-3 px-3 font-mono font-bold text-slate-900">{tx.documentNo}</td>
-                          <td className="py-3 px-3 font-mono text-slate-500">{tx.date}</td>
+                        <tr key={tx.id} className="hover:bg-[#FAF9F6]/80 transition-smooth">
+                          <td className="py-3 px-3 font-mono tabular-nums font-bold text-[#18201C]">{tx.documentNo}</td>
+                          <td className="py-3 px-3 font-mono tabular-nums text-[#66746C]">{tx.date}</td>
                           <td className="py-3 px-3">
                             <span
-                              className={`inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                              className={`inline-flex items-center text-[11px] font-bold px-2 py-0.5 rounded-full ${
                                 tx.type === "INCOME"
-                                  ? "bg-emerald-100 text-emerald-800 border border-emerald-200"
-                                  : "bg-rose-50 text-rose-700 border border-rose-200"
+                                  ? "bg-[#EBF4F0] text-[#1F5E4B] border border-[#C7E2D6]"
+                                  : "bg-[#FDF4F0] text-[#B55232] border border-[#F2D7CA]"
                               }`}
                             >
                               {tx.type === "INCOME" ? "รายรับ (+)" : "รายจ่าย (-)"}
                             </span>
                           </td>
-                          <td className="py-3 px-3 font-semibold text-slate-700">{tx.category}</td>
-                          <td className="py-3 px-3 text-slate-800">{tx.description}</td>
+                          <td className="py-3 px-3 font-semibold text-[#18201C]">{tx.category}</td>
+                          <td className="py-3 px-3 text-[#3E4942]">{tx.description}</td>
                           <td
-                            className={`py-3 px-3 text-right font-mono font-bold ${
-                              tx.type === "INCOME" ? "text-emerald-700" : "text-slate-900"
+                            className={`py-3 px-3 text-right font-mono tabular-nums font-bold ${
+                              tx.type === "INCOME" ? "text-[#1F5E4B]" : "text-[#18201C]"
                             }`}
                           >
                             {tx.type === "INCOME" ? "+" : "-"}
@@ -2367,7 +2358,7 @@ export default function HomePage() {
                             <button
                               type="button"
                               onClick={() => handleDeleteTransaction(tx.id)}
-                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                              className="p-1.5 text-[#8C9890] hover:text-[#B55232] hover:bg-[#FDF4F0] rounded-lg transition-colors"
                               title="ลบรายการนี้ออกจากสมุดบัญชี"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -2388,70 +2379,70 @@ export default function HomePage() {
         {activeTab === "SETTINGS" && (
           <form onSubmit={handleSaveSettings} className="space-y-6 max-w-4xl mx-auto">
             {/* Header */}
-            <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs flex items-center justify-between">
+            <div className="bg-white p-6 rounded-3xl border border-[#E7E4DC] shadow-card flex items-center justify-between">
               <div>
-                <span className="text-[10px] font-mono uppercase tracking-wider text-slate-400 font-bold block">
-                  SYSTEM CONFIGURATION & TEAM ROSTER
+                <span className="text-xs font-bold uppercase tracking-wider text-[#1F5E4B] block">
+                  การตั้งค่าระบบและบุคลากร
                 </span>
-                <h2 className="text-xl font-extrabold text-slate-900 tracking-tight mt-0.5">
+                <h2 className="text-xl font-extrabold text-[#18201C] tracking-tight mt-0.5">
                   ตั้งค่าข้อมูลโรงเรียนและคณะกรรมการอาหารกลางวัน
                 </h2>
-                <p className="text-xs text-slate-500 mt-0.5">
+                <p className="text-xs text-[#66746C] mt-0.5">
                   ข้อมูลที่ตั้งค่าตรงนี้จะถูกนำไปใช้ในหัวรายงาน เอกสารราชการ และแสดงชื่อครูเวรอัตโนมัติตามวัน
                 </p>
               </div>
 
               <button
                 type="submit"
-                className="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-bold transition-all flex items-center gap-2 shadow-sm active:scale-95"
+                className="px-5 py-2.5 rounded-xl bg-[#1F5E4B] hover:bg-[#143B30] text-white text-xs font-bold transition-smooth flex items-center gap-2 shadow-soft active:scale-95"
               >
-                <Save className="w-4 h-4 text-emerald-400" />
+                <Save className="w-4 h-4 text-[#EAD598]" />
                 <span>บันทึกการตั้งค่า</span>
               </button>
             </div>
 
             {/* Success Toast */}
             {settingsSaveToast && (
-              <div className="bg-emerald-500 text-white p-4 rounded-2xl shadow-lg flex items-center gap-2 text-xs font-bold animate-in fade-in duration-200">
-                <CheckCircle2 className="w-5 h-5 text-white" />
+              <div className="bg-[#1F5E4B] text-white p-4 rounded-2xl shadow-soft flex items-center gap-2 text-xs font-bold animate-in fade-in duration-200">
+                <CheckCircle2 className="w-5 h-5 text-[#EAD598]" />
                 <span>บันทึกข้อมูลโรงเรียนและตารางครูเวรเรียบร้อยแล้ว! ข้อมูลมีผลทั่วทั้งระบบทันที</span>
               </div>
             )}
 
             {/* School Profile Section */}
-            <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-4">
-              <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3">
-                <Building2 className="w-4 h-4 text-blue-600" />
+            <div className="bg-white p-6 rounded-3xl border border-[#E7E4DC] shadow-card space-y-4">
+              <h3 className="text-sm font-extrabold text-[#18201C] flex items-center gap-2 border-b border-[#ECE8DE] pb-3">
+                <Building2 className="w-4 h-4 text-[#1F5E4B]" />
                 <span>1. ข้อมูลสถานศึกษาและผู้บริหาร</span>
               </h3>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                 <div className="md:col-span-2">
-                  <label className="font-bold text-slate-700 block mb-1">ชื่อโรงเรียน:</label>
+                  <label className="font-bold text-[#18201C] block mb-1">ชื่อโรงเรียน:</label>
                   <input
                     type="text"
                     value={settingsForm.schoolName}
                     onChange={(e) =>
                       setSettingsForm({ ...settingsForm, schoolName: e.target.value })
                     }
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+                    className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3.5 py-2.5 text-sm font-semibold text-[#18201C] focus:outline-none focus:ring-2 focus:ring-[#1F5E4B]/20 focus:border-[#1F5E4B] transition-smooth"
                   />
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">ชื่อผู้อำนวยการโรงเรียน:</label>
+                  <label className="font-bold text-[#18201C] block mb-1">ชื่อผู้อำนวยการโรงเรียน:</label>
                   <input
                     type="text"
                     value={settingsForm.directorName}
                     onChange={(e) =>
                       setSettingsForm({ ...settingsForm, directorName: e.target.value })
                     }
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+                    className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3.5 py-2.5 text-sm font-semibold text-[#18201C] focus:outline-none focus:ring-2 focus:ring-[#1F5E4B]/20 focus:border-[#1F5E4B] transition-smooth"
                   />
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">
+                  <label className="font-bold text-[#18201C] block mb-1">
                     ชื่อครูผู้รับผิดชอบโครงการอาหารกลางวัน:
                   </label>
                   <input
@@ -2460,36 +2451,36 @@ export default function HomePage() {
                     onChange={(e) =>
                       setSettingsForm({ ...settingsForm, nutritionHeadName: e.target.value })
                     }
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+                    className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3.5 py-2.5 text-sm font-semibold text-[#18201C] focus:outline-none focus:ring-2 focus:ring-[#1F5E4B]/20 focus:border-[#1F5E4B] transition-smooth"
                   />
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">ปีการศึกษา:</label>
+                  <label className="font-bold text-[#18201C] block mb-1">ปีการศึกษา:</label>
                   <input
                     type="text"
                     value={settingsForm.academicYear}
                     onChange={(e) =>
                       setSettingsForm({ ...settingsForm, academicYear: e.target.value })
                     }
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+                    className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3.5 py-2.5 text-sm font-semibold text-[#18201C] focus:outline-none focus:ring-2 focus:ring-[#1F5E4B]/20 focus:border-[#1F5E4B] transition-smooth"
                   />
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">ภาคเรียน:</label>
+                  <label className="font-bold text-[#18201C] block mb-1">ภาคเรียน:</label>
                   <input
                     type="text"
                     value={settingsForm.semester}
                     onChange={(e) =>
                       setSettingsForm({ ...settingsForm, semester: e.target.value })
                     }
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+                    className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3.5 py-2.5 text-sm font-semibold text-[#18201C] focus:outline-none focus:ring-2 focus:ring-[#1F5E4B]/20 focus:border-[#1F5E4B] transition-smooth"
                   />
                 </div>
 
                 <div>
-                  <label className="font-bold text-slate-700 block mb-1">
+                  <label className="font-bold text-[#18201C] block mb-1">
                     จำนวนวันเปิดเรียนประมาณการ (วัน):
                   </label>
                   <input
@@ -2501,19 +2492,19 @@ export default function HomePage() {
                         totalSemesterDays: parseInt(e.target.value) || 100,
                       })
                     }
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm font-mono font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+                    className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3.5 py-2.5 text-sm font-mono tabular-nums font-bold text-[#18201C] focus:outline-none focus:ring-2 focus:ring-[#1F5E4B]/20 focus:border-[#1F5E4B] transition-smooth"
                   />
                 </div>
 
-                <div className="md:col-span-2 p-4 bg-blue-50/70 rounded-2xl border border-blue-200/70 text-blue-950 text-xs flex items-start gap-3">
-                  <Wallet className="w-5 h-5 text-blue-600 mt-0.5 shrink-0" />
+                <div className="md:col-span-2 p-4 bg-[#F2F8F5] rounded-2xl border border-[#C7E2D6] text-[#1F5E4B] text-xs flex items-start gap-3">
+                  <Wallet className="w-5 h-5 text-[#1F5E4B] mt-0.5 shrink-0" />
                   <div>
-                    <strong className="font-bold text-sm block text-blue-900 mb-0.5">
+                    <strong className="font-bold text-sm block text-[#1F5E4B] mb-0.5">
                       ระบบคำนวณงบประมาณตามเงินงวดที่โอนเข้าจริง (ไม่จำเป็นต้องระบุยอดทั้งเทอมล่วงหน้า)
                     </strong>
-                    <span className="text-blue-800 leading-relaxed block">
+                    <span className="text-[#3E4942] leading-relaxed block">
                       ในระบบราชการ เงินอุดหนุนอาหารกลางวันจะทยอยโอนเข้ามาเป็นงวดตามรอบจัดสรร 
-                      เมื่อมีเงินงวดเข้าบัญชีโรงเรียน คุณครูสามารถกดบันทึกรับเงินได้ที่แท็บ <strong>&quot;4. สมุดบัญชี &gt; + รับงบงวดใหม่&quot;</strong> 
+                      เมื่อมีเงินงวดเข้าบัญชีโรงเรียน คุณครูสามารถกดบันทึกรับเงินได้ที่แท็บ <strong>&quot;สมุดบัญชี &gt; รับงบงวดใหม่&quot;</strong> 
                       ระบบจะรวมยอดเงินรับจริงสะสม และคำนวณยอดเงินคงเหลือสุทธิให้อัตโนมัติทันที
                     </span>
                   </div>
@@ -2522,14 +2513,14 @@ export default function HomePage() {
             </div>
 
             {/* Duty Teacher Roster Section */}
-            <div className="bg-white p-6 rounded-3xl border border-slate-200/80 shadow-xs space-y-5">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div className="bg-white p-6 rounded-3xl border border-[#E7E4DC] shadow-card space-y-5">
+              <div className="flex items-center justify-between border-b border-[#ECE8DE] pb-3">
                 <div>
-                  <h3 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                    <UserCheck className="w-4 h-4 text-emerald-600" />
+                  <h3 className="text-sm font-extrabold text-[#18201C] flex items-center gap-2">
+                    <UserCheck className="w-4 h-4 text-[#1F5E4B]" />
                     <span>2. รายชื่อคณะครูเวรตรวจรับของสดประจำวัน (รองรับวันละหลายคน)</span>
                   </h3>
-                  <p className="text-xs text-slate-500 mt-0.5">
+                  <p className="text-xs text-[#66746C] mt-0.5">
                     สามารถกด &quot;+ เพิ่มครูเวร&quot; เพื่อใส่ชื่อครูเวรในแต่ละวันได้หลายคนตามคำสั่งแต่งตั้งของโรงเรียน
                   </p>
                 </div>
@@ -2547,21 +2538,21 @@ export default function HomePage() {
                 ).map(({ dayKey, label, color }) => (
                   <div
                     key={dayKey}
-                    className={`bg-slate-50/80 p-4 rounded-2xl border border-slate-200/80 space-y-3 ${
+                    className={`bg-[#FAF9F6] p-4.5 rounded-2xl border border-[#E7E4DC] space-y-3 ${
                       dayKey === "friday" ? "md:col-span-2" : ""
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-bold text-xs text-slate-800 flex items-center gap-2">
+                      <span className="font-bold text-xs text-[#18201C] flex items-center gap-2">
                         <span className={`w-2.5 h-2.5 rounded-full ${color}`} />
                         คณะครูเวรประจำ{label} ({(settingsForm.dutyRoster?.[dayKey] || []).length} คน)
                       </span>
                       <button
                         type="button"
                         onClick={() => handleAddTeacherToDay(dayKey)}
-                        className="text-[11px] font-bold text-blue-600 hover:text-blue-700 bg-white border border-blue-200 px-2.5 py-1 rounded-lg hover:bg-blue-50 transition-all flex items-center gap-1 shadow-2xs"
+                        className="text-[11px] font-bold text-[#1F5E4B] hover:text-[#143B30] bg-white border border-[#C7E2D6] px-2.5 py-1 rounded-lg hover:bg-[#F2F8F5] transition-smooth flex items-center gap-1 shadow-2xs"
                       >
-                        <Plus className="w-3 h-3" />
+                        <Plus className="w-3 h-3 text-[#1F5E4B]" />
                         <span>เพิ่มครูเวร</span>
                       </button>
                     </div>
@@ -2569,7 +2560,7 @@ export default function HomePage() {
                     <div className="space-y-2">
                       {(settingsForm.dutyRoster?.[dayKey] || []).map((teacherName, idx) => (
                         <div key={idx} className="flex items-center gap-2">
-                          <span className="text-[11px] font-mono text-slate-400 w-5 text-center">
+                          <span className="text-[11px] font-mono text-[#8C9890] w-5 text-center">
                             {idx + 1}.
                           </span>
                           <input
@@ -2579,13 +2570,13 @@ export default function HomePage() {
                             onChange={(e) =>
                               handleUpdateTeacherName(dayKey, idx, e.target.value)
                             }
-                            className="flex-1 bg-white border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+                            className="flex-1 bg-white border border-[#E7E4DC] rounded-xl px-3 py-1.5 text-xs font-semibold text-[#18201C] focus:outline-none focus:ring-1 focus:ring-[#1F5E4B]"
                           />
                           {(settingsForm.dutyRoster?.[dayKey] || []).length > 1 && (
                             <button
                               type="button"
                               onClick={() => handleRemoveTeacherFromDay(dayKey, idx)}
-                              className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                              className="p-1.5 text-[#8C9890] hover:text-[#B55232] hover:bg-[#FDF4F0] rounded-lg transition-smooth"
                               title="ลบรายชื่อนี้"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -2598,10 +2589,10 @@ export default function HomePage() {
                 ))}
               </div>
 
-              <div className="pt-4 border-t border-slate-100 flex justify-end">
+              <div className="pt-4 border-t border-[#ECE8DE] flex justify-end">
                 <button
                   type="submit"
-                  className="px-6 py-2.5 rounded-xl bg-slate-900 hover:bg-black text-white text-xs font-bold transition-all shadow-sm"
+                  className="px-6 py-2.5 rounded-xl bg-[#1F5E4B] hover:bg-[#143B30] text-white text-xs font-bold transition-smooth shadow-soft active:scale-95"
                 >
                   บันทึกการตั้งค่าทั้งหมด
                 </button>
@@ -2615,41 +2606,41 @@ export default function HomePage() {
         {/* ========================================================================= */}
         {/* MODAL 1: ซื้อเครื่องปรุงเพิ่มหน้างาน */}
         {showAdHocModal && (
-          <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-xl border border-slate-200">
-              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Plus className="w-5 h-5 text-amber-600" />
+          <div className="fixed inset-0 z-50 bg-[#18201C]/50 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-floating border border-[#E7E4DC]">
+              <h3 className="text-base font-extrabold text-[#18201C] flex items-center gap-2">
+                <Plus className="w-5 h-5 text-[#D97757]" />
                 ซื้อเครื่องปรุง / ของสดเพิ่มหน้างาน
               </h3>
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-[#66746C] mt-1">
                 บันทึกของสดหรือเครื่องปรุงที่ต้องซื้อเพิ่มเร่งด่วนเช้านี้ ระบบจะเพิ่มเข้าใบตรวจรับและลงบัญชีทันที
               </p>
 
               <div className="mt-4 space-y-3 text-xs">
                 <div>
-                  <label className="font-semibold text-slate-700 block mb-1">ชื่อรายการ:</label>
+                  <label className="font-bold text-[#18201C] block mb-1">ชื่อรายการ:</label>
                   <input
                     type="text"
                     placeholder="เช่น ซีอิ๊วขาวเห็ดหอม, น้ำตาลทราย, มะนาว"
                     value={adHocName}
                     onChange={(e) => setAdHocName(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                    className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3.5 py-2.5 text-sm text-[#18201C] placeholder:text-[#8C9890] focus:outline-none focus:ring-2 focus:ring-[#D97757]/20 focus:border-[#D97757] transition-smooth"
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="font-semibold text-slate-700 block mb-1">จำนวนที่ซื้อ:</label>
+                    <label className="font-bold text-[#18201C] block mb-1">จำนวนที่ซื้อ:</label>
                     <input
                       type="number"
                       step="0.5"
                       placeholder="1"
                       value={adHocQty}
                       onChange={(e) => setAdHocQty(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold font-mono focus:outline-none"
+                      className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3.5 py-2.5 text-sm font-bold font-mono tabular-nums text-[#18201C] focus:outline-none focus:ring-2 focus:ring-[#D97757]/20 focus:border-[#D97757] transition-smooth"
                     />
                   </div>
                   <div>
-                    <label className="font-semibold text-slate-700 block mb-1">
+                    <label className="font-bold text-[#18201C] block mb-1">
                       หน่วยนับ (พิมพ์เองได้):
                     </label>
                     <input
@@ -2658,7 +2649,7 @@ export default function HomePage() {
                       placeholder="เช่น ขวด, กก., ซอง"
                       value={adHocUnit}
                       onChange={(e) => setAdHocUnit(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/20"
+                      className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3.5 py-2.5 text-sm text-[#18201C] placeholder:text-[#8C9890] focus:outline-none focus:ring-2 focus:ring-[#D97757]/20 focus:border-[#D97757] transition-smooth"
                     />
                     <datalist id="adhoc-unit-options">
                       <option value="ขวด" />
@@ -2676,10 +2667,10 @@ export default function HomePage() {
                           key={u}
                           type="button"
                           onClick={() => setAdHocUnit(u)}
-                          className={`text-[10px] px-2 py-0.5 rounded-md border transition-all ${
+                          className={`text-[10px] px-2 py-0.5 rounded-lg border font-bold transition-smooth ${
                             adHocUnit === u
-                              ? "bg-slate-900 text-white border-slate-900"
-                              : "bg-white text-slate-600 border-slate-200 hover:bg-slate-100"
+                              ? "bg-[#1F5E4B] text-white border-[#1F5E4B]"
+                              : "bg-[#F4F2EB] text-[#66746C] border-[#E7E4DC] hover:bg-[#EAE6DC]"
                           }`}
                         >
                           {u}
@@ -2689,27 +2680,29 @@ export default function HomePage() {
                   </div>
                 </div>
                 <div>
-                  <label className="font-semibold text-slate-700 block mb-1">ราคาต่อหน่วย (บาท):</label>
+                  <label className="font-bold text-[#18201C] block mb-1">ราคาต่อหน่วย (บาท):</label>
                   <input
                     type="number"
                     placeholder="เช่น 45"
                     value={adHocPrice}
                     onChange={(e) => setAdHocPrice(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold font-mono text-slate-900 focus:outline-none"
+                    className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3.5 py-2.5 text-sm font-bold font-mono tabular-nums text-[#18201C] focus:outline-none focus:ring-2 focus:ring-[#D97757]/20 focus:border-[#D97757] transition-smooth"
                   />
                 </div>
               </div>
 
               <div className="mt-6 flex items-center justify-end gap-2">
                 <button
+                  type="button"
                   onClick={() => setShowAdHocModal(false)}
-                  className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                  className="px-4 py-2 rounded-xl border border-[#E7E4DC] text-xs font-bold text-[#66746C] hover:bg-[#FAF9F6] transition-smooth"
                 >
                   ยกเลิก
                 </button>
                 <button
+                  type="button"
                   onClick={handleAddAdHocItem}
-                  className="px-4 py-2 rounded-xl bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold shadow-xs"
+                  className="px-4 py-2 rounded-xl bg-[#D97757] hover:bg-[#C26243] text-white text-xs font-bold shadow-soft transition-smooth"
                 >
                   เพิ่มรายการเข้าใบตรวจรับ
                 </button>
@@ -2720,48 +2713,50 @@ export default function HomePage() {
 
         {/* MODAL 2: บันทึกรับเงินงวดงบประมาณ */}
         {showAddIncomeModal && (
-          <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-xl border border-slate-200">
-              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Wallet className="w-5 h-5 text-emerald-600" />
+          <div className="fixed inset-0 z-50 bg-[#18201C]/50 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-floating border border-[#E7E4DC]">
+              <h3 className="text-base font-extrabold text-[#18201C] flex items-center gap-2">
+                <Wallet className="w-5 h-5 text-[#1F5E4B]" />
                 บันทึกรายรับเงินงวดงบประมาณ
               </h3>
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-[#66746C] mt-1">
                 บันทึกเงินอุดหนุนที่ได้รับการโอนเข้าบัญชีโรงเรียนในแต่ละรอบ (อปท. หรือ สพฐ.)
               </p>
 
               <div className="mt-4 space-y-3 text-xs">
                 <div>
-                  <label className="font-semibold text-slate-700 block mb-1">ชื่อรายการงบประมาณ:</label>
+                  <label className="font-bold text-[#18201C] block mb-1">ชื่อรายการงบประมาณ:</label>
                   <input
                     type="text"
                     value={incomeName}
                     onChange={(e) => setIncomeName(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none"
+                    className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3.5 py-2.5 text-sm text-[#18201C] focus:outline-none focus:ring-2 focus:ring-[#1F5E4B]/20 focus:border-[#1F5E4B] transition-smooth"
                   />
                 </div>
                 <div>
-                  <label className="font-semibold text-slate-700 block mb-1">จำนวนเงินที่ได้รับรอบนี้ (บาท):</label>
+                  <label className="font-bold text-[#18201C] block mb-1">จำนวนเงินที่ได้รับรอบนี้ (บาท):</label>
                   <input
                     type="number"
                     placeholder="เช่น 99000"
                     value={incomeAmount}
                     onChange={(e) => setIncomeAmount(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold font-mono text-slate-900 focus:outline-none"
+                    className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3.5 py-2.5 text-sm font-bold font-mono tabular-nums text-[#18201C] focus:outline-none focus:ring-2 focus:ring-[#1F5E4B]/20 focus:border-[#1F5E4B] transition-smooth"
                   />
                 </div>
               </div>
 
               <div className="mt-6 flex items-center justify-end gap-2">
                 <button
+                  type="button"
                   onClick={() => setShowAddIncomeModal(false)}
-                  className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                  className="px-4 py-2 rounded-xl border border-[#E7E4DC] text-xs font-bold text-[#66746C] hover:bg-[#FAF9F6] transition-smooth"
                 >
                   ยกเลิก
                 </button>
                 <button
+                  type="button"
                   onClick={handleAddIncome}
-                  className="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-semibold hover:bg-black"
+                  className="px-4 py-2 rounded-xl bg-[#1F5E4B] hover:bg-[#143B30] text-white text-xs font-bold shadow-soft transition-smooth"
                 >
                   บันทึกรับเงิน
                 </button>
@@ -2772,23 +2767,23 @@ export default function HomePage() {
 
         {/* MODAL 3: บันทึกรายจ่ายนอก */}
         {showAddExpenseModal && (
-          <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-xl border border-slate-200">
-              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Flame className="w-5 h-5 text-amber-600" />
+          <div className="fixed inset-0 z-50 bg-[#18201C]/50 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-floating border border-[#E7E4DC]">
+              <h3 className="text-base font-extrabold text-[#18201C] flex items-center gap-2">
+                <Flame className="w-5 h-5 text-[#D97757]" />
                 บันทึกรายจ่ายดำเนินการ (รายการนอก)
               </h3>
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-[#66746C] mt-1">
                 บันทึกค่าใช้จ่ายจำเป็นอื่นๆ ที่ไม่ใช่ค่าอาหารสด เช่น ค่าก๊าซหุงต้ม ค่าจ้างแม่ครัว
               </p>
 
               <div className="mt-4 space-y-3 text-xs">
                 <div>
-                  <label className="font-semibold text-slate-700 block mb-1">หมวดหมู่ค่าใช้จ่าย:</label>
+                  <label className="font-bold text-[#18201C] block mb-1">หมวดหมู่ค่าใช้จ่าย:</label>
                   <select
                     value={expenseCategory}
                     onChange={(e) => setExpenseCategory(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none"
+                    className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3.5 py-2.5 text-sm text-[#18201C] focus:outline-none focus:ring-2 focus:ring-[#D97757]/20 focus:border-[#D97757] transition-smooth"
                   >
                     <option value="ค่าก๊าซหุงต้มและเชื้อเพลิง">ค่าก๊าซหุงต้มและเชื้อเพลิง</option>
                     <option value="ค่าจ้างแม่ครัว">ค่าจ้างเหมาผู้ประกอบอาหาร (แม่ครัว)</option>
@@ -2796,36 +2791,38 @@ export default function HomePage() {
                   </select>
                 </div>
                 <div>
-                  <label className="font-semibold text-slate-700 block mb-1">รายละเอียดรายการ:</label>
+                  <label className="font-bold text-[#18201C] block mb-1">รายละเอียดรายการ:</label>
                   <input
                     type="text"
                     value={expenseDesc}
                     onChange={(e) => setExpenseDesc(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none"
+                    className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3.5 py-2.5 text-sm text-[#18201C] focus:outline-none focus:ring-2 focus:ring-[#D97757]/20 focus:border-[#D97757] transition-smooth"
                   />
                 </div>
                 <div>
-                  <label className="font-semibold text-slate-700 block mb-1">จำนวนเงิน (บาท):</label>
+                  <label className="font-bold text-[#18201C] block mb-1">จำนวนเงิน (บาท):</label>
                   <input
                     type="number"
                     placeholder="เช่น 450"
                     value={expenseAmount}
                     onChange={(e) => setExpenseAmount(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-bold font-mono text-slate-900 focus:outline-none"
+                    className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3.5 py-2.5 text-sm font-bold font-mono tabular-nums text-[#18201C] focus:outline-none focus:ring-2 focus:ring-[#D97757]/20 focus:border-[#D97757] transition-smooth"
                   />
                 </div>
               </div>
 
               <div className="mt-6 flex items-center justify-end gap-2">
                 <button
+                  type="button"
                   onClick={() => setShowAddExpenseModal(false)}
-                  className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                  className="px-4 py-2 rounded-xl border border-[#E7E4DC] text-xs font-bold text-[#66746C] hover:bg-[#FAF9F6] transition-smooth"
                 >
                   ยกเลิก
                 </button>
                 <button
+                  type="button"
                   onClick={handleAddExpense}
-                  className="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-semibold hover:bg-black"
+                  className="px-4 py-2 rounded-xl bg-[#D97757] hover:bg-[#C26243] text-white text-xs font-bold shadow-soft transition-smooth"
                 >
                   บันทึกจ่ายเงิน
                 </button>
@@ -2836,33 +2833,33 @@ export default function HomePage() {
 
         {/* MODAL 4: สร้างเมนูใหม่ */}
         {showNewMenuModal && (
-          <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-xl border border-slate-200">
-              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Sparkles className="w-5 h-5 text-slate-900" />
+          <div className="fixed inset-0 z-50 bg-[#18201C]/50 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-floating border border-[#E7E4DC]">
+              <h3 className="text-base font-extrabold text-[#18201C] flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-[#1F5E4B]" />
                 เพิ่มเมนูอาหารกลางวันใหม่
               </h3>
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-[#66746C] mt-1">
                 สร้างสูตรอาหารและระบุส่วนประกอบวัตถุดิบสำหรับใช้จัดซื้อในโรงเรียน
               </p>
 
               <div className="mt-4 space-y-3 text-xs">
                 <div>
-                  <label className="font-semibold text-slate-700 block mb-1">ชื่อเมนู:</label>
+                  <label className="font-bold text-[#18201C] block mb-1">ชื่อเมนู:</label>
                   <input
                     type="text"
                     placeholder="เช่น ต้มจืดฟักน่องไก่, ผัดซีอิ๊วหมู"
                     value={newMenuName}
                     onChange={(e) => setNewMenuName(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+                    className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3.5 py-2.5 text-sm text-[#18201C] placeholder:text-[#8C9890] focus:outline-none focus:ring-2 focus:ring-[#1F5E4B]/20 focus:border-[#1F5E4B] transition-smooth"
                   />
                 </div>
                 <div>
-                  <label className="font-semibold text-slate-700 block mb-1">หมวดหมู่อาหาร:</label>
+                  <label className="font-bold text-[#18201C] block mb-1">หมวดหมู่อาหาร:</label>
                   <select
                     value={newMenuCategory}
                     onChange={(e) => setNewMenuCategory(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none"
+                    className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3.5 py-2.5 text-sm text-[#18201C] focus:outline-none focus:ring-2 focus:ring-[#1F5E4B]/20 focus:border-[#1F5E4B] transition-smooth"
                   >
                     <option>อาหารจานเดียว</option>
                     <option>กับข้าว</option>
@@ -2873,16 +2870,18 @@ export default function HomePage() {
 
               <div className="mt-6 flex items-center justify-end gap-2">
                 <button
+                  type="button"
                   onClick={() => setShowNewMenuModal(false)}
-                  className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                  className="px-4 py-2 rounded-xl border border-[#E7E4DC] text-xs font-bold text-[#66746C] hover:bg-[#FAF9F6] transition-smooth"
                 >
                   ยกเลิก
                 </button>
                 <button
+                  type="button"
                   onClick={handleCreateNewMenu}
-                  className="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-semibold hover:bg-black flex items-center gap-1.5"
+                  className="px-4 py-2 rounded-xl bg-[#1F5E4B] hover:bg-[#143B30] text-white text-xs font-bold shadow-soft transition-smooth flex items-center gap-1.5"
                 >
-                  <Save className="w-3.5 h-3.5 text-emerald-400" />
+                  <Save className="w-3.5 h-3.5 text-[#EAD598]" />
                   <span>บันทึกเมนูลง Cloud</span>
                 </button>
               </div>
@@ -2892,41 +2891,41 @@ export default function HomePage() {
 
         {/* MODAL 5: เพิ่มวัตถุดิบในเมนูวันนี้ */}
         {showAddIngredientModal && (
-          <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4">
-            <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-xl border border-slate-200">
-              <h3 className="text-base font-bold text-slate-900 flex items-center gap-2">
-                <Plus className="w-5 h-5 text-slate-900" />
+          <div className="fixed inset-0 z-50 bg-[#18201C]/50 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-floating border border-[#E7E4DC]">
+              <h3 className="text-base font-extrabold text-[#18201C] flex items-center gap-2">
+                <Plus className="w-5 h-5 text-[#1F5E4B]" />
                 เพิ่มวัตถุดิบในเมนูวันนี้
               </h3>
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-[#66746C] mt-1">
                 กำหนดรายการวัตถุดิบ ปริมาณที่ต้องสั่ง และราคาต่อหน่วยสำหรับเมนูวันนี้
               </p>
 
               <div className="mt-4 space-y-3 text-xs">
                 <div>
-                  <label className="font-semibold text-slate-700 block mb-1">ชื่อวัตถุดิบ:</label>
+                  <label className="font-bold text-[#18201C] block mb-1">ชื่อวัตถุดิบ:</label>
                   <input
                     type="text"
                     placeholder="เช่น น่องไก่สด, ไข่เค็ม, พริกแกงเผ็ด"
                     value={newIngName}
                     onChange={(e) => setNewIngName(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+                    className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3.5 py-2.5 text-sm text-[#18201C] placeholder:text-[#8C9890] focus:outline-none focus:ring-2 focus:ring-[#1F5E4B]/20 focus:border-[#1F5E4B] transition-smooth"
                   />
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="font-semibold text-slate-700 block mb-1">จำนวนที่สั่ง:</label>
+                    <label className="font-bold text-[#18201C] block mb-1">จำนวนที่สั่ง:</label>
                     <input
                       type="number"
                       step="0.1"
                       value={newIngQty}
                       onChange={(e) => setNewIngQty(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none"
+                      className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3.5 py-2.5 text-sm font-bold font-mono tabular-nums text-[#18201C] focus:outline-none focus:ring-2 focus:ring-[#1F5E4B]/20 focus:border-[#1F5E4B] transition-smooth"
                     />
                   </div>
                   <div>
-                    <label className="font-semibold text-slate-700 block mb-1">
+                    <label className="font-bold text-[#18201C] block mb-1">
                       หน่วย (พิมพ์เองได้):
                     </label>
                     <input
@@ -2935,7 +2934,7 @@ export default function HomePage() {
                       placeholder="พิมพ์เอง เช่น กก., กำ, ถุง"
                       value={newIngUnit}
                       onChange={(e) => setNewIngUnit(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-slate-900/10"
+                      className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3.5 py-2.5 text-sm text-[#18201C] placeholder:text-[#8C9890] focus:outline-none focus:ring-2 focus:ring-[#1F5E4B]/20 focus:border-[#1F5E4B] transition-smooth"
                     />
                     <datalist id="unit-suggestions">
                       <option value="กก." />
@@ -2958,10 +2957,10 @@ export default function HomePage() {
                           key={u}
                           type="button"
                           onClick={() => setNewIngUnit(u)}
-                          className={`text-[10px] px-2 py-0.5 rounded-md border transition-all ${
+                          className={`text-[10px] px-2 py-0.5 rounded-lg border font-bold transition-smooth ${
                             newIngUnit === u
-                              ? "bg-slate-900 text-white border-slate-900"
-                              : "bg-white text-slate-600 border-slate-200 hover:bg-slate-100"
+                              ? "bg-[#1F5E4B] text-white border-[#1F5E4B]"
+                              : "bg-[#F4F2EB] text-[#66746C] border-[#E7E4DC] hover:bg-[#EAE6DC]"
                           }`}
                         >
                           {u}
@@ -2972,28 +2971,30 @@ export default function HomePage() {
                 </div>
 
                 <div>
-                  <label className="font-semibold text-slate-700 block mb-1">ราคาต่อหน่วย (บาท):</label>
+                  <label className="font-bold text-[#18201C] block mb-1">ราคาต่อหน่วย (บาท):</label>
                   <input
                     type="number"
                     step="0.5"
                     placeholder="เช่น 85, 30, 4.2"
                     value={newIngPrice}
                     onChange={(e) => setNewIngPrice(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 text-sm font-mono focus:outline-none"
+                    className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3.5 py-2.5 text-sm font-bold font-mono tabular-nums text-[#18201C] focus:outline-none focus:ring-2 focus:ring-[#1F5E4B]/20 focus:border-[#1F5E4B] transition-smooth"
                   />
                 </div>
               </div>
 
               <div className="mt-6 flex items-center justify-end gap-2">
                 <button
+                  type="button"
                   onClick={() => setShowAddIngredientModal(false)}
-                  className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                  className="px-4 py-2 rounded-xl border border-[#E7E4DC] text-xs font-bold text-[#66746C] hover:bg-[#FAF9F6] transition-smooth"
                 >
                   ยกเลิก
                 </button>
                 <button
+                  type="button"
                   onClick={handleAddNewDailyIngredient}
-                  className="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-semibold hover:bg-black"
+                  className="px-4 py-2 rounded-xl bg-[#1F5E4B] hover:bg-[#143B30] text-white text-xs font-bold shadow-soft transition-smooth"
                 >
                   เพิ่มรายการวัตถุดิบ
                 </button>
@@ -3004,19 +3005,19 @@ export default function HomePage() {
 
         {/* MODAL 6: นำเข้ารายการอาหารและวัตถุดิบจาก Excel */}
         {showExcelImportModal && (
-          <div className="fixed inset-0 z-50 bg-black/40 backdrop-blur-xs flex items-center justify-center p-4 overflow-y-auto">
-            <div className="bg-white w-full max-w-2xl rounded-3xl p-6 shadow-2xl border border-slate-200 my-8">
+          <div className="fixed inset-0 z-50 bg-[#18201C]/50 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-white w-full max-w-2xl rounded-3xl p-6 shadow-floating border border-[#E7E4DC] my-8">
               {/* Header */}
-              <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                <div className="flex items-center gap-2.5">
-                  <div className="p-2 rounded-xl bg-emerald-50 text-emerald-700 border border-emerald-100">
-                    <FileSpreadsheet className="w-5 h-5 text-emerald-600" />
+              <div className="flex items-center justify-between pb-4 border-b border-[#ECE8DE]">
+                <div className="flex items-center gap-3">
+                  <div className="p-2.5 rounded-xl bg-[#EBF4F0] text-[#1F5E4B] border border-[#C7E2D6]">
+                    <FileSpreadsheet className="w-5 h-5 text-[#1F5E4B]" />
                   </div>
                   <div>
-                    <h3 className="text-base font-bold text-slate-900">
+                    <h3 className="text-base font-extrabold text-[#18201C]">
                       นำเข้ารายการอาหารและวัตถุดิบจาก Excel
                     </h3>
-                    <p className="text-xs text-slate-500">
+                    <p className="text-xs text-[#66746C] mt-0.5">
                       รองรับไฟล์ .xlsx, .xls และ .csv สำหรับจัดซื้ออาหารกลางวัน
                     </p>
                   </div>
@@ -3024,7 +3025,7 @@ export default function HomePage() {
                 <button
                   type="button"
                   onClick={() => setShowExcelImportModal(false)}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors"
+                  className="p-1.5 rounded-xl text-[#8C9890] hover:text-[#18201C] hover:bg-[#F4F2EB] transition-smooth"
                   aria-label="ปิดหน้าต่างนำเข้า Excel"
                 >
                   <X className="w-5 h-5" />
@@ -3043,56 +3044,56 @@ export default function HomePage() {
 
                 <div
                   onClick={() => excelFileInputRef.current?.click()}
-                  className="border-2 border-dashed border-emerald-200 hover:border-emerald-400 bg-emerald-50/30 hover:bg-emerald-50/60 rounded-2xl p-6 text-center cursor-pointer transition-all flex flex-col items-center justify-center gap-2 group"
+                  className="border-2 border-dashed border-[#C7E2D6] hover:border-[#1F5E4B] bg-[#F2F8F5]/50 hover:bg-[#F2F8F5] rounded-2xl p-6 text-center cursor-pointer transition-smooth flex flex-col items-center justify-center gap-2 group"
                 >
-                  <div className="p-3 rounded-full bg-white shadow-xs group-hover:scale-105 transition-transform text-emerald-600 border border-emerald-100">
+                  <div className="p-3 rounded-full bg-white shadow-soft group-hover:scale-105 transition-transform text-[#1F5E4B] border border-[#C7E2D6]">
                     <Upload className="w-6 h-6" />
                   </div>
                   <div>
-                    <span className="text-xs font-bold text-slate-800 block">
+                    <span className="text-xs font-bold text-[#18201C] block">
                       {isProcessingExcel
                         ? "กำลังประมวลผลไฟล์..."
                         : excelUploadedFileName
                         ? `ไฟล์ที่เลือก: ${excelUploadedFileName}`
                         : "คลิกเพื่อเลือกไฟล์ Excel หรือลากไฟล์มาวางที่นี่"}
                     </span>
-                    <span className="text-[11px] text-slate-400 block mt-0.5">
+                    <span className="text-[11px] text-[#66746C] block mt-0.5">
                       รองรับไฟล์ .xlsx, .xls, .csv (หัวตาราง: ชื่อวัตถุดิบ, จำนวน, หน่วยนับ, ราคาต่อหน่วย)
                     </span>
                   </div>
                 </div>
 
                 <div className="flex flex-wrap items-center justify-between gap-2 text-xs pt-1">
-                  <span className="text-slate-500 text-[11px]">ยังไม่มีไฟล์ตัวอย่าง?</span>
+                  <span className="text-[#66746C] text-[11px]">ยังไม่มีไฟล์ตัวอย่าง?</span>
                   <button
                     type="button"
                     onClick={() => downloadExcelTemplate()}
-                    className="inline-flex items-center gap-1.5 text-emerald-700 hover:text-emerald-800 font-bold text-xs bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-lg border border-emerald-200 transition-colors shadow-2xs"
+                    className="inline-flex items-center gap-1.5 text-[#1F5E4B] hover:text-[#143B30] font-bold text-xs bg-[#EBF4F0] hover:bg-[#DDF0E7] px-3.5 py-1.5 rounded-xl border border-[#C7E2D6] transition-smooth shadow-2xs"
                   >
-                    <Download className="w-3.5 h-3.5 text-emerald-600" />
+                    <Download className="w-3.5 h-3.5 text-[#1F5E4B]" />
                     <span>ดาวน์โหลดแบบฟอร์ม Excel ตัวอย่าง (.xlsx)</span>
                   </button>
                 </div>
 
                 {/* Error Banner */}
                 {excelErrorMessage && (
-                  <div className="bg-rose-50 border border-rose-200 text-rose-700 p-3 rounded-xl text-xs flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+                  <div className="bg-[#FDF4F0] border border-[#F2D7CA] text-[#B55232] p-3 rounded-xl text-xs flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-[#D97757] shrink-0" />
                     <span>{excelErrorMessage}</span>
                   </div>
                 )}
 
                 {/* Settings: Target Day, Mode, and Menu Name */}
-                <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 space-y-3 mt-3">
+                <div className="bg-[#FAF9F6] border border-[#E7E4DC] rounded-2xl p-4 space-y-3 mt-3">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
                     <div>
-                      <label className="font-bold text-slate-700 block mb-1">
+                      <label className="font-bold text-[#18201C] block mb-1">
                         นำเข้าข้อมูลไปยัง:
                       </label>
                       <select
                         value={excelTargetDay}
                         onChange={(e) => setExcelTargetDay(e.target.value as DayKey | "PRESET")}
-                        className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-slate-900/10 shadow-2xs"
+                        className="w-full bg-white border border-[#E7E4DC] rounded-xl px-3.5 py-2 font-bold text-[#18201C] focus:outline-none focus:ring-2 focus:ring-[#1F5E4B]/20 focus:border-[#1F5E4B] shadow-2xs transition-smooth"
                       >
                         {DAY_DEFINITIONS.map((d) => (
                           <option key={d.key} value={d.key}>
@@ -3105,27 +3106,27 @@ export default function HomePage() {
 
                     {excelTargetDay !== "PRESET" && (
                       <div>
-                        <label className="font-bold text-slate-700 block mb-1">
+                        <label className="font-bold text-[#18201C] block mb-1">
                           รูปแบบการใส่ข้อมูล:
                         </label>
-                        <div className="flex items-center gap-3 pt-2">
-                          <label className="inline-flex items-center gap-1.5 cursor-pointer font-medium text-slate-700">
+                        <div className="flex items-center gap-4 pt-2">
+                          <label className="inline-flex items-center gap-1.5 cursor-pointer font-bold text-[#18201C]">
                             <input
                               type="radio"
                               name="excelMode"
                               checked={excelImportMode === "replace"}
                               onChange={() => setExcelImportMode("replace")}
-                              className="accent-slate-900"
+                              className="accent-[#1F5E4B]"
                             />
                             <span>แทนที่รายการเดิม</span>
                           </label>
-                          <label className="inline-flex items-center gap-1.5 cursor-pointer font-medium text-slate-700">
+                          <label className="inline-flex items-center gap-1.5 cursor-pointer font-bold text-[#18201C]">
                             <input
                               type="radio"
                               name="excelMode"
                               checked={excelImportMode === "append"}
                               onChange={() => setExcelImportMode("append")}
-                              className="accent-slate-900"
+                              className="accent-[#1F5E4B]"
                             />
                             <span>เพิ่มต่อท้ายรายการเดิม</span>
                           </label>
@@ -3135,7 +3136,7 @@ export default function HomePage() {
                   </div>
 
                   <div>
-                    <label className="font-bold text-slate-700 block mb-1 text-xs">
+                    <label className="font-bold text-[#18201C] block mb-1 text-xs">
                       ชื่อเมนูอาหารกลางวัน:
                     </label>
                     <input
@@ -3143,7 +3144,7 @@ export default function HomePage() {
                       value={excelMenuName}
                       onChange={(e) => setExcelMenuName(e.target.value)}
                       placeholder="เช่น ข้าวมันไก่ตอน, แกงกะทิไก่ฟักทอง, ข้าวผัดไข่"
-                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold text-slate-900 focus:outline-none focus:ring-2 focus:ring-slate-900/10 shadow-2xs"
+                      className="w-full bg-white border border-[#E7E4DC] rounded-xl px-3.5 py-2 text-xs font-bold text-[#18201C] placeholder:text-[#8C9890] focus:outline-none focus:ring-2 focus:ring-[#1F5E4B]/20 focus:border-[#1F5E4B] shadow-2xs transition-smooth"
                     />
                   </div>
                 </div>
@@ -3151,27 +3152,27 @@ export default function HomePage() {
                 {/* Data Preview */}
                 {excelImportResult && (
                   <div className="space-y-3 pt-2">
-                    <div className="flex items-center justify-between bg-slate-900 text-white rounded-2xl px-4 py-3">
+                    <div className="flex items-center justify-between bg-[#1F5E4B] text-white rounded-2xl px-5 py-3.5 shadow-soft">
                       <div>
-                        <span className="text-[10px] uppercase font-mono tracking-wider text-slate-400 font-bold block">
+                        <span className="text-[10px] uppercase font-bold tracking-wider text-[#A3C7B9] block">
                           รายการที่อ่านได้จาก Excel
                         </span>
                         <div className="flex items-center gap-2 mt-0.5">
-                          <span className="text-xs font-bold text-emerald-400">
+                          <span className="text-xs font-bold text-[#EAD598]">
                             ✓ สมบูรณ์ {excelImportResult.validCount} รายการ
                           </span>
                           {excelImportResult.invalidCount > 0 && (
-                            <span className="text-xs font-bold text-amber-400">
+                            <span className="text-xs font-bold text-[#F4B49F]">
                               ⚠️ ไม่สมบูรณ์ {excelImportResult.invalidCount} รายการ
                             </span>
                           )}
                         </div>
                       </div>
                       <div className="text-right">
-                        <span className="text-[10px] uppercase font-mono tracking-wider text-slate-400 font-bold block">
+                        <span className="text-[10px] uppercase font-bold tracking-wider text-[#A3C7B9] block">
                           ยอดเงินรวมวัตถุดิบ
                         </span>
-                        <span className="text-lg font-black font-mono text-emerald-300">
+                        <span className="text-lg font-black font-mono tabular-nums text-white">
                           {excelImportResult.totalCost.toLocaleString(undefined, {
                             minimumFractionDigits: 2,
                             maximumFractionDigits: 2,
@@ -3181,9 +3182,9 @@ export default function HomePage() {
                       </div>
                     </div>
 
-                    <div className="border border-slate-200 rounded-2xl overflow-hidden max-h-56 overflow-y-auto">
-                      <table className="w-full text-left text-xs text-slate-600">
-                        <thead className="bg-slate-50 text-slate-700 font-bold border-b border-slate-200 sticky top-0 text-[11px]">
+                    <div className="border border-[#E7E4DC] rounded-2xl overflow-hidden max-h-56 overflow-y-auto">
+                      <table className="w-full text-left text-xs text-[#18201C]">
+                        <thead className="bg-[#FAF9F6] text-[#66746C] font-bold border-b border-[#E7E4DC] sticky top-0 text-[11px]">
                           <tr>
                             <th className="py-2.5 px-3 w-10 text-center">#</th>
                             <th className="py-2.5 px-3">รายการวัตถุดิบ</th>
@@ -3193,32 +3194,32 @@ export default function HomePage() {
                             <th className="py-2.5 px-3 text-right">รวมเงิน (฿)</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-100">
+                        <tbody className="divide-y divide-[#F0ECE4]">
                           {excelImportResult.items.map((item, idx) => (
                             <tr
                               key={item.id}
-                              className={item.isValid ? "hover:bg-slate-50/60" : "bg-rose-50/50"}
+                              className={item.isValid ? "hover:bg-[#FAF9F6]/80 transition-smooth" : "bg-[#FDF4F0]"}
                             >
-                              <td className="py-2 px-3 text-center font-mono text-[11px] text-slate-400">
+                              <td className="py-2 px-3 text-center font-mono tabular-nums text-[11px] text-[#8C9890]">
                                 {idx + 1}
                               </td>
-                              <td className="py-2 px-3 font-bold text-slate-900">
+                              <td className="py-2 px-3 font-bold text-[#18201C]">
                                 {item.name}
                                 {item.validationError && (
-                                  <span className="block text-[10px] font-normal text-rose-600">
+                                  <span className="block text-[10px] font-normal text-[#B55232]">
                                     {item.validationError}
                                   </span>
                                 )}
                               </td>
-                              <td className="py-2 px-3 text-center font-mono">{item.qty}</td>
-                              <td className="py-2 px-3 text-center text-slate-500">{item.unit}</td>
-                              <td className="py-2 px-3 text-right font-mono">
+                              <td className="py-2 px-3 text-center font-mono tabular-nums">{item.qty}</td>
+                              <td className="py-2 px-3 text-center text-[#66746C]">{item.unit}</td>
+                              <td className="py-2 px-3 text-right font-mono tabular-nums">
                                 {item.unitPrice.toLocaleString(undefined, {
                                   minimumFractionDigits: 2,
                                   maximumFractionDigits: 2,
                                 })}
                               </td>
-                              <td className="py-2 px-3 text-right font-bold font-mono text-slate-900">
+                              <td className="py-2 px-3 text-right font-bold font-mono tabular-nums text-[#18201C]">
                                 {item.totalPrice.toLocaleString(undefined, {
                                   minimumFractionDigits: 2,
                                   maximumFractionDigits: 2,
@@ -3234,11 +3235,11 @@ export default function HomePage() {
               </div>
 
               {/* Modal Actions */}
-              <div className="mt-6 flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+              <div className="mt-6 flex items-center justify-end gap-2 pt-4 border-t border-[#ECE8DE]">
                 <button
                   type="button"
                   onClick={() => setShowExcelImportModal(false)}
-                  className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 transition-colors"
+                  className="px-4 py-2 rounded-xl border border-[#E7E4DC] text-xs font-bold text-[#66746C] hover:bg-[#FAF9F6] transition-smooth"
                 >
                   ยกเลิก
                 </button>
@@ -3246,7 +3247,7 @@ export default function HomePage() {
                   type="button"
                   disabled={!excelImportResult || excelImportResult.validCount === 0 || isProcessingExcel}
                   onClick={handleConfirmExcelImport}
-                  className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold transition-all flex items-center gap-2 shadow-xs"
+                  className="px-5 py-2.5 rounded-xl bg-[#1F5E4B] hover:bg-[#143B30] disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-bold transition-smooth flex items-center gap-2 shadow-soft"
                 >
                   <Check className="w-4 h-4" />
                   <span>ยืนยันการนำเข้า ({excelImportResult?.validCount || 0} รายการ)</span>

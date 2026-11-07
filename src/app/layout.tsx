@@ -20,7 +20,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="th">
-      <body className="min-h-screen bg-slate-50 text-slate-900 antialiased selection:bg-brand-500 selection:text-white">
+      <body className="min-h-screen bg-[#FAF9F6] text-[#18201C] antialiased selection:bg-[#1F5E4B] selection:text-white">
         {children}
       </body>
     </html>
