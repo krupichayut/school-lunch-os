@@ -48,10 +48,12 @@ import {
   Calculator,
   Pencil,
   Unlock,
+  BookOpen,
 } from "lucide-react";
 import OfficialReportModal, { OfficialFormType } from "@/components/OfficialReportModal";
 import MenuCalendarPlanner from "@/components/MenuCalendarPlanner";
 import MobileInstallGuideModal from "@/components/MobileInstallGuideModal";
+import MasterMenuLibrary from "@/components/MasterMenuLibrary";
 import {
   parseIngredientsExcel,
   downloadExcelTemplate,
@@ -151,7 +153,8 @@ export default function HomePage() {
   const [datePlans, setDatePlans] = useState<Record<string, DayPlan>>(() =>
     ensureDatePlans({}, DEFAULT_WEEKLY_PLAN)
   );
-  const [menuPlanningView, setMenuPlanningView] = useState<"CALENDAR" | "WEEKLY">("CALENDAR");
+  const [menuPlanningView, setMenuPlanningView] = useState<"CALENDAR" | "LIBRARY" | "DATE_DETAIL">("CALENDAR");
+  const [selectedPlanningDate, setSelectedPlanningDate] = useState<string>("2026-11-06");
   const [showInstallGuide, setShowInstallGuide] = useState(false);
 
   // Auto-persist Weekly Plan & Day Selection to Local Storage
@@ -507,6 +510,7 @@ export default function HomePage() {
     else if (dayKey) targetDayKey = dayKey;
 
     setSelectedDayKey(targetDayKey);
+    setSelectedPlanningDate(dateStr);
 
     if (datePlans[dateStr]) {
       const plan = datePlans[dateStr];
@@ -530,7 +534,79 @@ export default function HomePage() {
       });
     }
 
-    setMenuPlanningView("WEEKLY");
+    setMenuPlanningView("DATE_DETAIL");
+  };
+
+  const handleAddNewPresetMenu = async (newMenu: PresetMenu) => {
+    const updated = [...presetMenus, newMenu];
+    setPresetMenus(updated);
+    saveLocalState({ presetMenus: updated });
+    await saveCloudState({ presetMenus: updated }).catch(console.warn);
+  };
+
+  const handleUpdatePresetMenu = async (updatedMenu: PresetMenu) => {
+    const updated = presetMenus.map((m) => (m.id === updatedMenu.id ? updatedMenu : m));
+    setPresetMenus(updated);
+    saveLocalState({ presetMenus: updated });
+    await saveCloudState({ presetMenus: updated }).catch(console.warn);
+  };
+
+  const handleDeletePresetMenu = async (menuId: string) => {
+    const updated = presetMenus.filter((m) => m.id !== menuId);
+    setPresetMenus(updated);
+    saveLocalState({ presetMenus: updated });
+    await saveCloudState({ presetMenus: updated }).catch(console.warn);
+  };
+
+  const handleAssignMenuToDate = async (menu: PresetMenu, dateStr: string) => {
+    const d = new Date(dateStr);
+    const dayNum = d.getDay();
+    let targetDayKey: DayKey = "monday";
+    if (dayNum === 2) targetDayKey = "tuesday";
+    else if (dayNum === 3) targetDayKey = "wednesday";
+    else if (dayNum === 4) targetDayKey = "thursday";
+    else if (dayNum === 5) targetDayKey = "friday";
+
+    const updatedDatePlans = {
+      ...datePlans,
+      [dateStr]: {
+        menuName: menu.name,
+        category: menu.category || "อาหารจานเดียว",
+        ingredients: menu.ingredients.map((item, idx) => ({
+          ...item,
+          id: `ing-${dateStr}-${idx + 1}`,
+        })),
+        isFrozen: false,
+        frozenAtTime: null,
+        inspectionItems: [],
+        isReceivingConfirmed: false,
+        confirmedAtTime: null,
+        inspectionDate: dateStr,
+      },
+    };
+
+    setDatePlans(updatedDatePlans);
+    saveLocalState({ datePlans: updatedDatePlans });
+    await saveCloudState({ datePlans: updatedDatePlans }).catch(console.warn);
+
+    // If matches currently selected dayKey, update weeklyPlan too
+    if (selectedDayKey === targetDayKey) {
+      setWeeklyPlan((prev) => {
+        const cur = prev[targetDayKey] || DEFAULT_WEEKLY_PLAN[targetDayKey];
+        const updated = {
+          ...prev,
+          [targetDayKey]: {
+            ...cur,
+            menuName: menu.name,
+            category: menu.category || "อาหารจานเดียว",
+            ingredients: menu.ingredients.map((i, idx) => ({ ...i, id: `ing-${dateStr}-${idx + 1}` })),
+            inspectionDate: dateStr,
+          },
+        };
+        saveLocalState({ weeklyPlan: updated });
+        return updated;
+      });
+    }
   };
 
   const handleDeleteMenu = async () => {
@@ -577,6 +653,28 @@ export default function HomePage() {
       saveCloudState({ weeklyPlan: updatedPlan }).catch(console.warn);
       return updatedPlan;
     });
+
+    if (selectedPlanningDate && datePlans[selectedPlanningDate]) {
+      setDatePlans((prev) => {
+        const curDatePlan = prev[selectedPlanningDate];
+        const source = curDatePlan.ingredients || [];
+        const updatedIngredients = source.map((item) =>
+          item.id === id ? { ...item, [field]: val } : item
+        );
+        const updatedDatePlans = {
+          ...prev,
+          [selectedPlanningDate]: {
+            ...curDatePlan,
+            ingredients: updatedIngredients,
+            isFrozen: false,
+          },
+        };
+        saveLocalState({ datePlans: updatedDatePlans });
+        saveCloudState({ datePlans: updatedDatePlans }).catch(console.warn);
+        return updatedDatePlans;
+      });
+    }
+
     setDailyIngredients((prev) =>
       prev.map((item) => (item.id === id ? { ...item, [field]: val } : item))
     );
@@ -601,6 +699,26 @@ export default function HomePage() {
       saveCloudState({ weeklyPlan: updatedPlan }).catch(console.warn);
       return updatedPlan;
     });
+
+    if (selectedPlanningDate && datePlans[selectedPlanningDate]) {
+      setDatePlans((prev) => {
+        const curDatePlan = prev[selectedPlanningDate];
+        const source = curDatePlan.ingredients || [];
+        const updatedIngredients = source.filter((item) => item.id !== id);
+        const updatedDatePlans = {
+          ...prev,
+          [selectedPlanningDate]: {
+            ...curDatePlan,
+            ingredients: updatedIngredients,
+            isFrozen: false,
+          },
+        };
+        saveLocalState({ datePlans: updatedDatePlans });
+        saveCloudState({ datePlans: updatedDatePlans }).catch(console.warn);
+        return updatedDatePlans;
+      });
+    }
+
     setDailyIngredients((prev) => prev.filter((item) => item.id !== id));
     setIsPlanFrozen(false);
   };
@@ -1204,6 +1322,25 @@ export default function HomePage() {
 
       setWeeklyPlan(updatedPlan);
       setDailyIngredients(updatedIngredients);
+
+      if (selectedPlanningDate && datePlans[selectedPlanningDate]) {
+        setDatePlans((prev) => {
+          const curDatePlan = prev[selectedPlanningDate];
+          const updatedIngs = [...(curDatePlan.ingredients || []), newItem];
+          const updatedDatePlans = {
+            ...prev,
+            [selectedPlanningDate]: {
+              ...curDatePlan,
+              ingredients: updatedIngs,
+              isFrozen: false,
+            },
+          };
+          saveLocalState({ datePlans: updatedDatePlans });
+          saveCloudState({ datePlans: updatedDatePlans }).catch(console.warn);
+          return updatedDatePlans;
+        });
+      }
+
       setShowAddIngredientModal(false);
       setNewIngName("");
       setNewIngPrice("");
@@ -2077,7 +2214,7 @@ export default function HomePage() {
               </div>
             )}
 
-            {/* View Mode Switcher: Calendar View vs Weekly Detail View */}
+            {/* View Mode Switcher: Calendar View vs Master Menu Library */}
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3.5 rounded-3xl border border-[#E7E4DC] shadow-card">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-xs font-extrabold text-[#18201C] flex items-center gap-1.5 pl-1">
@@ -2100,36 +2237,50 @@ export default function HomePage() {
 
                   <button
                     type="button"
-                    onClick={() => setMenuPlanningView("WEEKLY")}
+                    onClick={() => setMenuPlanningView("LIBRARY")}
                     className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                      menuPlanningView === "WEEKLY"
+                      menuPlanningView === "LIBRARY"
                         ? "bg-[#1F5E4B] text-white shadow-xs"
                         : "text-[#66746C] hover:text-[#18201C]"
                     }`}
                   >
-                    <UtensilsCrossed className="w-3.5 h-3.5" />
-                    <span>📋 ตารางวัตถุดิบและราคาละเอียด</span>
+                    <BookOpen className="w-3.5 h-3.5" />
+                    <span>🍲 คลังรายการเมนูอาหาร (Master Library)</span>
                   </button>
                 </div>
               </div>
 
-              {menuPlanningView === "WEEKLY" ? (
-                <button
-                  type="button"
-                  onClick={() => setMenuPlanningView("CALENDAR")}
-                  className="px-3.5 py-1.5 rounded-xl border border-[#C7E2D6] bg-[#F2F8F5] text-[#1F5E4B] text-xs font-bold hover:bg-[#EBF4F0] transition-smooth flex items-center gap-1.5 self-start sm:self-auto"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                  <span>กลับไปยังมุมมองปฏิทิน</span>
-                </button>
+              {menuPlanningView === "DATE_DETAIL" ? (
+                <div className="flex items-center gap-2 self-start sm:self-auto">
+                  <button
+                    type="button"
+                    onClick={() => setMenuPlanningView("CALENDAR")}
+                    className="px-3.5 py-1.5 rounded-xl border border-[#C7E2D6] bg-[#F2F8F5] text-[#1F5E4B] text-xs font-bold hover:bg-[#EBF4F0] transition-smooth flex items-center gap-1.5 shadow-2xs"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    <span>กลับไปหน้าปฏิทิน</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setMenuPlanningView("LIBRARY")}
+                    className="px-3.5 py-1.5 rounded-xl border border-[#E7E4DC] bg-white text-[#18201C] text-xs font-bold hover:bg-[#FAF9F6] transition-smooth flex items-center gap-1.5 shadow-xs"
+                  >
+                    <BookOpen className="w-3.5 h-3.5 text-[#1F5E4B]" />
+                    <span>ไปคลังเมนูอาหาร</span>
+                  </button>
+                </div>
               ) : (
                 <div className="flex items-center gap-2 text-xs text-[#66746C]">
-                  <span>คลิกที่แต่ละวันเพื่อเลือกเมนู หรือสลับไปดูตารางวัตถุดิบ</span>
+                  {menuPlanningView === "CALENDAR" ? (
+                    <span>กดเลือกวันที่ในปฏิทิน เพื่อดึงเมนูอาหารและปรับวัตถุดิบ</span>
+                  ) : (
+                    <span>จัดการสูตรอาหารทั้งหมด และกด &ldquo;ดึงลงปฏิทิน&rdquo; ได้ทันที</span>
+                  )}
                 </div>
               )}
             </div>
 
-            {/* Render Calendar View when selected */}
+            {/* View 1: Render Calendar View when selected */}
             {menuPlanningView === "CALENDAR" && (
               <MenuCalendarPlanner
                 datePlans={datePlans}
@@ -2137,153 +2288,112 @@ export default function HomePage() {
                 presetMenus={presetMenus}
                 settings={settings}
                 onSelectDateForDetail={handleSelectDateForDetail}
-                onSaveNewPreset={async (newPreset) => {
-                  const updated = [...presetMenus, newPreset];
-                  setPresetMenus(updated);
-                  saveLocalState({ presetMenus: updated });
-                  await saveCloudState({ presetMenus: updated }).catch(console.warn);
-                }}
+                onSaveNewPreset={handleAddNewPresetMenu}
               />
             )}
 
-            {/* Render Weekly 5-Day Ribbon & Canvas View when selected */}
-            {menuPlanningView === "WEEKLY" && (
-              <>
-            {/* 5-Day Weekly Menu Schedule Switcher Dock */}
-            <div className="bg-white rounded-3xl p-5 border border-[#E7E4DC] shadow-card space-y-3.5">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1">
-                <div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-lg bg-[#F2F8F5] text-[#1F5E4B] flex items-center justify-center">
-                      <Calendar className="w-4 h-4" />
+            {/* View 2: Render Master Menu Library when selected */}
+            {menuPlanningView === "LIBRARY" && (
+              <MasterMenuLibrary
+                presetMenus={presetMenus}
+                datePlans={datePlans}
+                settings={settings}
+                onAddNewPresetMenu={handleAddNewPresetMenu}
+                onUpdatePresetMenu={handleUpdatePresetMenu}
+                onDeletePresetMenu={handleDeletePresetMenu}
+                onAssignMenuToDate={handleAssignMenuToDate}
+                onOpenExcelImport={() => {
+                  setExcelImportResult(null);
+                  setExcelErrorMessage(null);
+                  setExcelUploadedFileName("");
+                  setExcelTargetDay(selectedDayKey);
+                  setShowExcelImportModal(true);
+                }}
+                onGoToCalendar={() => setMenuPlanningView("CALENDAR")}
+                onSelectDateForDetail={(dateStr) => handleSelectDateForDetail(dateStr)}
+              />
+            )}
+
+            {/* View 3: Render Date-Specific Ingredient Detail View when opened from Calendar or Library */}
+            {menuPlanningView === "DATE_DETAIL" && (
+              <div className="space-y-4">
+                {/* Date-Specific Detail View Header Banner */}
+                <div className="bg-white rounded-3xl p-5 sm:p-6 border border-[#E7E4DC] shadow-card space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-[#ECE8DE] pb-4">
+                    <div className="space-y-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-xs font-bold px-3 py-1 rounded-full bg-[#EBF4F0] text-[#1F5E4B] border border-[#C7E2D6]">
+                          📅 {selectedPlanningDate ? formatThaiDateFull(selectedPlanningDate) : activeDayDefinition.label}
+                        </span>
+                        <span
+                          className={`inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded-full border ${
+                            activeDayPlan.isFrozen
+                              ? "bg-[#EBF4F0] text-[#1F5E4B] border-[#C7E2D6]"
+                              : "bg-[#FDF4F0] text-[#B55232] border-[#F2D7CA]"
+                          }`}
+                        >
+                          {activeDayPlan.isFrozen ? "ตรึง Snapshot แล้ว ✓" : "กำลังร่างรายการ"}
+                        </span>
+                      </div>
+                      <h3 className="text-base sm:text-lg font-extrabold text-[#18201C] tracking-tight">
+                        ปรับแต่งวัตถุดิบและรายการอาหารสำหรับวันนี้
+                      </h3>
+                      <p className="text-xs text-[#66746C]">
+                        คุณสามารถปรับเปลี่ยนวัตถุดิบตามที่ตลาดเช้ามีจำหน่ายจริง ข้อมูลจะแยกอิสระเฉพาะวันนี้ ไม่กระทบวันอื่นในปฏิทิน
+                      </p>
                     </div>
-                    <h3 className="text-sm font-extrabold text-[#18201C] tracking-tight">
-                      ตารางอาหารกลางวัน 5 วันทำการ (จันทร์ – ศุกร์)
-                    </h3>
-                  </div>
-                  <p className="text-xs text-[#66746C] mt-0.5">
-                    คลิกเลือกวันเพื่อกำหนดชื่อเมนูและจัดสรรวัตถุดิบ ข้อมูลจะเชื่อมต่อไปยังครูเวรตรวจรับของสดหน้าเตาทันที
-                  </p>
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <div className="text-right bg-[#FAF9F6] px-3.5 py-1.5 rounded-2xl border border-[#E7E4DC]">
-                    <span className="text-[10px] text-[#8C9890] block font-semibold">
-                      งบจัดสรร 5 วัน ({studentCount} คน × {subsidyPerHead}฿)
-                    </span>
-                    <span className="text-sm font-extrabold text-[#1F5E4B] tabular-nums">
-                      {weeklyBudgetAllocation.toLocaleString(undefined, {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}{" "}
-                      <span className="text-xs font-normal text-[#66746C]">฿</span>
-                    </span>
+
+                    <div className="flex flex-wrap items-center gap-2 self-start sm:self-auto">
+                      <button
+                        type="button"
+                        onClick={() => setMenuPlanningView("CALENDAR")}
+                        className="px-3.5 py-2 rounded-xl border border-[#C7E2D6] bg-[#F2F8F5] text-[#1F5E4B] text-xs font-bold hover:bg-[#EBF4F0] transition-smooth flex items-center gap-1.5 shadow-2xs"
+                      >
+                        <Calendar className="w-4 h-4" />
+                        <span>📅 กลับไปมุมมองปฏิทิน</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setMenuPlanningView("LIBRARY")}
+                        className="px-3.5 py-2 rounded-xl border border-[#E7E4DC] bg-white text-[#18201C] text-xs font-bold hover:bg-[#FAF9F6] transition-smooth flex items-center gap-1.5 shadow-xs"
+                      >
+                        <BookOpen className="w-4 h-4 text-[#1F5E4B]" />
+                        <span>🍲 ไปคลังเมนูอาหาร</span>
+                      </button>
+                    </div>
                   </div>
 
-                  <div className="text-right bg-[#FAF9F6] px-3.5 py-1.5 rounded-2xl border border-[#E7E4DC]">
-                    <span className="text-[10px] text-[#8C9890] block font-semibold">
-                      ประมาณการวัตถุดิบ 5 วัน
-                    </span>
-                    <span className="text-sm font-extrabold text-[#2E6B8E] tabular-nums">
-                      {totalWeeklyPlannedCost.toLocaleString(undefined, {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}{" "}
-                      <span className="text-xs font-normal text-[#66746C]">฿</span>
-                    </span>
-                  </div>
+                  {/* Daily Budget Summary Chips */}
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                    <div className="bg-[#FAF9F6] border border-[#E7E4DC] rounded-2xl p-3.5 text-right">
+                      <span className="text-[10px] text-[#8C9890] block font-semibold">
+                        งบจัดสรรประจำวัน ({studentCount} คน × {subsidyPerHead}฿)
+                      </span>
+                      <span className="text-sm sm:text-base font-extrabold text-[#1F5E4B] font-mono tabular-nums">
+                        {(studentCount * subsidyPerHead).toLocaleString(undefined, { minimumFractionDigits: 2 })} ฿
+                      </span>
+                    </div>
 
-                  <div className="text-right bg-[#FAF9F6] px-3.5 py-1.5 rounded-2xl border border-[#E7E4DC]">
-                    <span className="text-[10px] text-[#8C9890] block font-semibold">
-                      คงเหลือ (แม่ครัว/แก๊ส)
-                    </span>
-                    <span
-                      className={`text-sm font-extrabold tabular-nums ${
-                        weeklyBudgetAllocation - totalWeeklyPlannedCost >= 0
-                          ? "text-[#1F5E4B]"
-                          : "text-[#B55232]"
-                      }`}
-                    >
-                      {(weeklyBudgetAllocation - totalWeeklyPlannedCost).toLocaleString(undefined, {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}{" "}
-                      <span className="text-xs font-normal text-[#66746C]">฿</span>
-                    </span>
+                    <div className="bg-[#FAF9F6] border border-[#E7E4DC] rounded-2xl p-3.5 text-right">
+                      <span className="text-[10px] text-[#8C9890] block font-semibold">
+                        ประมาณการวัตถุดิบวันนี้
+                      </span>
+                      <span className="text-sm sm:text-base font-extrabold text-[#2E6B8E] font-mono tabular-nums">
+                        {activeDayCost.toLocaleString(undefined, { minimumFractionDigits: 2 })} ฿
+                      </span>
+                    </div>
+
+                    <div className="bg-[#FAF9F6] border border-[#E7E4DC] rounded-2xl p-3.5 text-right">
+                      <span className="text-[10px] text-[#8C9890] block font-semibold">
+                        คงเหลือ (แม่ครัว/แก๊ส/สำรอง)
+                      </span>
+                      <span className={`text-sm sm:text-base font-extrabold font-mono tabular-nums ${studentCount * subsidyPerHead - activeDayCost >= 0 ? "text-[#1F5E4B]" : "text-[#B55232]"}`}>
+                        {(studentCount * subsidyPerHead - activeDayCost).toLocaleString(undefined, { minimumFractionDigits: 2 })} ฿
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-
-              {/* Weekend Notice in Menu Planning */}
-              {todayDutyInfo.isWeekendDay && (
-                <div className="mb-2 px-3.5 py-2 rounded-xl bg-[#FAF9F6] border border-[#E7E4DC] flex items-center justify-between text-xs text-[#66746C]">
-                  <div className="flex items-center gap-2">
-                    <span className="w-2 h-2 rounded-full bg-[#D97757]" />
-                    <span>
-                      <strong className="text-[#18201C]">วันนี้: {todayDutyInfo.dayName} (วันหยุดราชการ)</strong> — จัดตารางและวางแผนเมนูอาหารล่วงหน้าสำหรับ 5 วันทำการ
-                    </span>
-                  </div>
-                  <span className="font-bold text-[#1F5E4B] text-[11px] bg-[#EBF4F0] px-2 py-0.5 rounded-md border border-[#C7E2D6]">
-                    โหมดวางแผนล่วงหน้า
-                  </span>
-                </div>
-              )}
-
-              {/* 5 Day Cards Grid (Unified Ribbon) */}
-              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-1">
-                {DAY_DEFINITIONS.map(({ key, shortLabel, dotColor }) => {
-                  const isSelected = selectedDayKey === key;
-                  const isToday = todayDayKey === key;
-                  const dayData = weeklyPlan[key] || DEFAULT_WEEKLY_PLAN[key];
-                  const dayIngredientsCount = (dayData.ingredients || []).length;
-                  const dayCost = (dayData.ingredients || []).reduce(
-                    (s, item) => s + Number((item.qty * item.unitPrice).toFixed(2)),
-                    0
-                  );
-
-                  return (
-                    <button
-                      key={key}
-                      type="button"
-                      onClick={() => {
-                        setSelectedDayKey(key);
-                      }}
-                      className={`relative p-3.5 rounded-2xl text-left border transition-smooth flex flex-col justify-between ${
-                        isSelected
-                          ? "bg-[#F2F8F5] border-2 border-[#1F5E4B] shadow-card"
-                          : "bg-white border-[#E7E4DC] hover:border-[#C7E2D6] hover:bg-[#FAF9F6] text-[#18201C]"
-                      }`}
-                    >
-                      <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-1.5 font-bold text-xs">
-                          <span className={`w-2 h-2 rounded-full ${dotColor}`} />
-                          <span className={isSelected ? "text-[#1F5E4B] font-extrabold" : "text-[#18201C]"}>
-                            {shortLabel}
-                          </span>
-                        </div>
-                        {isToday && (
-                          <span className="text-[10px] bg-[#1F5E4B] text-white px-1.5 py-0.5 rounded-md font-bold">
-                            วันนี้
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="text-xs font-bold text-[#18201C] truncate mb-2" title={dayData.menuName}>
-                        {dayData.menuName || "ยังไม่ระบุเมนู"}
-                      </div>
-
-                      <div className="pt-2 border-t border-[#E7E4DC]/70 flex items-center justify-between text-xs tabular-nums">
-                        <span className="text-[#8C9890] text-[11px]">
-                          {dayIngredientsCount} รายการ
-                        </span>
-                        <span className={`font-bold ${isSelected ? "text-[#1F5E4B]" : "text-[#18201C]"}`}>
-                          {dayCost.toLocaleString()} ฿
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
 
             {/* Unified Single Canvas Card */}
             <div className="bg-white rounded-3xl p-6 border border-[#E7E4DC] shadow-card space-y-5">
@@ -2583,10 +2693,10 @@ export default function HomePage() {
                 </div>
               </div>
             </div>
-              </>
-            )}
           </div>
         )}
+      </div>
+    )}
 
         {/* ========================================================================= */}
         {/* TAB 3: WEEKLY & MONTHLY EXECUTIVE ANALYTICS */}
