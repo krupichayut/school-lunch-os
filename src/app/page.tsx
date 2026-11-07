@@ -44,6 +44,7 @@ import {
   AlertCircle,
   X,
   Printer,
+  Calculator,
 } from "lucide-react";
 import OfficialReportModal, { OfficialFormType } from "@/components/OfficialReportModal";
 import {
@@ -340,6 +341,15 @@ export default function HomePage() {
       return sum + dCost;
     }, 0);
   }, [weeklyPlan]);
+
+  // Dynamic Budget Calculations based on School Settings
+  const studentCount = settings.studentCount || 86;
+  const subsidyPerHead = settings.subsidyPerHead || 27;
+  const daysPerInstallment = settings.daysPerInstallment || 20;
+  const currentRoundTitle = settings.currentRoundTitle || "งวดที่ 1 (2 พ.ย. – 27 พ.ย. 2569)";
+  const dailyBudgetCeiling = studentCount * subsidyPerHead; // 86 * 27 = 2,322 ฿
+  const weeklyBudgetAllocation = dailyBudgetCeiling * 5; // 86 * 27 * 5 = 11,610 ฿
+  const installmentBudgetAllocation = dailyBudgetCeiling * daysPerInstallment; // 86 * 27 * 20 = 46,440 ฿
 
   const activeMenu = useMemo(() => {
     return {
@@ -1236,7 +1246,8 @@ export default function HomePage() {
       (sum, dp) => sum + (dp.ingredients || []).reduce((s, ing) => s + ing.qty * ing.unitPrice, 0),
       0
     );
-    const avgDailySpend = weeklyPlanTotal > 0 ? Math.round(weeklyPlanTotal / 5) : 1240;
+    const benchmarkDailySpend = (settings.studentCount || 86) * (settings.subsidyPerHead || 27);
+    const avgDailySpend = weeklyPlanTotal > 0 ? Math.round(weeklyPlanTotal / 5) : benchmarkDailySpend;
     const estimatedDaysRemaining =
       avgDailySpend > 0 && netCashRemaining > 0
         ? Math.floor(netCashRemaining / avgDailySpend)
@@ -1252,7 +1263,7 @@ export default function HomePage() {
       avgDailySpend,
       estimatedDaysRemaining,
     };
-  }, [transactions, netCashRemaining, weeklyPlan]);
+  }, [transactions, netCashRemaining, weeklyPlan, settings.studentCount, settings.subsidyPerHead]);
 
   const acceptedCount = inspectionItems.filter((i) => i.status === "ACCEPTED").length;
   const progressPercent =
@@ -1311,6 +1322,16 @@ export default function HomePage() {
                   {todayDutyInfo.isWeekendDay
                     ? `ครูเวรเปิดสัปดาห์วันจันทร์: ${todayDutyInfo.teachersSummary}`
                     : todayDutyInfo.teachersSummary}
+                </span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-2xl bg-white border border-[#E7E4DC] shadow-xs">
+              <Users className="w-4 h-4 text-[#1F5E4B]" />
+              <div className="text-xs leading-tight">
+                <span className="text-[11px] text-[#8C9890] block">นักเรียน / รายหัว</span>
+                <span className="font-extrabold text-[#18201C] tabular-nums">
+                  {studentCount} คน <span className="text-[10px] font-normal text-[#66746C]">({subsidyPerHead} ฿/วัน)</span>
                 </span>
               </div>
             </div>
@@ -1471,11 +1492,17 @@ export default function HomePage() {
                   <h2 className="text-xl font-extrabold text-[#18201C] mt-1 tracking-tight">
                     ตรวจรับของสดในโรงครัว
                   </h2>
-                  <p className="text-xs text-[#66746C] mt-1 flex items-center gap-1.5">
+                  <p className="text-xs text-[#66746C] mt-1 flex flex-wrap items-center gap-1.5">
                     <span>เมนู{activeDayDefinition.label}:</span>
                     <strong className="text-[#18201C] bg-[#FAF9F6] px-2.5 py-0.5 rounded-lg border border-[#E7E4DC]">
                       {activeDayPlan.menuName}
                     </strong>
+                    <span className="text-[#8C9890]">•</span>
+                    <span>นักเรียน {studentCount} คน</span>
+                    <span className="text-[#8C9890]">•</span>
+                    <span className="font-semibold text-[#1F5E4B]">
+                      งบจัดสรร {dailyBudgetCeiling.toLocaleString()} ฿/วัน
+                    </span>
                   </p>
                 </div>
 
@@ -1781,17 +1808,51 @@ export default function HomePage() {
                     คลิกเลือกวันเพื่อกำหนดชื่อเมนูและจัดสรรวัตถุดิบ ข้อมูลจะเชื่อมต่อไปยังครูเวรตรวจรับของสดหน้าเตาทันที
                   </p>
                 </div>
-                <div className="text-right bg-[#FAF9F6] px-3.5 py-1.5 rounded-2xl border border-[#E7E4DC]">
-                  <span className="text-[10px] text-[#8C9890] block font-semibold">
-                    ประมาณการรวม 5 วันทั้งสัปดาห์
-                  </span>
-                  <span className="text-base font-extrabold text-[#1F5E4B] tabular-nums">
-                    {totalWeeklyPlannedCost.toLocaleString(undefined, {
-                      minimumFractionDigits: 2,
-                      maximumFractionDigits: 2,
-                    })}{" "}
-                    <span className="text-xs font-normal text-[#66746C]">฿</span>
-                  </span>
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="text-right bg-[#FAF9F6] px-3.5 py-1.5 rounded-2xl border border-[#E7E4DC]">
+                    <span className="text-[10px] text-[#8C9890] block font-semibold">
+                      งบจัดสรร 5 วัน ({studentCount} คน × {subsidyPerHead}฿)
+                    </span>
+                    <span className="text-sm font-extrabold text-[#1F5E4B] tabular-nums">
+                      {weeklyBudgetAllocation.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}{" "}
+                      <span className="text-xs font-normal text-[#66746C]">฿</span>
+                    </span>
+                  </div>
+
+                  <div className="text-right bg-[#FAF9F6] px-3.5 py-1.5 rounded-2xl border border-[#E7E4DC]">
+                    <span className="text-[10px] text-[#8C9890] block font-semibold">
+                      ประมาณการวัตถุดิบ 5 วัน
+                    </span>
+                    <span className="text-sm font-extrabold text-[#2E6B8E] tabular-nums">
+                      {totalWeeklyPlannedCost.toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}{" "}
+                      <span className="text-xs font-normal text-[#66746C]">฿</span>
+                    </span>
+                  </div>
+
+                  <div className="text-right bg-[#FAF9F6] px-3.5 py-1.5 rounded-2xl border border-[#E7E4DC]">
+                    <span className="text-[10px] text-[#8C9890] block font-semibold">
+                      คงเหลือ (แม่ครัว/แก๊ส)
+                    </span>
+                    <span
+                      className={`text-sm font-extrabold tabular-nums ${
+                        weeklyBudgetAllocation - totalWeeklyPlannedCost >= 0
+                          ? "text-[#1F5E4B]"
+                          : "text-[#B55232]"
+                      }`}
+                    >
+                      {(weeklyBudgetAllocation - totalWeeklyPlannedCost).toLocaleString(undefined, {
+                        minimumFractionDigits: 2,
+                        maximumFractionDigits: 2,
+                      })}{" "}
+                      <span className="text-xs font-normal text-[#66746C]">฿</span>
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -2526,9 +2587,25 @@ export default function HomePage() {
                       <td colSpan={7} className="py-12 text-center text-[#8C9890]">
                         <FileSpreadsheet className="w-8 h-8 mx-auto mb-2 opacity-30 text-[#1F5E4B]" />
                         <span className="block text-sm font-bold text-[#18201C]">ยังไม่มีรายการบันทึกในสมุดบัญชี</span>
-                        <span className="block text-xs text-[#66746C] mt-1">
-                          คลิกปุ่ม <strong>&quot;+ รับงบงวดใหม่&quot;</strong> เพื่อบันทึกเงินอุดหนุนที่โอนเข้า หรือเมื่อครูเวรตรวจรับของสดในแท็บ 1 ระบบจะลงบัญชีให้อัตโนมัติ
+                        <span className="block text-xs text-[#66746C] mt-1 mb-3.5">
+                          คลิกปุ่ม <strong>&quot;+ รับงบงวดใหม่&quot;</strong> เพื่อบันทึกเงินอุดหนุนที่โอนเข้า หรือใช้ปุ่มด่วนด้านล่างนี้
                         </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIncomeName(
+                              `รับเงินจัดสรรงบอาหารกลางวัน ${currentRoundTitle} (${studentCount} คน × ${subsidyPerHead} บ. × ${daysPerInstallment} วัน)`
+                            );
+                            setIncomeAmount(installmentBudgetAllocation.toString());
+                            setShowAddIncomeModal(true);
+                          }}
+                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#1F5E4B] text-white text-xs font-bold shadow-soft hover:bg-[#143B30] transition-smooth"
+                        >
+                          <Plus className="w-3.5 h-3.5 text-[#EAD598]" />
+                          <span>
+                            บันทึกรับงวดที่ 1 ทันที: {installmentBudgetAllocation.toLocaleString()} ฿ ({studentCount} คน × {subsidyPerHead} บ. × {daysPerInstallment} วัน)
+                          </span>
+                        </button>
                       </td>
                     </tr>
                   ) : (
@@ -2703,6 +2780,169 @@ export default function HomePage() {
                     }
                     className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3.5 py-2.5 text-sm font-mono tabular-nums font-bold text-[#18201C] focus:outline-none focus:ring-2 focus:ring-[#1F5E4B]/20 focus:border-[#1F5E4B] transition-smooth"
                   />
+                </div>
+
+                <div>
+                  <label className="font-bold text-[#18201C] block mb-1">
+                    จำนวนนักเรียนที่ได้รับจัดสรร (คน):
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={settingsForm.studentCount ?? 86}
+                    onChange={(e) =>
+                      setSettingsForm({
+                        ...settingsForm,
+                        studentCount: e.target.value === "" ? 0 : parseInt(e.target.value) || 0,
+                      })
+                    }
+                    className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3.5 py-2.5 text-sm font-mono tabular-nums font-bold text-[#18201C] focus:outline-none focus:ring-2 focus:ring-[#1F5E4B]/20 focus:border-[#1F5E4B] transition-smooth"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-[#18201C] block mb-1">
+                    อัตราเงินอุดหนุนรายหัว (บาท/คน/วัน):
+                  </label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    min="1"
+                    value={settingsForm.subsidyPerHead ?? 27}
+                    onChange={(e) =>
+                      setSettingsForm({
+                        ...settingsForm,
+                        subsidyPerHead: e.target.value === "" ? 0 : parseFloat(e.target.value) || 0,
+                      })
+                    }
+                    className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3.5 py-2.5 text-sm font-mono tabular-nums font-bold text-[#18201C] focus:outline-none focus:ring-2 focus:ring-[#1F5E4B]/20 focus:border-[#1F5E4B] transition-smooth"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-[#18201C] block mb-1">
+                    จำนวนวันทำการต่องวดจัดสรร (วัน):
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={settingsForm.daysPerInstallment ?? 20}
+                    onChange={(e) =>
+                      setSettingsForm({
+                        ...settingsForm,
+                        daysPerInstallment: e.target.value === "" ? 0 : parseInt(e.target.value) || 0,
+                      })
+                    }
+                    className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3.5 py-2.5 text-sm font-mono tabular-nums font-bold text-[#18201C] focus:outline-none focus:ring-2 focus:ring-[#1F5E4B]/20 focus:border-[#1F5E4B] transition-smooth"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-[#18201C] block mb-1">
+                    ชื่องวดจัดสรรปัจจุบัน:
+                  </label>
+                  <input
+                    type="text"
+                    value={settingsForm.currentRoundTitle || "งวดที่ 1 (2 พ.ย. – 27 พ.ย. 2569)"}
+                    onChange={(e) =>
+                      setSettingsForm({
+                        ...settingsForm,
+                        currentRoundTitle: e.target.value,
+                      })
+                    }
+                    placeholder="เช่น งวดที่ 1 (2 พ.ย. – 27 พ.ย. 2569)"
+                    className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3.5 py-2.5 text-sm font-semibold text-[#18201C] focus:outline-none focus:ring-2 focus:ring-[#1F5E4B]/20 focus:border-[#1F5E4B] transition-smooth"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-[#18201C] block mb-1">
+                    วันเริ่มต้นงวด:
+                  </label>
+                  <input
+                    type="date"
+                    value={settingsForm.currentRoundStartDate || "2026-11-02"}
+                    onChange={(e) =>
+                      setSettingsForm({
+                        ...settingsForm,
+                        currentRoundStartDate: e.target.value,
+                      })
+                    }
+                    className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3.5 py-2.5 text-sm font-mono text-[#18201C] focus:outline-none focus:ring-2 focus:ring-[#1F5E4B]/20 focus:border-[#1F5E4B] transition-smooth"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-bold text-[#18201C] block mb-1">
+                    วันสิ้นสุดงวด:
+                  </label>
+                  <input
+                    type="date"
+                    value={settingsForm.currentRoundEndDate || "2026-11-27"}
+                    onChange={(e) =>
+                      setSettingsForm({
+                        ...settingsForm,
+                        currentRoundEndDate: e.target.value,
+                      })
+                    }
+                    className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3.5 py-2.5 text-sm font-mono text-[#18201C] focus:outline-none focus:ring-2 focus:ring-[#1F5E4B]/20 focus:border-[#1F5E4B] transition-smooth"
+                  />
+                </div>
+
+                {/* Live Budget Simulation Card */}
+                <div className="md:col-span-2 p-4.5 bg-[#F2F8F5] rounded-2xl border border-[#C7E2D6] space-y-3">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Calculator className="w-4 h-4 text-[#1F5E4B]" />
+                      <strong className="font-bold text-sm text-[#1F5E4B]">
+                        สรุปการคำนวณงบประมาณอัตโนมัติ (Live Simulation)
+                      </strong>
+                    </div>
+                    <span className="text-[11px] font-bold text-[#1F5E4B] bg-white px-3 py-1 rounded-full border border-[#C7E2D6] w-fit">
+                      {settingsForm.currentRoundTitle || "งวดที่ 1"}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+                    <div className="bg-white p-3.5 rounded-xl border border-[#E7E4DC] text-center">
+                      <span className="text-[11px] text-[#66746C] block">ยอดจัดสรรรายวัน (1 วัน)</span>
+                      <span className="text-lg font-black text-[#1F5E4B] tabular-nums">
+                        {((settingsForm.studentCount || 86) * (settingsForm.subsidyPerHead || 27)).toLocaleString()}{" "}
+                        <span className="text-xs font-normal">฿</span>
+                      </span>
+                      <span className="text-[10px] text-[#8C9890] block mt-0.5">
+                        ({settingsForm.studentCount || 86} คน × {settingsForm.subsidyPerHead || 27} ฿)
+                      </span>
+                    </div>
+
+                    <div className="bg-white p-3.5 rounded-xl border border-[#E7E4DC] text-center">
+                      <span className="text-[11px] text-[#66746C] block">ยอดจัดสรรรายสัปดาห์ (5 วัน)</span>
+                      <span className="text-lg font-black text-[#2E6B8E] tabular-nums">
+                        {((settingsForm.studentCount || 86) * (settingsForm.subsidyPerHead || 27) * 5).toLocaleString()}{" "}
+                        <span className="text-xs font-normal">฿</span>
+                      </span>
+                      <span className="text-[10px] text-[#8C9890] block mt-0.5">
+                        (5 วันทำการ จันทร์–ศุกร์)
+                      </span>
+                    </div>
+
+                    <div className="bg-white p-3.5 rounded-xl border border-[#C7E2D6] bg-[#EBF4F0]/60 text-center">
+                      <span className="text-[11px] text-[#1F5E4B] block font-bold">
+                        ยอดจัดสรรรวมต่องวด ({settingsForm.daysPerInstallment || 20} วัน)
+                      </span>
+                      <span className="text-lg font-black text-[#1F5E4B] tabular-nums">
+                        {(
+                          (settingsForm.studentCount || 86) *
+                          (settingsForm.subsidyPerHead || 27) *
+                          (settingsForm.daysPerInstallment || 20)
+                        ).toLocaleString()}{" "}
+                        <span className="text-xs font-normal">฿</span>
+                      </span>
+                      <span className="text-[10px] text-[#1F5E4B] block mt-0.5 font-medium">
+                        (งบโอนเข้าบัญชีโรงเรียน)
+                      </span>
+                    </div>
+                  </div>
                 </div>
 
                 <div className="md:col-span-2 p-4 bg-[#F2F8F5] rounded-2xl border border-[#C7E2D6] text-[#1F5E4B] text-xs flex items-start gap-3">
@@ -2931,6 +3171,31 @@ export default function HomePage() {
               <p className="text-xs text-[#66746C] mt-1">
                 บันทึกเงินอุดหนุนที่ได้รับการโอนเข้าบัญชีโรงเรียนในแต่ละรอบ (อปท. หรือ สพฐ.)
               </p>
+
+              {/* Quick Auto-Fill Round 1 Banner */}
+              <div className="mt-3.5 p-3 rounded-2xl bg-[#F2F8F5] border border-[#C7E2D6] space-y-2">
+                <div className="flex items-center justify-between text-xs">
+                  <span className="font-bold text-[#1F5E4B] truncate">
+                    {currentRoundTitle}
+                  </span>
+                  <span className="font-extrabold text-[#1F5E4B] font-mono tabular-nums shrink-0 ml-2">
+                    {installmentBudgetAllocation.toLocaleString()} ฿
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIncomeName(
+                      `รับเงินจัดสรรงบอาหารกลางวัน ${currentRoundTitle} (${studentCount} คน × ${subsidyPerHead} บ. × ${daysPerInstallment} วัน)`
+                    );
+                    setIncomeAmount(installmentBudgetAllocation.toString());
+                  }}
+                  className="w-full py-1.5 px-3 rounded-xl bg-white border border-[#C7E2D6] text-xs font-bold text-[#1F5E4B] hover:bg-[#EBF4F0] transition-smooth flex items-center justify-center gap-1.5 shadow-2xs"
+                >
+                  <CheckCircle2 className="w-3.5 h-3.5 text-[#1F5E4B]" />
+                  <span>คลิกกรอกค่างวดที่ 1 ({installmentBudgetAllocation.toLocaleString()} ฿) อัตโนมัติ</span>
+                </button>
+              </div>
 
               <div className="mt-4 space-y-3 text-xs">
                 <div>

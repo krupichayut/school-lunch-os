@@ -89,8 +89,9 @@ export default function OfficialReportModal({
     return acc + cost;
   }, 0);
 
-  const estimatedDiners = 90;
-  const subsidyPerDiner = 22.0;
+  const estimatedDiners = settings.studentCount || 86;
+  const subsidyPerDiner = settings.subsidyPerHead || 27.0;
+  const daysPerRound = settings.daysPerInstallment || 20;
   const weeklyAllocation = estimatedDiners * subsidyPerDiner * 5;
   const weeklyRemainingBalance = weeklyAllocation - totalWeeklyPlannedCost;
 
@@ -251,7 +252,7 @@ export default function OfficialReportModal({
                     </div>
                     <div>
                       <span className="font-bold text-gray-700">จำนวนนักเรียนที่รับบริการ:</span>{" "}
-                      <span>{estimatedDiners} คน</span>
+                      <span>{estimatedDiners} คน (อัตรา {subsidyPerDiner.toFixed(2)} บาท/คน/วัน)</span>
                     </div>
                   </div>
                   <div className="mt-1.5 pt-1.5 border-t border-gray-200">
@@ -422,6 +423,7 @@ export default function OfficialReportModal({
                   </p>
                   <p className="text-[12.5px] text-gray-600 mt-0.5">
                     จำนวนนักเรียนที่ได้รับจัดสรร: {estimatedDiners} คน (อัตรา {subsidyPerDiner.toFixed(2)} บาท/คน/วัน)
+                    {settings.currentRoundTitle ? ` | รอบจัดสรร: ${settings.currentRoundTitle} (${daysPerRound} วันทำการ)` : ""}
                   </p>
                 </div>
 

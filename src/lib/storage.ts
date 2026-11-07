@@ -66,6 +66,12 @@ export interface SchoolSettings {
   academicYear: string;
   semester: string;
   totalSemesterDays?: number;
+  studentCount?: number;
+  subsidyPerHead?: number;
+  daysPerInstallment?: number;
+  currentRoundTitle?: string;
+  currentRoundStartDate?: string;
+  currentRoundEndDate?: string;
   dutyRoster: DutyRoster;
 }
 
@@ -84,6 +90,12 @@ export const DEFAULT_SCHOOL_SETTINGS: SchoolSettings = {
   academicYear: "2569",
   semester: "ภาคเรียนที่ 2",
   totalSemesterDays: 100,
+  studentCount: 86,
+  subsidyPerHead: 27,
+  daysPerInstallment: 20,
+  currentRoundTitle: "งวดที่ 1 (2 พ.ย. – 27 พ.ย. 2569)",
+  currentRoundStartDate: "2026-11-02",
+  currentRoundEndDate: "2026-11-27",
   dutyRoster: DEFAULT_DUTY_ROSTER,
 };
 
@@ -280,6 +292,24 @@ export function normalizeSchoolSettings(raw: unknown, fallbackName?: string): Sc
       DEFAULT_SCHOOL_SETTINGS.semester,
     totalSemesterDays:
       Number(source.totalSemesterDays) || DEFAULT_SCHOOL_SETTINGS.totalSemesterDays,
+    studentCount:
+      Number(source.studentCount) > 0 ? Number(source.studentCount) : DEFAULT_SCHOOL_SETTINGS.studentCount || 86,
+    subsidyPerHead:
+      Number(source.subsidyPerHead) > 0 ? Number(source.subsidyPerHead) : DEFAULT_SCHOOL_SETTINGS.subsidyPerHead || 27,
+    daysPerInstallment:
+      Number(source.daysPerInstallment) > 0 ? Number(source.daysPerInstallment) : DEFAULT_SCHOOL_SETTINGS.daysPerInstallment || 20,
+    currentRoundTitle:
+      (typeof source.currentRoundTitle === "string" && source.currentRoundTitle.trim()) ||
+      DEFAULT_SCHOOL_SETTINGS.currentRoundTitle ||
+      "งวดที่ 1 (2 พ.ย. – 27 พ.ย. 2569)",
+    currentRoundStartDate:
+      (typeof source.currentRoundStartDate === "string" && source.currentRoundStartDate.trim()) ||
+      DEFAULT_SCHOOL_SETTINGS.currentRoundStartDate ||
+      "2026-11-02",
+    currentRoundEndDate:
+      (typeof source.currentRoundEndDate === "string" && source.currentRoundEndDate.trim()) ||
+      DEFAULT_SCHOOL_SETTINGS.currentRoundEndDate ||
+      "2026-11-27",
     dutyRoster: cleanDuty,
   };
 }
