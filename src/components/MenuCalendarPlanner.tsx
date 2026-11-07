@@ -494,7 +494,7 @@ export default function MenuCalendarPlanner({
               <div
                 key={`${day.dateStr}-${idx}`}
                 onClick={() => setSelectedDateForModal(day.dateStr)}
-                className={`min-h-[115px] p-2.5 rounded-2xl border transition-all cursor-pointer group flex flex-col justify-between shadow-2xs ${
+                className={`min-h-[120px] p-2.5 sm:p-3 rounded-2xl border transition-all cursor-pointer group flex flex-col justify-between shadow-2xs ${
                   hasMenu
                     ? "bg-white border-[#E7E4DC] hover:border-[#1F5E4B] hover:shadow-card"
                     : "bg-[#FCFBF8] border-dashed border-[#1F5E4B]/40 hover:border-[#1F5E4B] hover:bg-[#F2F8F5]/60 hover:shadow-sm"
@@ -539,7 +539,7 @@ export default function MenuCalendarPlanner({
                   {/* Menu Title or Placeholder */}
                   {hasMenu ? (
                     <div className="mt-1">
-                      <div className="text-xs font-bold text-[#18201C] group-hover:text-[#1F5E4B] line-clamp-2 leading-tight">
+                      <div className="text-xs font-bold text-[#18201C] group-hover:text-[#1F5E4B] line-clamp-2 leading-snug">
                         <span className="mr-1">{getFoodEmoji(plan.menuName, plan.category)}</span>
                         <span>{plan.menuName}</span>
                       </div>

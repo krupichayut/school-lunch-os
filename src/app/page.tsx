@@ -1873,7 +1873,7 @@ export default function HomePage() {
                 inspectionItems.map((item) => (
                 <div
                   key={item.id}
-                  className={`bg-white rounded-2xl p-4.5 border transition-smooth shadow-xs ${
+                  className={`bg-white rounded-2xl p-4 sm:p-5 border transition-smooth shadow-xs ${
                     item.isAdHoc
                       ? "border-[#F2D7CA] bg-[#FDF4F0]/30 ring-1 ring-[#D97757]/30"
                       : item.status === "ACCEPTED"
@@ -1883,82 +1883,88 @@ export default function HomePage() {
                       : "border-[#E7E4DC] hover:border-[#C7E2D6]"
                   }`}
                 >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="font-bold text-[#18201C] text-base tracking-tight">{item.name}</h3>
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-3.5">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="font-bold text-[#18201C] text-base sm:text-lg tracking-tight leading-normal">
+                          {item.name}
+                        </h3>
                         {item.isAdHoc && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#D97757] text-white shadow-2xs">
+                          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#D97757] text-white shadow-2xs">
                             ซื้อเพิ่มหน้างาน
                           </span>
                         )}
                         {item.status === "ACCEPTED" && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#EBF4F0] text-[#1F5E4B] border border-[#C7E2D6]">
+                          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#EBF4F0] text-[#1F5E4B] border border-[#C7E2D6]">
                             ครบ ✓
                           </span>
                         )}
                         {item.status === "DISCREPANCY" && (
-                          <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#FDF4F0] text-[#B55232] border border-[#F2D7CA]">
+                          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#FDF4F0] text-[#B55232] border border-[#F2D7CA]">
                             มีส่วนต่าง
                           </span>
                         )}
                       </div>
 
-                      {/* Quantitative Data Tokens */}
-                      <div className="flex items-baseline gap-4 mt-2">
-                        <div>
-                          <div className="text-[11px] text-[#8C9890]">
-                            {item.isAdHoc ? "จำนวนที่ซื้อ" : "จำนวนที่สั่ง"}
-                          </div>
-                          <div className="text-sm font-semibold text-[#18201C] tabular-nums">
+                      {/* Quantitative Data Chips with generous breathing room */}
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 mt-2.5">
+                        <div className="bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3 py-1.5 flex items-baseline gap-1.5 shadow-2xs">
+                          <span className="text-[11px] text-[#8C9890] font-medium">
+                            {item.isAdHoc ? "จำนวนที่ซื้อ:" : "จำนวนที่สั่ง:"}
+                          </span>
+                          <span className="text-xs sm:text-sm font-semibold text-[#18201C] tabular-nums">
                             {item.ordered} <span className="text-xs font-normal text-[#66746C]">{item.unit}</span>
-                          </div>
+                          </span>
                         </div>
 
-                        <div className="h-6 w-px bg-[#E7E4DC]" />
-
-                        <div>
-                          <div className="text-[11px] text-[#8C9890]">ส่งจริงเช้านี้</div>
-                          <div className="text-base font-extrabold font-mono tabular-nums text-[#1F5E4B]">
-                            {item.received} <span className="text-xs font-normal text-[#66746C]">{item.unit}</span>
-                          </div>
+                        <div className="bg-[#F2F8F5] border border-[#C7E2D6] rounded-xl px-3 py-1.5 flex items-baseline gap-1.5 shadow-2xs">
+                          <span className="text-[11px] text-[#1F5E4B] font-semibold">
+                            ส่งจริงเช้านี้:
+                          </span>
+                          <span className="text-sm sm:text-base font-extrabold font-mono tabular-nums text-[#1F5E4B]">
+                            {item.received} <span className="text-xs font-normal text-[#1F5E4B]/80">{item.unit}</span>
+                          </span>
                         </div>
 
-                        <div className="h-6 w-px bg-[#E7E4DC]" />
-
-                        <div>
-                          <div className="text-[11px] text-[#8C9890]">ราคาคำนวณ</div>
-                          <div className="text-sm font-bold font-mono tabular-nums text-[#18201C]">
+                        <div className="bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3 py-1.5 flex items-baseline gap-1.5 shadow-2xs">
+                          <span className="text-[11px] text-[#8C9890] font-medium">
+                            ราคาคำนวณ:
+                          </span>
+                          <span className="text-xs sm:text-sm font-bold font-mono tabular-nums text-[#18201C]">
                             {(item.received * item.unitPrice).toLocaleString()} ฿
-                          </div>
+                          </span>
                         </div>
                       </div>
 
                       {item.note && (
-                        <div className="mt-2 text-xs font-semibold text-[#B55232] bg-[#FDF4F0] p-2 rounded-xl border border-[#F2D7CA] flex items-center gap-1.5">
+                        <div className="mt-2.5 text-xs font-semibold text-[#B55232] bg-[#FDF4F0] p-2.5 rounded-xl border border-[#F2D7CA] flex items-center gap-2">
                           <AlertTriangle className="w-3.5 h-3.5 text-[#D97757] shrink-0" />
                           <span>{item.note}</span>
                         </div>
                       )}
                     </div>
 
-                    {/* Step Adjust Controls */}
-                    <div className="flex flex-col items-end gap-2">
-                      <div className="flex items-center bg-[#FAF9F6] rounded-xl p-1 border border-[#E7E4DC]">
+                    {/* Step Adjust Controls & Camera */}
+                    <div className="flex items-center justify-between md:justify-end gap-3 pt-3 md:pt-0 border-t md:border-t-0 border-[#F4F2EB] shrink-0">
+                      <div className="flex items-center bg-[#FAF9F6] rounded-xl p-1 border border-[#E7E4DC] shadow-2xs">
                         <button
+                          type="button"
                           onClick={() => handleUpdateReceivedQty(item.id, Math.max(0, item.received - 0.5))}
-                          className="w-8 h-8 rounded-lg bg-white border border-[#E7E4DC] shadow-xs font-bold text-[#18201C] hover:bg-[#F2F0E8] transition-smooth flex items-center justify-center active:scale-95"
+                          className="w-8 h-8 rounded-lg bg-white border border-[#E7E4DC] shadow-xs font-bold text-[#18201C] hover:bg-[#F2F0E8] transition-smooth flex items-center justify-center active:scale-95 text-sm"
                           title="ลดลง 0.5"
+                          aria-label={`ลดจำนวน ${item.name}`}
                         >
                           -
                         </button>
-                        <span className="w-12 text-center text-xs font-bold font-mono tabular-nums text-[#18201C]">
+                        <span className="w-12 text-center text-xs sm:text-sm font-extrabold font-mono tabular-nums text-[#18201C]">
                           {item.received}
                         </span>
                         <button
+                          type="button"
                           onClick={() => handleUpdateReceivedQty(item.id, item.received + 0.5)}
-                          className="w-8 h-8 rounded-lg bg-white border border-[#E7E4DC] shadow-xs font-bold text-[#18201C] hover:bg-[#F2F0E8] transition-smooth flex items-center justify-center active:scale-95"
+                          className="w-8 h-8 rounded-lg bg-white border border-[#E7E4DC] shadow-xs font-bold text-[#18201C] hover:bg-[#F2F0E8] transition-smooth flex items-center justify-center active:scale-95 text-sm"
                           title="เพิ่มขึ้น 0.5"
+                          aria-label={`เพิ่มจำนวน ${item.name}`}
                         >
                           +
                         </button>
@@ -1971,7 +1977,7 @@ export default function HomePage() {
                             <img
                               src={item.photoUrl}
                               alt="รูปตาชั่ง"
-                              className="w-8 h-8 rounded-lg object-cover border border-[#C7E2D6] shadow-2xs cursor-pointer hover:scale-105 transition-transform"
+                              className="w-9 h-9 rounded-xl object-cover border border-[#C7E2D6] shadow-2xs cursor-pointer hover:scale-105 transition-transform"
                               onClick={() => {
                                 const w = window.open("");
                                 if (w) {
@@ -1983,8 +1989,8 @@ export default function HomePage() {
                             <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[#1F5E4B] ring-2 ring-white" />
                           </div>
                         )}
-                        <label className="cursor-pointer inline-flex items-center gap-1 text-[11px] font-bold px-2.5 py-1.5 rounded-xl border border-[#E7E4DC] bg-white hover:bg-[#FAF9F6] transition-smooth text-[#18201C] shadow-xs">
-                          <Camera className="w-3.5 h-3.5 text-[#66746C]" />
+                        <label className="cursor-pointer inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl border border-[#E7E4DC] bg-white hover:bg-[#FAF9F6] transition-smooth text-[#18201C] shadow-xs active:scale-95">
+                          <Camera className="w-4 h-4 text-[#66746C]" />
                           <span>{item.photoUrl ? "เปลี่ยนรูป" : "ถ่ายตาชั่ง"}</span>
                           <input
                             type="file"
@@ -3304,7 +3310,7 @@ export default function HomePage() {
                 </div>
 
                 {/* Live Budget Simulation Card */}
-                <div className="md:col-span-2 p-4.5 bg-[#F2F8F5] rounded-2xl border border-[#C7E2D6] space-y-3">
+                <div className="md:col-span-2 p-5 sm:p-6 bg-[#F2F8F5] rounded-3xl border border-[#C7E2D6] space-y-3.5 shadow-xs">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                     <div className="flex items-center gap-2">
                       <Calculator className="w-4 h-4 text-[#1F5E4B]" />
@@ -3401,7 +3407,7 @@ export default function HomePage() {
                 ).map(({ dayKey, label, color }) => (
                   <div
                     key={dayKey}
-                    className={`bg-[#FAF9F6] p-4.5 rounded-2xl border border-[#E7E4DC] space-y-3 ${
+                    className={`bg-[#FAF9F6] p-4 sm:p-5 rounded-2xl border border-[#E7E4DC] space-y-3.5 shadow-xs ${
                       dayKey === "friday" ? "md:col-span-2" : ""
                     }`}
                   >
