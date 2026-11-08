@@ -1794,9 +1794,9 @@ export default function HomePage() {
         </div>
 
         {/* ========================================================================= */}
-        {/* 2. FLOATING SEGMENTED DOCK (5 MASTER TABS) */}
+        {/* 2. FLOATING SEGMENTED DOCK (5 MASTER TABS - DESKTOP / TABLET) */}
         {/* ========================================================================= */}
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 pb-2.5 pt-1 overflow-x-auto">
+        <div className="hidden md:block max-w-7xl mx-auto px-4 sm:px-6 pb-2.5 pt-1 overflow-x-auto">
           <nav className="flex items-center gap-1 bg-[#F4F2EB] p-1 rounded-2xl border border-[#E7E4DC] w-max">
             <button
               onClick={() => setActiveTab("KITCHEN_HUD")}
@@ -1864,7 +1864,7 @@ export default function HomePage() {
       {/* ========================================================================= */}
       {/* MAIN VIEW CONTENT CONTAINER */}
       {/* ========================================================================= */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-4 md:py-6 space-y-5 pb-24 md:pb-8">
         {/* ========================================================================= */}
         {/* TAB 1: KITCHEN HUD (ครูเวรตรวจรับของสดตอนเช้าหน้าเตา) */}
         {/* ========================================================================= */}
@@ -1923,7 +1923,7 @@ export default function HomePage() {
             )}
 
             {/* Terminal Header */}
-            <div className="bg-white rounded-3xl p-6 border border-[#E7E4DC] shadow-card relative overflow-hidden space-y-4">
+            <div className="bg-white rounded-3xl p-4 sm:p-6 border border-[#E7E4DC] shadow-card relative overflow-hidden space-y-4">
               <div className="flex items-start justify-between gap-3 pb-4 border-b border-[#ECE8DE]">
                 <div>
                   <div className="flex items-center gap-2">
@@ -2041,12 +2041,12 @@ export default function HomePage() {
                     className="px-3.5 py-2 rounded-xl bg-[#FDF4F0] hover:bg-[#FBEDE6] border border-[#F2D7CA] text-[#B55232] text-xs font-bold transition-smooth flex items-center gap-1.5 shadow-xs"
                   >
                     <Plus className="w-4 h-4" />
-                    <span>+ ซื้อของเพิ่มหน้างาน</span>
+                    <span>+ ซื้อของเพิ่ม</span>
                   </button>
 
                   <button
                     onClick={handle1ClickAcceptAll}
-                    className="px-3.5 py-2 rounded-xl bg-[#1F5E4B] hover:bg-[#143B30] text-white text-xs font-bold transition-smooth flex items-center gap-1.5 shadow-soft"
+                    className="px-3.5 py-2 rounded-xl bg-[#1F5E4B] hover:bg-[#143B30] text-white text-xs font-bold transition-smooth flex items-center gap-1.5 shadow-soft active:scale-95"
                   >
                     <CheckCheck className="w-4 h-4 text-[#EAD598]" />
                     <span>รับครบ 100% (ปุ่มด่วน)</span>
@@ -2057,6 +2057,41 @@ export default function HomePage() {
 
             {/* High-Legibility Food Cards */}
             <div className="space-y-3">
+              {/* Mobile Quick Accept Banner */}
+              {inspectionItems.length > 0 && acceptedCount < inspectionItems.length && (
+                <div className="bg-[#F2F8F5] border border-[#C7E2D6] rounded-2xl p-3.5 sm:p-4 flex items-center justify-between gap-3 shadow-xs">
+                  <div>
+                    <div className="text-xs sm:text-sm font-bold text-[#1F5E4B] flex items-center gap-1.5">
+                      <Sparkles className="w-3.5 h-3.5 text-[#EAD598]" />
+                      <span>ของสดมาส่งตรงตามสั่งครบทุกอย่าง?</span>
+                    </div>
+                    <div className="text-[11px] text-[#66746C] mt-0.5">
+                      ตรวจรับเสร็จใน 1 คลิก (เหลืออีก {inspectionItems.length - acceptedCount} จาก {inspectionItems.length} รายการ)
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handle1ClickAcceptAll}
+                    className="px-3.5 py-2 rounded-xl bg-[#1F5E4B] hover:bg-[#143B30] text-white text-xs font-bold transition-smooth flex items-center gap-1.5 shadow-soft shrink-0 active:scale-95"
+                  >
+                    <CheckCheck className="w-4 h-4 text-[#EAD598]" />
+                    <span>รับครบทั้งหมด</span>
+                  </button>
+                </div>
+              )}
+
+              {inspectionItems.length > 0 && acceptedCount === inspectionItems.length && (
+                <div className="bg-[#F2F8F5] border border-[#C7E2D6] rounded-2xl p-3 px-4 flex items-center justify-between gap-2 shadow-xs text-xs text-[#1F5E4B] font-bold">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-[#1F5E4B]" />
+                    <span>ตรวจรับของสดครบทุกรายการแล้ว ({acceptedCount}/{inspectionItems.length})</span>
+                  </div>
+                  {!isReceivingConfirmed && (
+                    <span className="text-[11px] font-medium text-[#66746C] hidden sm:inline">กดปุ่มลงนามด้านล่างเพื่อบันทึกสต็อก</span>
+                  )}
+                </div>
+              )}
+
               {inspectionItems.length === 0 ? (
                 <div className="bg-white rounded-3xl p-10 border border-[#E7E4DC] text-center space-y-3 shadow-card">
                   <div className="w-14 h-14 rounded-2xl bg-[#F2F8F5] border border-[#C7E2D6] flex items-center justify-center mx-auto text-[#1F5E4B]">
@@ -2092,29 +2127,37 @@ export default function HomePage() {
                 >
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-3.5">
                     <div className="flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="font-bold text-[#18201C] text-base sm:text-lg tracking-tight leading-normal">
-                          {item.name}
-                        </h3>
-                        {item.isAdHoc && (
-                          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#D97757] text-white shadow-2xs">
-                            ซื้อเพิ่มหน้างาน
-                          </span>
-                        )}
+                      <div className="flex flex-wrap items-center justify-between sm:justify-start gap-2">
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-extrabold text-[#18201C] text-base sm:text-lg tracking-tight leading-normal">
+                            {item.name}
+                          </h3>
+                          {item.isAdHoc && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#D97757] text-white shadow-2xs">
+                              ซื้อเพิ่มหน้างาน
+                            </span>
+                          )}
+                        </div>
                         {item.status === "ACCEPTED" && (
-                          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#EBF4F0] text-[#1F5E4B] border border-[#C7E2D6]">
+                          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#EBF4F0] text-[#1F5E4B] border border-[#C7E2D6] shrink-0">
                             ครบ ✓
                           </span>
                         )}
                         {item.status === "DISCREPANCY" && (
-                          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#FDF4F0] text-[#B55232] border border-[#F2D7CA]">
+                          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#FDF4F0] text-[#B55232] border border-[#F2D7CA] shrink-0">
                             มีส่วนต่าง
                           </span>
                         )}
                       </div>
 
-                      {/* Quantitative Data Chips with generous breathing room */}
-                      <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 mt-2.5">
+                      {/* Mobile View: Clean single line of order vs received (Cuts visual noise) */}
+                      <div className="sm:hidden flex items-center justify-between text-xs text-[#66746C] mt-2 font-medium bg-[#FAF9F6] p-2.5 rounded-xl border border-[#E7E4DC]">
+                        <span>สั่ง: <strong className="text-[#18201C] font-semibold">{item.ordered} {item.unit}</strong></span>
+                        <span>ส่งจริง: <strong className="text-[#1F5E4B] font-mono font-bold">{item.received} {item.unit}</strong></span>
+                      </div>
+
+                      {/* Desktop Quantitative Data Chips */}
+                      <div className="hidden sm:flex flex-wrap items-center gap-2 sm:gap-2.5 mt-2.5">
                         <div className="bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3 py-1.5 flex items-baseline gap-1.5 shadow-2xs">
                           <span className="text-[11px] text-[#8C9890] font-medium">
                             {item.isAdHoc ? "จำนวนที่ซื้อ:" : "จำนวนที่สั่ง:"}
@@ -2151,25 +2194,25 @@ export default function HomePage() {
                       )}
                     </div>
 
-                    {/* Step Adjust Controls & Camera */}
-                    <div className="flex items-center justify-between md:justify-end gap-3 pt-3 md:pt-0 border-t md:border-t-0 border-[#F4F2EB] shrink-0">
+                    {/* Step Adjust Controls & Camera (Thumb-Friendly Touch Targets) */}
+                    <div className="flex items-center justify-between md:justify-end gap-2.5 pt-2.5 md:pt-0 border-t md:border-t-0 border-[#F4F2EB] shrink-0">
                       <div className="flex items-center bg-[#FAF9F6] rounded-xl p-1 border border-[#E7E4DC] shadow-2xs">
                         <button
                           type="button"
                           onClick={() => handleUpdateReceivedQty(item.id, Math.max(0, item.received - 0.5))}
-                          className="w-8 h-8 rounded-lg bg-white border border-[#E7E4DC] shadow-xs font-bold text-[#18201C] hover:bg-[#F2F0E8] transition-smooth flex items-center justify-center active:scale-95 text-sm"
+                          className="w-9 h-9 rounded-lg bg-white border border-[#E7E4DC] shadow-xs font-bold text-[#18201C] hover:bg-[#F2F0E8] transition-smooth flex items-center justify-center active:scale-95 text-base"
                           title="ลดลง 0.5"
                           aria-label={`ลดจำนวน ${item.name}`}
                         >
                           -
                         </button>
-                        <span className="w-12 text-center text-xs sm:text-sm font-extrabold font-mono tabular-nums text-[#18201C]">
+                        <span className="w-12 text-center text-sm font-extrabold font-mono tabular-nums text-[#18201C]">
                           {item.received}
                         </span>
                         <button
                           type="button"
                           onClick={() => handleUpdateReceivedQty(item.id, item.received + 0.5)}
-                          className="w-8 h-8 rounded-lg bg-white border border-[#E7E4DC] shadow-xs font-bold text-[#18201C] hover:bg-[#F2F0E8] transition-smooth flex items-center justify-center active:scale-95 text-sm"
+                          className="w-9 h-9 rounded-lg bg-white border border-[#E7E4DC] shadow-xs font-bold text-[#18201C] hover:bg-[#F2F0E8] transition-smooth flex items-center justify-center active:scale-95 text-base"
                           title="เพิ่มขึ้น 0.5"
                           aria-label={`เพิ่มจำนวน ${item.name}`}
                         >
@@ -2178,7 +2221,7 @@ export default function HomePage() {
                       </div>
 
                       {/* Photo Capture & Thumbnail Preview */}
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
                         {item.photoUrl && (
                           <div className="relative group">
                             <img
@@ -2198,7 +2241,8 @@ export default function HomePage() {
                         )}
                         <label className="cursor-pointer inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl border border-[#E7E4DC] bg-white hover:bg-[#FAF9F6] transition-smooth text-[#18201C] shadow-xs active:scale-95">
                           <Camera className="w-4 h-4 text-[#66746C]" />
-                          <span>{item.photoUrl ? "เปลี่ยนรูป" : "ถ่ายตาชั่ง"}</span>
+                          <span className="hidden sm:inline">{item.photoUrl ? "เปลี่ยนรูป" : "ถ่ายตาชั่ง"}</span>
+                          <span className="sm:hidden">{item.photoUrl ? "เปลี่ยน" : "ถ่าย"}</span>
                           <input
                             type="file"
                             accept="image/*"
@@ -2215,7 +2259,7 @@ export default function HomePage() {
             </div>
 
             {/* Confirm Receiving Floating Bar */}
-            <div className="sticky bottom-4 pt-2 flex items-center gap-2">
+            <div className="sticky bottom-20 md:bottom-4 pt-2 flex items-center gap-2 z-30">
               <button
                 onClick={handleConfirmMorningReceiving}
                 disabled={isReceivingConfirmed}
@@ -4727,6 +4771,89 @@ export default function HomePage() {
           onClose={() => setShowInstallGuide(false)}
         />
       </main>
+
+      {/* ========================================================================= */}
+      {/* MOBILE BOTTOM NAVIGATION BAR (iOS / VERCEL AESTHETIC - SHOWN ON < md) */}
+      {/* ========================================================================= */}
+      <nav
+        aria-label="เมนูหลักสำหรับมือถือ"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-xl border-t border-[#E7E4DC] shadow-[0_-4px_24px_rgba(0,0,0,0.06)] px-2 py-1.5 flex justify-around items-center safe-area-bottom"
+      >
+        <button
+          type="button"
+          onClick={() => setActiveTab("KITCHEN_HUD")}
+          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-2xl transition-all ${
+            activeTab === "KITCHEN_HUD"
+              ? "text-[#1F5E4B] font-extrabold"
+              : "text-[#8C9890] hover:text-[#18201C] font-medium"
+          }`}
+        >
+          <div className={`p-1.5 rounded-xl transition-all ${activeTab === "KITCHEN_HUD" ? "bg-[#F2F8F5] text-[#1F5E4B]" : ""}`}>
+            <UtensilsCrossed className="w-5 h-5" />
+          </div>
+          <span className="text-[10px] tracking-tight">ตรวจรับ</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("MENU_PLAN")}
+          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-2xl transition-all ${
+            activeTab === "MENU_PLAN"
+              ? "text-[#1F5E4B] font-extrabold"
+              : "text-[#8C9890] hover:text-[#18201C] font-medium"
+          }`}
+        >
+          <div className={`p-1.5 rounded-xl transition-all ${activeTab === "MENU_PLAN" ? "bg-[#F2F8F5] text-[#1F5E4B]" : ""}`}>
+            <Calendar className="w-5 h-5" />
+          </div>
+          <span className="text-[10px] tracking-tight">เมนู</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("ANALYTICS")}
+          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-2xl transition-all ${
+            activeTab === "ANALYTICS"
+              ? "text-[#1F5E4B] font-extrabold"
+              : "text-[#8C9890] hover:text-[#18201C] font-medium"
+          }`}
+        >
+          <div className={`p-1.5 rounded-xl transition-all ${activeTab === "ANALYTICS" ? "bg-[#F2F8F5] text-[#1F5E4B]" : ""}`}>
+            <BarChart3 className="w-5 h-5" />
+          </div>
+          <span className="text-[10px] tracking-tight">งบประมาณ</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("FINANCE_LEDGER")}
+          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-2xl transition-all ${
+            activeTab === "FINANCE_LEDGER"
+              ? "text-[#1F5E4B] font-extrabold"
+              : "text-[#8C9890] hover:text-[#18201C] font-medium"
+          }`}
+        >
+          <div className={`p-1.5 rounded-xl transition-all ${activeTab === "FINANCE_LEDGER" ? "bg-[#F2F8F5] text-[#1F5E4B]" : ""}`}>
+            <FileSpreadsheet className="w-5 h-5" />
+          </div>
+          <span className="text-[10px] tracking-tight">สมุดบัญชี</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveTab("SETTINGS")}
+          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-2xl transition-all ${
+            activeTab === "SETTINGS"
+              ? "text-[#1F5E4B] font-extrabold"
+              : "text-[#8C9890] hover:text-[#18201C] font-medium"
+          }`}
+        >
+          <div className={`p-1.5 rounded-xl transition-all ${activeTab === "SETTINGS" ? "bg-[#F2F8F5] text-[#1F5E4B]" : ""}`}>
+            <Settings className="w-5 h-5" />
+          </div>
+          <span className="text-[10px] tracking-tight">ตั้งค่า</span>
+        </button>
+      </nav>
     </div>
   );
 }
