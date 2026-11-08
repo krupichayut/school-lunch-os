@@ -9,6 +9,7 @@ import {
   CheckCircle2,
   Table as TableIcon,
   Receipt,
+  ShieldCheck,
 } from "lucide-react";
 import {
   SchoolSettings,
@@ -23,6 +24,8 @@ import {
   formatThaiDateFull,
   formatThaiDateShort,
   parseDateToTimestamp,
+  formatReportExpenseItem,
+  formatReportItemName,
 } from "@/lib/storage";
 import { toBahtText, toThaiNumerals } from "@/lib/baht-text";
 
@@ -58,12 +61,17 @@ export default function OfficialReportModal({
   confirmedAtTime,
 }: OfficialReportModalProps) {
   const [activeForm, setActiveForm] = useState<OfficialFormType>(initialFormType);
+  const [maskGas, setMaskGas] = useState<boolean>(settings.maskGasInReports !== false);
 
   useEffect(() => {
     if (isOpen && initialFormType) {
       setActiveForm(initialFormType);
     }
   }, [isOpen, initialFormType]);
+
+  useEffect(() => {
+    setMaskGas(settings.maskGasInReports !== false);
+  }, [settings.maskGasInReports]);
 
   if (!isOpen) return null;
 
@@ -195,6 +203,19 @@ export default function OfficialReportModal({
             </button>
           </div>
 
+          {/* Audit Shield Toggle */}
+          <label className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-50/80 border border-amber-200 text-xs font-bold text-amber-900 cursor-pointer hover:bg-amber-100 transition-smooth select-none shadow-2xs">
+            <input
+              type="checkbox"
+              checked={maskGas}
+              onChange={(e) => setMaskGas(e.target.checked)}
+              className="rounded text-[#1F5E4B] focus:ring-[#1F5E4B] w-4 h-4 cursor-pointer"
+            />
+            <ShieldCheck className="w-4 h-4 text-amber-700" />
+            <span className="hidden sm:inline">🛡️ แปลงค่าก๊าซเป็นค่าเครื่องปรุง (Audit Shield)</span>
+            <span className="sm:hidden">🛡️ Audit Shield</span>
+          </label>
+
           {/* Actions */}
           <div className="flex items-center gap-2">
             <button
@@ -305,11 +326,12 @@ export default function OfficialReportModal({
                       inspectionItems.map((item, idx) => {
                         const qty = item.accepted || item.received || item.ordered || 0;
                         const lineTotal = Number((qty * item.unitPrice).toFixed(2));
+                        const displayName = formatReportItemName(item.name, maskGas);
                         return (
                           <tr key={item.id} className={item.isAdHoc ? "bg-amber-50/50" : ""}>
                             <td className="border border-black p-1.5 text-center font-mono">{idx + 1}</td>
                             <td className="border border-black p-1.5">
-                              <span className="font-medium">{item.name}</span>
+                              <span className="font-medium">{displayName}</span>
                               {item.isAdHoc && (
                                 <span className="text-[11px] text-amber-800 ml-1.5 font-bold">
                                   {item.name.includes("ข้าว") ? "(นอกเมนู)" : "(ซื้อเพิ่มหน้างาน)"}
@@ -459,7 +481,9 @@ export default function OfficialReportModal({
                       </span>
                     </div>
                     <div>
-                      <span className="block text-gray-600 text-xs">คงเหลือเพื่อการดำเนินงาน/แม่ครัว/แก๊ส:</span>
+                      <span className="block text-gray-600 text-xs">
+                        คงเหลือเพื่อการดำเนินงาน/แม่ครัว/{maskGas ? "วัสดุปรุงอาหาร" : "แก๊ส"}:
+                      </span>
                       <span className="font-bold text-base text-blue-800">
                         {weeklyRemainingBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })} บาท
                       </span>
@@ -611,6 +635,11 @@ export default function OfficialReportModal({
                         } else {
                           runningBalance -= tx.amount;
                         }
+                        const { description: displayDesc, category: displayCat } = formatReportExpenseItem(
+                          tx.description,
+                          tx.category,
+                          maskGas
+                        );
                         return (
                           <tr key={tx.id}>
                             <td className="border border-black p-1.5 text-center font-mono text-xs">
@@ -619,7 +648,7 @@ export default function OfficialReportModal({
                             <td className="border border-black p-1.5 text-center font-mono text-xs">
                               {tx.documentNo}
                             </td>
-                            <td className="border border-black p-1.5 font-medium">{tx.description}</td>
+                            <td className="border border-black p-1.5 font-medium">{displayDesc}</td>
                             <td className="border border-black p-1.5 text-right font-mono text-emerald-800">
                               {tx.type === "INCOME"
                                 ? tx.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })
@@ -634,7 +663,7 @@ export default function OfficialReportModal({
                               {runningBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                             </td>
                             <td className="border border-black p-1.5 text-center text-xs">
-                              {tx.category}
+                              {displayCat}
                             </td>
                           </tr>
                         );

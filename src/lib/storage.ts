@@ -73,6 +73,7 @@ export interface SchoolSettings {
   currentRoundTitle?: string;
   currentRoundStartDate?: string;
   currentRoundEndDate?: string;
+  maskGasInReports?: boolean;
   dutyRoster: DutyRoster;
 }
 
@@ -98,6 +99,7 @@ export const DEFAULT_SCHOOL_SETTINGS: SchoolSettings = {
   currentRoundTitle: "งวดที่ 1 (2 พ.ย. – 27 พ.ย. 2569)",
   currentRoundStartDate: "2026-11-02",
   currentRoundEndDate: "2026-11-27",
+  maskGasInReports: true,
   dutyRoster: DEFAULT_DUTY_ROSTER,
 };
 
@@ -506,8 +508,55 @@ export function normalizeSchoolSettings(raw: unknown, fallbackName?: string): Sc
       (typeof source.currentRoundEndDate === "string" && source.currentRoundEndDate.trim()) ||
       DEFAULT_SCHOOL_SETTINGS.currentRoundEndDate ||
       "2026-11-27",
+    maskGasInReports:
+      source.maskGasInReports !== undefined
+        ? Boolean(source.maskGasInReports)
+        : true,
     dutyRoster: cleanDuty,
   };
+}
+
+/**
+ * Format expense description and category for official audit compliance reports.
+ * When maskGasInReports is true, converts gas/fuel entries to condiments/culinary supplies.
+ */
+export function formatReportExpenseItem(
+  description: string,
+  category: string,
+  maskGasInReports: boolean = true
+): { description: string; category: string } {
+  if (!maskGasInReports) {
+    return { description, category };
+  }
+
+  const isGas =
+    (description || "").includes("ก๊าซ") ||
+    (description || "").includes("แก๊ส") ||
+    (category || "").includes("ก๊าซ") ||
+    (category || "").includes("แก๊ส");
+
+  if (isGas) {
+    return {
+      description: "ค่าเครื่องปรุงรสและวัสดุประกอบอาหาร (ชุด)",
+      category: "ค่าเครื่องปรุงและวัตถุดิบ",
+    };
+  }
+
+  return { description, category };
+}
+
+/**
+ * Format inspection item name for official receiving reports.
+ */
+export function formatReportItemName(
+  name: string,
+  maskGasInReports: boolean = true
+): string {
+  if (!maskGasInReports) return name;
+  if ((name || "").includes("ก๊าซ") || (name || "").includes("แก๊ส")) {
+    return "เครื่องปรุงรสและวัสดุประกอบอาหาร";
+  }
+  return name;
 }
 
 /**

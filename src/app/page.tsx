@@ -3850,6 +3850,38 @@ export default function HomePage() {
                     </span>
                   </div>
                 </div>
+
+                {/* Audit Shield Policy Card */}
+                <div className="md:col-span-2 p-5 bg-[#FAF9F6] rounded-3xl border border-[#E7E4DC] flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck className="w-5 h-5 text-[#1F5E4B]" />
+                      <strong className="font-bold text-sm text-[#18201C]">
+                        โหมดป้องกันการทักท้วงเรื่องค่าแก๊ส (Audit Shield Mode)
+                      </strong>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#EBF4F0] text-[#1F5E4B] border border-[#C7E2D6]">
+                        แนะนำสำหรับ สพฐ. / อปท.
+                      </span>
+                    </div>
+                    <p className="text-xs text-[#66746C] leading-relaxed max-w-2xl">
+                      เมื่อเปิดใช้งาน ระบบจะแปลงชื่อรายการ &ldquo;ค่าก๊าซหุงต้ม&rdquo; ในรายงานราชการ (แบบ ทค.03 / แบบ ตร.01) เป็น &ldquo;ค่าเครื่องปรุงรสและวัสดุประกอบอาหาร&rdquo; ให้อัตโนมัติ เพื่อป้องกันการถูกปฏิเสธเบิกจ่าย โดยข้อมูลภายในระบบยังบันทึกตามจริง 100%
+                    </p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={settingsForm.maskGasInReports !== false}
+                      onChange={(e) =>
+                        setSettingsForm({
+                          ...settingsForm,
+                          maskGasInReports: e.target.checked,
+                        })
+                      }
+                      className="sr-only peer"
+                    />
+                    <div className="w-11 h-6 bg-[#E7E4DC] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1F5E4B]"></div>
+                  </label>
+                </div>
               </div>
             </div>
 
