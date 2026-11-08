@@ -113,10 +113,10 @@ function parseCleanNumber(val: unknown): number {
 function getFoodEmoji(name: string): string {
   const n = (name || "").toLowerCase();
   if (n.includes("เส้น") || n.includes("ก๋วยเตี๋ยว") || n.includes("ก๋วยจั๊บ") || n.includes("บะหมี่") || n.includes("ขนมจีน")) return "🍜";
+  if (n.includes("ไข่") || n.includes("ไข่ไก่") || n.includes("ไข่เป็ด")) return "🥚";
   if (n.includes("หมู") || n.includes("เนื้อ") || n.includes("หมูสับ") || n.includes("ซี่โครง")) return "🥩";
   if (n.includes("ไก่") || n.includes("ปีกไก่") || n.includes("น่องไก่")) return "🍗";
   if (n.includes("ปลา") || n.includes("กุ้ง") || n.includes("หมึก") || n.includes("อาหารทะเล")) return "🐟";
-  if (n.includes("ไข่") || n.includes("ไข่ไก่") || n.includes("ไข่เป็ด")) return "🥚";
   if (n.includes("กะหล่ำ") || n.includes("ผัก") || n.includes("คะน้า") || n.includes("ผักบุ้ง") || n.includes("ถั่วงอก") || n.includes("แตงกวา")) return "🥬";
   if (n.includes("แครอท") || n.includes("ฟักทอง") || n.includes("มะละกอ")) return "🥕";
   if (n.includes("ลูกชิ้น") || n.includes("ไส้กรอก")) return "🍡";
@@ -1251,6 +1251,10 @@ export default function HomePage() {
     const price = parseCleanNumber(adHocPrice) || 0;
 
     if (adHocName.trim() && price > 0) {
+      const isRice = adHocName.includes("ข้าว") || adHocName.includes("ข้าวสาร");
+      const categoryName = isRice ? "ค่าข้าวสาร (นอกเมนู)" : "เครื่องปรุง/ของซื้อเพิ่มหน้างาน";
+      const noteText = isRice ? "ข้าวสารอาหารกลางวัน (นอกสูตรประจำวัน)" : "ซื้อเพิ่มหน้างาน (นอกสูตรประจำวัน)";
+
       const newItem: InspectionItemState = {
         id: `adhoc-${Date.now()}`,
         name: adHocName.trim(),
@@ -1258,11 +1262,11 @@ export default function HomePage() {
         received: qty,
         accepted: qty,
         rejected: 0,
-        unit: adHocUnit || "รายการ",
+        unit: adHocUnit || (isRice ? "กระสอบ" : "รายการ"),
         unitPrice: price,
         status: "ACCEPTED",
         isAdHoc: true,
-        note: "ซื้อเพิ่มหน้างาน (นอกสูตรประจำวัน)",
+        note: noteText,
       };
 
       const curDay = weeklyPlan[selectedDayKey] || DEFAULT_WEEKLY_PLAN[selectedDayKey];
@@ -1281,8 +1285,8 @@ export default function HomePage() {
         documentNo: `FIN-${Date.now().toString().slice(-6)}`,
         date: formattedInspectionDate,
         type: "EXPENSE",
-        category: "เครื่องปรุงเพิ่มหน้างาน",
-        description: `ซื้อเพิ่มหน้างาน (${activeDayDefinition.label}): ${adHocName} (${qty} ${adHocUnit || "รายการ"})`,
+        category: categoryName,
+        description: `${isRice ? "จัดซื้อข้าวสารอาหารกลางวัน" : "ซื้อเพิ่มหน้างาน"} (${activeDayDefinition.label}): ${adHocName} (${qty} ${adHocUnit || (isRice ? "กระสอบ" : "รายการ")})`,
         amount: qty * price,
       };
       const updatedTx = [...transactions, newTx].sort(
@@ -1311,7 +1315,11 @@ export default function HomePage() {
       });
       setSyncStatus("SYNCED");
 
-      alert(`✓ เพิ่มรายการซื้อหน้างาน "${adHocName}" (${(qty * price).toLocaleString()} ฿) เข้าสู่ใบตรวจรับ${activeDayDefinition.label}และสมุดบัญชีแล้ว`);
+      alert(
+        isRice
+          ? `✓ เพิ่มรายการข้าวสาร "${adHocName}" (${(qty * price).toLocaleString()} ฿) เข้าสู่ใบตรวจรับ${activeDayDefinition.label}และสมุดบัญชีเรียบร้อยแล้ว`
+          : `✓ เพิ่มรายการนอกเมนู "${adHocName}" (${(qty * price).toLocaleString()} ฿) เข้าสู่ใบตรวจรับ${activeDayDefinition.label}และสมุดบัญชีแล้ว`
+      );
     }
   };
 
@@ -1595,11 +1603,20 @@ export default function HomePage() {
 
   const analyticsSummary = useMemo(() => {
     const rawIngredientsExpense = transactions
-      .filter((t) => t.type === "EXPENSE" && t.category === "ค่าวัตถุดิบ")
+      .filter(
+        (t) =>
+          t.type === "EXPENSE" &&
+          (t.category === "ค่าวัตถุดิบ" || t.category.includes("ข้าวสาร"))
+      )
       .reduce((sum, t) => sum + t.amount, 0);
 
     const adhocExpense = transactions
-      .filter((t) => t.type === "EXPENSE" && t.category.includes("หน้างาน"))
+      .filter(
+        (t) =>
+          t.type === "EXPENSE" &&
+          (t.category.includes("หน้างาน") || t.category.includes("นอกเมนู")) &&
+          !t.category.includes("ข้าวสาร")
+      )
       .reduce((sum, t) => sum + t.amount, 0);
 
     // Any other expense is operational (gas, cook wages, cleaning materials, kitchen utensils)
@@ -1608,7 +1625,9 @@ export default function HomePage() {
         (t) =>
           t.type === "EXPENSE" &&
           t.category !== "ค่าวัตถุดิบ" &&
-          !t.category.includes("หน้างาน")
+          !t.category.includes("ข้าวสาร") &&
+          !t.category.includes("หน้างาน") &&
+          !t.category.includes("นอกเมนู")
       )
       .reduce((sum, t) => sum + t.amount, 0);
 
@@ -2055,11 +2074,13 @@ export default function HomePage() {
                   </button>
 
                   <button
+                    type="button"
                     onClick={() => setShowAdHocModal(true)}
-                    className="px-3.5 py-2 rounded-xl bg-[#FDF4F0] hover:bg-[#FBEDE6] border border-[#F2D7CA] text-[#B55232] text-xs font-bold transition-smooth flex items-center gap-1.5 shadow-xs"
+                    className="px-3.5 py-2 rounded-xl bg-[#FDF4F0] hover:bg-[#FBEDE6] border border-[#F2D7CA] text-[#B55232] text-xs font-bold transition-smooth flex items-center gap-1.5 shadow-xs active:scale-95"
+                    title="เพิ่มรายการนอกเมนู เช่น ค่าข้าวสาร, น้ำมันพืช, เครื่องปรุง หรือของสดซื้อเพิ่มหน้างาน"
                   >
-                    <Plus className="w-4 h-4" />
-                    <span>+ ซื้อของเพิ่ม</span>
+                    <Plus className="w-4 h-4 text-[#D97757]" />
+                    <span>+ เพิ่มรายการนอกเมนู / ซื้อเพิ่ม</span>
                   </button>
 
                   <button
@@ -2157,7 +2178,7 @@ export default function HomePage() {
                           </div>
                           {item.isAdHoc && (
                             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#D97757] text-white shadow-2xs shrink-0">
-                              ซื้อเพิ่ม
+                              {item.name.includes("ข้าว") ? "นอกเมนู (ข้าวสาร)" : "ซื้อเพิ่มหน้างาน"}
                             </span>
                           )}
                         </div>
@@ -3060,7 +3081,7 @@ export default function HomePage() {
                       <div className="flex justify-between text-xs font-semibold mb-1">
                         <span className="text-[#18201C] flex items-center gap-1.5">
                           <span className="w-2.5 h-2.5 rounded-full bg-[#1F5E4B] inline-block" />
-                          ค่าวัตถุดิบสดตามเมนู
+                          ค่าวัตถุดิบสดตามเมนูและข้าวสาร
                         </span>
                         <span className="font-mono tabular-nums font-bold text-[#18201C]">
                           {analyticsSummary.rawPercent}%
@@ -3075,7 +3096,7 @@ export default function HomePage() {
                       <div className="flex justify-between text-xs font-semibold mb-1">
                         <span className="text-[#18201C] flex items-center gap-1.5">
                           <span className="w-2.5 h-2.5 rounded-full bg-[#D97757] inline-block" />
-                          ของซื้อเพิ่มหน้างาน
+                          ของซื้อเพิ่มหน้างาน / เครื่องปรุงนอกเมนู
                         </span>
                         <span className="font-mono tabular-nums font-bold text-[#18201C]">
                           {analyticsSummary.adhocPercent}%
@@ -3924,27 +3945,108 @@ export default function HomePage() {
         {/* ========================================================================= */}
         {/* ALL INTERACTIVE MODALS */}
         {/* ========================================================================= */}
-        {/* MODAL 1: ซื้อเครื่องปรุงเพิ่มหน้างาน */}
+        {/* MODAL 1: เพิ่มรายการนอกเมนู / ข้าวสาร / ของสดเพิ่มหน้างาน */}
         {showAdHocModal && (
           <div className="fixed inset-0 z-50 bg-[#18201C]/50 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-floating border border-[#E7E4DC]">
-              <h3 className="text-base font-extrabold text-[#18201C] flex items-center gap-2">
-                <Plus className="w-5 h-5 text-[#D97757]" />
-                ซื้อเครื่องปรุง / ของสดเพิ่มหน้างาน
-              </h3>
-              <p className="text-xs text-[#66746C] mt-1">
-                บันทึกของสดหรือเครื่องปรุงที่ต้องซื้อเพิ่มเร่งด่วนเช้านี้ ระบบจะเพิ่มเข้าใบตรวจรับและลงบัญชีทันที
-              </p>
+            <div className="bg-white w-full max-w-lg rounded-3xl p-6 shadow-floating border border-[#E7E4DC] max-h-[90vh] overflow-y-auto">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h3 className="text-base font-extrabold text-[#18201C] flex items-center gap-2">
+                    <Plus className="w-5 h-5 text-[#D97757]" />
+                    เพิ่มรายการนอกเมนู / ของสดซื้อเพิ่ม
+                  </h3>
+                  <p className="text-xs text-[#66746C] mt-1">
+                    บันทึกข้าวสาร, เครื่องปรุงส่วนกลาง หรือของสดที่ซื้อเพิ่มนอกสูตรประจำวัน ระบบจะบันทึกลงใบตรวจรับ (ตร.01) และสมุดบัญชีทันที
+                  </p>
+                </div>
+                <span className="text-xs px-2.5 py-1 bg-[#FAF9F6] text-[#1F5E4B] border border-[#C7E2D6] rounded-xl font-bold shrink-0 ml-2">
+                  {activeDayDefinition.label}
+                </span>
+              </div>
+
+              {/* Quick Preset Chips */}
+              <div className="mt-4 p-3 rounded-2xl bg-[#FDF4F0]/60 border border-[#F2D7CA] space-y-2">
+                <label className="font-bold text-[#18201C] block text-[11px] text-[#B55232]">
+                  ⚡ ปุ่มลัดยอดนิยม (คลิกเดียวใส่ข้อมูลครบ):
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAdHocName("ข้าวสารหอมมะลิ (กระสอบ)");
+                      setAdHocQty("1");
+                      setAdHocUnit("กระสอบ");
+                      setAdHocPrice("1250");
+                    }}
+                    className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-[#FAF3E0] hover:bg-[#F5E7C2] text-[#8C6D1F] border border-[#E8D49E] transition-smooth flex items-center gap-1 shadow-2xs"
+                  >
+                    <span>🍚</span>
+                    <span>ข้าวสาร (1 กระสอบ ~1,250 ฿)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAdHocName("ข้าวสาร (กก.)");
+                      setAdHocQty("10");
+                      setAdHocUnit("กก.");
+                      setAdHocPrice("38");
+                    }}
+                    className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-[#F2F8F5] hover:bg-[#E1EFE8] text-[#1F5E4B] border border-[#C7E2D6] transition-smooth flex items-center gap-1 shadow-2xs"
+                  >
+                    <span>🍚</span>
+                    <span>ข้าวสาร (10 กก. ~380 ฿)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAdHocName("น้ำมันพืช (ยกลัง)");
+                      setAdHocQty("1");
+                      setAdHocUnit("ลัง");
+                      setAdHocPrice("650");
+                    }}
+                    className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-white hover:bg-[#FAF9F6] text-[#4B5850] border border-[#E7E4DC] transition-smooth flex items-center gap-1 shadow-2xs"
+                  >
+                    <span>🛢️</span>
+                    <span>น้ำมันพืช (1 ลัง)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAdHocName("ไข่ไก่สด (แผง 30 ฟอง)");
+                      setAdHocQty("1");
+                      setAdHocUnit("แผง");
+                      setAdHocPrice("135");
+                    }}
+                    className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-white hover:bg-[#FAF9F6] text-[#4B5850] border border-[#E7E4DC] transition-smooth flex items-center gap-1 shadow-2xs"
+                  >
+                    <span>🥚</span>
+                    <span>ไข่ไก่ (แผง 30 ฟอง)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAdHocName("เครื่องปรุงรสส่วนกลาง");
+                      setAdHocQty("1");
+                      setAdHocUnit("ชุด");
+                      setAdHocPrice("450");
+                    }}
+                    className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-white hover:bg-[#FAF9F6] text-[#4B5850] border border-[#E7E4DC] transition-smooth flex items-center gap-1 shadow-2xs"
+                  >
+                    <span>🧂</span>
+                    <span>เครื่องปรุงส่วนกลาง</span>
+                  </button>
+                </div>
+              </div>
 
               <div className="mt-4 space-y-3 text-xs">
                 <div>
                   <label className="font-bold text-[#18201C] block mb-1">ชื่อรายการ:</label>
                   <input
                     type="text"
-                    placeholder="เช่น ซีอิ๊วขาวเห็ดหอม, น้ำตาลทราย, มะนาว"
+                    placeholder="เช่น ข้าวสาร, น้ำมันพืช, ซีอิ๊วขาว, มะนาว"
                     value={adHocName}
                     onChange={(e) => setAdHocName(e.target.value)}
-                    className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3.5 py-2.5 text-sm text-[#18201C] placeholder:text-[#8C9890] focus:outline-none focus:ring-2 focus:ring-[#D97757]/20 focus:border-[#D97757] transition-smooth"
+                    className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3.5 py-2.5 text-sm font-semibold text-[#18201C] placeholder:text-[#8C9890] focus:outline-none focus:ring-2 focus:ring-[#D97757]/20 focus:border-[#D97757] transition-smooth"
                   />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -3966,15 +4068,19 @@ export default function HomePage() {
                     <input
                       type="text"
                       list="adhoc-unit-options"
-                      placeholder="เช่น ขวด, กก., ซอง"
+                      placeholder="เช่น กระสอบ, กก., แผง"
                       value={adHocUnit}
                       onChange={(e) => setAdHocUnit(e.target.value)}
                       className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3.5 py-2.5 text-sm text-[#18201C] placeholder:text-[#8C9890] focus:outline-none focus:ring-2 focus:ring-[#D97757]/20 focus:border-[#D97757] transition-smooth"
                     />
                     <datalist id="adhoc-unit-options">
-                      <option value="ขวด" />
+                      <option value="กระสอบ" />
                       <option value="กก." />
-                      <option value="แพ็ก" />
+                      <option value="แผง" />
+                      <option value="ถัง" />
+                      <option value="ลัง" />
+                      <option value="ขวด" />
+                      <option value="แพ็ค" />
                       <option value="ถุง" />
                       <option value="มัด" />
                       <option value="ฟอง" />
@@ -3982,7 +4088,7 @@ export default function HomePage() {
                       <option value="กล่อง" />
                     </datalist>
                     <div className="flex flex-wrap gap-1 mt-1.5">
-                      {["ขวด", "กก.", "แพ็ก", "ถุง", "ซอง"].map((u) => (
+                      {["กระสอบ", "กก.", "แผง", "ถัง", "ลัง", "ขวด", "แพ็ค", "ถุง"].map((u) => (
                         <button
                           key={u}
                           type="button"
@@ -4003,11 +4109,16 @@ export default function HomePage() {
                   <label className="font-bold text-[#18201C] block mb-1">ราคาต่อหน่วย (บาท):</label>
                   <input
                     type="number"
-                    placeholder="เช่น 45"
+                    placeholder="เช่น 1250 หรือ 38"
                     value={adHocPrice}
                     onChange={(e) => setAdHocPrice(e.target.value)}
                     className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3.5 py-2.5 text-sm font-bold font-mono tabular-nums text-[#18201C] focus:outline-none focus:ring-2 focus:ring-[#D97757]/20 focus:border-[#D97757] transition-smooth"
                   />
+                  {parseCleanNumber(adHocQty) > 0 && parseCleanNumber(adHocPrice) > 0 && (
+                    <div className="mt-1 text-[11px] font-bold text-[#1F5E4B]">
+                      ยอดคำนวณรวม: {(parseCleanNumber(adHocQty) * parseCleanNumber(adHocPrice)).toLocaleString()} ฿
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -4024,7 +4135,7 @@ export default function HomePage() {
                   onClick={handleAddAdHocItem}
                   className="px-4 py-2 rounded-xl bg-[#D97757] hover:bg-[#C26243] text-white text-xs font-bold shadow-soft transition-smooth"
                 >
-                  เพิ่มรายการเข้าใบตรวจรับ
+                  บันทึกเข้ารายการตรวจรับและสมุดบัญชี
                 </button>
               </div>
             </div>
@@ -4142,17 +4253,62 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* MODAL 3: บันทึกรายจ่ายนอก */}
+        {/* MODAL 3: บันทึกรายจ่ายดำเนินการและรายการนอกเมนู */}
         {showAddExpenseModal && (
           <div className="fixed inset-0 z-50 bg-[#18201C]/50 backdrop-blur-sm flex items-center justify-center p-4">
-            <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-floating border border-[#E7E4DC]">
+            <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-floating border border-[#E7E4DC] max-h-[90vh] overflow-y-auto">
               <h3 className="text-base font-extrabold text-[#18201C] flex items-center gap-2">
                 <Flame className="w-5 h-5 text-[#D97757]" />
-                บันทึกรายจ่ายดำเนินการ (รายการนอก)
+                บันทึกรายจ่ายดำเนินการและรายการนอกเมนู
               </h3>
               <p className="text-xs text-[#66746C] mt-1">
-                บันทึกค่าใช้จ่ายจำเป็นอื่นๆ ที่ไม่ใช่ค่าอาหารสด เช่น ค่าก๊าซหุงต้ม ค่าจ้างแม่ครัว
+                บันทึกค่าใช้จ่ายส่วนกลาง เช่น ข้าวสาร, ก๊าซหุงต้ม, ค่าจ้างแม่ครัว, หรืออุปกรณ์ครัว
               </p>
+
+              {/* Quick auto-fill presets */}
+              <div className="mt-3.5 p-3 rounded-2xl bg-[#FAF9F6] border border-[#E7E4DC] space-y-1.5">
+                <label className="font-bold text-[#18201C] block text-[11px] text-[#4B5850]">
+                  ⚡ บันทึกด่วน:
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setExpenseCategory("ค่าข้าวสารและของแห้งส่วนกลาง");
+                      setExpenseDesc("จัดซื้อข้าวสารอาหารกลางวัน (1 กระสอบ)");
+                      setExpenseAmount("1250");
+                    }}
+                    className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-[#FAF3E0] hover:bg-[#F5E7C2] text-[#8C6D1F] border border-[#E8D49E] transition-smooth flex items-center gap-1 shadow-2xs"
+                  >
+                    <span>🍚</span>
+                    <span>ข้าวสาร (1 กระสอบ 1,250 ฿)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setExpenseCategory("ค่าก๊าซหุงต้มและเชื้อเพลิง");
+                      setExpenseDesc("ค่าก๊าซหุงต้มสำหรับปรุงอาหารกลางวัน");
+                      setExpenseAmount("450");
+                    }}
+                    className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-white hover:bg-[#FAF9F6] text-[#4B5850] border border-[#E7E4DC] transition-smooth flex items-center gap-1 shadow-2xs"
+                  >
+                    <span>🔥</span>
+                    <span>ก๊าซหุงต้ม (450 ฿)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setExpenseCategory("ค่าจ้างเหมาผู้ประกอบอาหาร");
+                      setExpenseDesc("ค่าจ้างเหมาผู้ประกอบอาหาร (แม่ครัว)");
+                      setExpenseAmount("500");
+                    }}
+                    className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-white hover:bg-[#FAF9F6] text-[#4B5850] border border-[#E7E4DC] transition-smooth flex items-center gap-1 shadow-2xs"
+                  >
+                    <span>👩‍🍳</span>
+                    <span>ค่าจ้างแม่ครัว</span>
+                  </button>
+                </div>
+              </div>
 
               <div className="mt-4 space-y-3 text-xs">
                 <div>
@@ -4192,11 +4348,13 @@ export default function HomePage() {
                   <select
                     value={expenseCategory}
                     onChange={(e) => setExpenseCategory(e.target.value)}
-                    className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3.5 py-2.5 text-sm text-[#18201C] focus:outline-none focus:ring-2 focus:ring-[#D97757]/20 focus:border-[#D97757] transition-smooth"
+                    className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3.5 py-2.5 text-sm text-[#18201C] focus:outline-none focus:ring-2 focus:ring-[#D97757]/20 focus:border-[#D97757] transition-smooth font-semibold"
                   >
-                    <option value="ค่าก๊าซหุงต้มและเชื้อเพลิง">ค่าก๊าซหุงต้มและเชื้อเพลิง</option>
-                    <option value="ค่าจ้างแม่ครัว">ค่าจ้างเหมาผู้ประกอบอาหาร (แม่ครัว)</option>
-                    <option value="ค่าวัสดุทำความสะอาดและเครื่องใช้">ค่าวัสดุทำความสะอาด/อุปกรณ์ครัว</option>
+                    <option value="ค่าข้าวสารและของแห้งส่วนกลาง">🍚 ค่าข้าวสารและของแห้งส่วนกลาง (นอกเมนู)</option>
+                    <option value="ค่าเครื่องปรุงและวัตถุดิบส่วนกลาง">🧂 ค่าเครื่องปรุงและวัตถุดิบส่วนกลาง (นอกเมนู)</option>
+                    <option value="ค่าก๊าซหุงต้มและเชื้อเพลิง">🔥 ค่าก๊าซหุงต้มและเชื้อเพลิง</option>
+                    <option value="ค่าจ้างเหมาผู้ประกอบอาหาร">👩‍🍳 ค่าจ้างเหมาผู้ประกอบอาหาร (แม่ครัว)</option>
+                    <option value="ค่าวัสดุทำความสะอาดและเครื่องใช้">🧼 ค่าวัสดุทำความสะอาด/อุปกรณ์ครัว</option>
                   </select>
                 </div>
                 <div>
@@ -4212,7 +4370,7 @@ export default function HomePage() {
                   <label className="font-bold text-[#18201C] block mb-1">จำนวนเงิน (บาท):</label>
                   <input
                     type="number"
-                    placeholder="เช่น 450"
+                    placeholder="เช่น 1250 หรือ 450"
                     value={expenseAmount}
                     onChange={(e) => setExpenseAmount(e.target.value)}
                     className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl px-3.5 py-2.5 text-sm font-bold font-mono tabular-nums text-[#18201C] focus:outline-none focus:ring-2 focus:ring-[#D97757]/20 focus:border-[#D97757] transition-smooth"
@@ -4420,6 +4578,53 @@ export default function HomePage() {
               <p className="text-xs text-[#66746C] mt-1">
                 กำหนดรายการวัตถุดิบ ปริมาณที่ต้องสั่ง และราคาต่อหน่วยสำหรับเมนู{activeDayDefinition.label}
               </p>
+
+              <div className="mt-3.5 p-3 rounded-2xl bg-[#F2F8F5] border border-[#C7E2D6] space-y-1.5">
+                <label className="font-bold text-[#18201C] block text-[11px] text-[#1F5E4B]">
+                  ⚡ วัตถุดิบพื้นฐานยอดนิยม (คลิกเดียวใส่ข้อมูลทันที):
+                </label>
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewIngName("ข้าวสาร");
+                      setNewIngQty("8");
+                      setNewIngUnit("กก.");
+                      setNewIngPrice("38");
+                    }}
+                    className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-[#FAF3E0] hover:bg-[#F5E7C2] text-[#8C6D1F] border border-[#E8D49E] transition-smooth flex items-center gap-1 shadow-2xs"
+                  >
+                    <span>🍚</span>
+                    <span>ข้าวสาร (8 กก. ~38 ฿/กก.)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewIngName("ไข่ไก่สด");
+                      setNewIngQty("30");
+                      setNewIngUnit("ฟอง");
+                      setNewIngPrice("4.5");
+                    }}
+                    className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-white hover:bg-[#FAF9F6] text-[#4B5850] border border-[#E7E4DC] transition-smooth flex items-center gap-1 shadow-2xs"
+                  >
+                    <span>🥚</span>
+                    <span>ไข่ไก่สด (30 ฟอง ~4.5 ฿)</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNewIngName("น้ำมันพืช");
+                      setNewIngQty("1");
+                      setNewIngUnit("ขวด");
+                      setNewIngPrice("55");
+                    }}
+                    className="px-2.5 py-1 rounded-xl text-[11px] font-bold bg-white hover:bg-[#FAF9F6] text-[#4B5850] border border-[#E7E4DC] transition-smooth flex items-center gap-1 shadow-2xs"
+                  >
+                    <span>🛢️</span>
+                    <span>น้ำมันพืช (1 ขวด ~55 ฿)</span>
+                  </button>
+                </div>
+              </div>
 
               <div className="mt-4 space-y-3 text-xs">
                 <div>

@@ -312,7 +312,7 @@ export default function OfficialReportModal({
                               <span className="font-medium">{item.name}</span>
                               {item.isAdHoc && (
                                 <span className="text-[11px] text-amber-800 ml-1.5 font-bold">
-                                  (ซื้อเพิ่มหน้างาน)
+                                  {item.name.includes("ข้าว") ? "(นอกเมนู)" : "(ซื้อเพิ่มหน้างาน)"}
                                 </span>
                               )}
                             </td>
