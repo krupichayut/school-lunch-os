@@ -109,6 +109,24 @@ function parseCleanNumber(val: unknown): number {
   return isNaN(num) ? 0 : num;
 }
 
+// Helper to provide friendly, recognizable food icons without heavy images
+function getFoodEmoji(name: string): string {
+  const n = (name || "").toLowerCase();
+  if (n.includes("เส้น") || n.includes("ก๋วยเตี๋ยว") || n.includes("ก๋วยจั๊บ") || n.includes("บะหมี่") || n.includes("ขนมจีน")) return "🍜";
+  if (n.includes("หมู") || n.includes("เนื้อ") || n.includes("หมูสับ") || n.includes("ซี่โครง")) return "🥩";
+  if (n.includes("ไก่") || n.includes("ปีกไก่") || n.includes("น่องไก่")) return "🍗";
+  if (n.includes("ปลา") || n.includes("กุ้ง") || n.includes("หมึก") || n.includes("อาหารทะเล")) return "🐟";
+  if (n.includes("ไข่") || n.includes("ไข่ไก่") || n.includes("ไข่เป็ด")) return "🥚";
+  if (n.includes("กะหล่ำ") || n.includes("ผัก") || n.includes("คะน้า") || n.includes("ผักบุ้ง") || n.includes("ถั่วงอก") || n.includes("แตงกวา")) return "🥬";
+  if (n.includes("แครอท") || n.includes("ฟักทอง") || n.includes("มะละกอ")) return "🥕";
+  if (n.includes("ลูกชิ้น") || n.includes("ไส้กรอก")) return "🍡";
+  if (n.includes("ผลไม้") || n.includes("ส้ม") || n.includes("กล้วย") || n.includes("แตงโม") || n.includes("ฝรั่ง")) return "🍎";
+  if (n.includes("ข้าว") || n.includes("ข้าวสาร")) return "🍚";
+  if (n.includes("แก๊ส") || n.includes("ก๊าซ")) return "🔥";
+  if (n.includes("น้ำมัน") || n.includes("ซอส") || n.includes("ซีอิ๊ว") || n.includes("น้ำปลา") || n.includes("เครื่องปรุง") || n.includes("พริก")) return "🧂";
+  return "🍲";
+}
+
 export default function HomePage() {
   // Navigation State
   const [activeTab, setActiveTab] = useState<
@@ -2115,43 +2133,49 @@ export default function HomePage() {
                 inspectionItems.map((item) => (
                 <div
                   key={item.id}
-                  className={`bg-white rounded-2xl p-4 sm:p-5 border transition-smooth shadow-xs ${
+                  className={`bg-white rounded-2xl p-4 sm:p-5 border transition-all duration-200 shadow-xs ${
                     item.isAdHoc
-                      ? "border-[#F2D7CA] bg-[#FDF4F0]/30 ring-1 ring-[#D97757]/30"
-                      : item.status === "ACCEPTED"
-                      ? "border-[#C7E2D6] bg-[#F2F8F5]/40"
-                      : item.status === "DISCREPANCY"
                       ? "border-[#F2D7CA] bg-[#FDF4F0]/40"
-                      : "border-[#E7E4DC] hover:border-[#C7E2D6]"
+                      : item.status === "ACCEPTED"
+                      ? "border-[#D4E8DE] bg-[#F4F9F6]/50 shadow-[0_2px_12px_rgba(31,94,75,0.04)]"
+                      : item.status === "DISCREPANCY"
+                      ? "border-[#F2D7CA] bg-[#FDF4F0]/50"
+                      : "border-[#E7E4DC] hover:border-[#D4E8DE] shadow-[0_2px_12px_rgba(0,0,0,0.02)]"
                   }`}
                 >
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-3.5">
                     <div className="flex-1 min-w-0">
-                      <div className="flex flex-wrap items-center justify-between sm:justify-start gap-2">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-extrabold text-[#18201C] text-base sm:text-lg tracking-tight leading-normal">
-                            {item.name}
-                          </h3>
+                      <div className="flex items-center justify-between sm:justify-start gap-2.5">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span className="w-9 h-9 rounded-2xl bg-[#F4F2EB] flex items-center justify-center text-lg shrink-0 select-none">
+                            {getFoodEmoji(item.name)}
+                          </span>
+                          <div className="min-w-0">
+                            <h3 className="font-extrabold text-[#18201C] text-base sm:text-lg tracking-tight leading-normal truncate">
+                              {item.name}
+                            </h3>
+                          </div>
                           {item.isAdHoc && (
-                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#D97757] text-white shadow-2xs">
-                              ซื้อเพิ่มหน้างาน
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#D97757] text-white shadow-2xs shrink-0">
+                              ซื้อเพิ่ม
                             </span>
                           )}
                         </div>
                         {item.status === "ACCEPTED" && (
-                          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#EBF4F0] text-[#1F5E4B] border border-[#C7E2D6] shrink-0">
-                            ครบ ✓
+                          <span className="text-xs font-bold px-3 py-1 rounded-full bg-[#EBF4F0] text-[#1F5E4B] border border-[#C7E2D6] shrink-0 flex items-center gap-1 shadow-2xs">
+                            <Check className="w-3.5 h-3.5 text-[#1F5E4B]" />
+                            <span>ครบ ✓</span>
                           </span>
                         )}
                         {item.status === "DISCREPANCY" && (
-                          <span className="text-[10px] font-bold px-2.5 py-0.5 rounded-full bg-[#FDF4F0] text-[#B55232] border border-[#F2D7CA] shrink-0">
+                          <span className="text-xs font-bold px-3 py-1 rounded-full bg-[#FDF4F0] text-[#B55232] border border-[#F2D7CA] shrink-0">
                             มีส่วนต่าง
                           </span>
                         )}
                       </div>
 
                       {/* Mobile View: Clean single line of order vs received (Cuts visual noise) */}
-                      <div className="sm:hidden flex items-center justify-between text-xs text-[#66746C] mt-2 font-medium bg-[#FAF9F6] p-2.5 rounded-xl border border-[#E7E4DC]">
+                      <div className="sm:hidden flex items-center justify-between text-xs text-[#66746C] mt-2 font-medium">
                         <span>สั่ง: <strong className="text-[#18201C] font-semibold">{item.ordered} {item.unit}</strong></span>
                         <span>ส่งจริง: <strong className="text-[#1F5E4B] font-mono font-bold">{item.received} {item.unit}</strong></span>
                       </div>
@@ -2196,61 +2220,63 @@ export default function HomePage() {
 
                     {/* Step Adjust Controls & Camera (Thumb-Friendly Touch Targets) */}
                     <div className="flex items-center justify-between md:justify-end gap-2.5 pt-2.5 md:pt-0 border-t md:border-t-0 border-[#F4F2EB] shrink-0">
-                      <div className="flex items-center bg-[#FAF9F6] rounded-xl p-1 border border-[#E7E4DC] shadow-2xs">
-                        <button
-                          type="button"
-                          onClick={() => handleUpdateReceivedQty(item.id, Math.max(0, item.received - 0.5))}
-                          className="w-9 h-9 rounded-lg bg-white border border-[#E7E4DC] shadow-xs font-bold text-[#18201C] hover:bg-[#F2F0E8] transition-smooth flex items-center justify-center active:scale-95 text-base"
-                          title="ลดลง 0.5"
-                          aria-label={`ลดจำนวน ${item.name}`}
-                        >
-                          -
-                        </button>
-                        <span className="w-12 text-center text-sm font-extrabold font-mono tabular-nums text-[#18201C]">
-                          {item.received}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => handleUpdateReceivedQty(item.id, item.received + 0.5)}
-                          className="w-9 h-9 rounded-lg bg-white border border-[#E7E4DC] shadow-xs font-bold text-[#18201C] hover:bg-[#F2F0E8] transition-smooth flex items-center justify-center active:scale-95 text-base"
-                          title="เพิ่มขึ้น 0.5"
-                          aria-label={`เพิ่มจำนวน ${item.name}`}
-                        >
-                          +
-                        </button>
-                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center bg-[#FAF9F6] rounded-2xl p-1 border border-[#E7E4DC] shadow-2xs">
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateReceivedQty(item.id, Math.max(0, item.received - 0.5))}
+                            className="w-10 h-10 rounded-xl bg-white border border-[#E7E4DC] shadow-xs font-bold text-[#18201C] hover:bg-[#F2F0E8] transition-smooth flex items-center justify-center active:scale-95 text-base"
+                            title="ลดลง 0.5"
+                            aria-label={`ลดจำนวน ${item.name}`}
+                          >
+                            -
+                          </button>
+                          <span className="w-12 text-center text-sm font-extrabold font-mono tabular-nums text-[#18201C]">
+                            {item.received}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateReceivedQty(item.id, item.received + 0.5)}
+                            className="w-10 h-10 rounded-xl bg-white border border-[#E7E4DC] shadow-xs font-bold text-[#18201C] hover:bg-[#F2F0E8] transition-smooth flex items-center justify-center active:scale-95 text-base"
+                            title="เพิ่มขึ้น 0.5"
+                            aria-label={`เพิ่มจำนวน ${item.name}`}
+                          >
+                            +
+                          </button>
+                        </div>
 
-                      {/* Photo Capture & Thumbnail Preview */}
-                      <div className="flex items-center gap-1.5">
-                        {item.photoUrl && (
-                          <div className="relative group">
-                            <img
-                              src={item.photoUrl}
-                              alt="รูปตาชั่ง"
-                              className="w-9 h-9 rounded-xl object-cover border border-[#C7E2D6] shadow-2xs cursor-pointer hover:scale-105 transition-transform"
-                              onClick={() => {
-                                const w = window.open("");
-                                if (w) {
-                                  w.document.write(`<title>ภาพถ่ายตรวจรับ - ${item.name}</title><body style="margin:0; background:#000; display:flex; justify-content:center; align-items:center; min-height:100vh;"><img src="${item.photoUrl}" style="max-width:95vw; max-height:95vh; object-fit:contain; border-radius:8px;" /></body>`);
-                                }
-                              }}
-                              title="คลิกดูภาพเต็ม"
+                        {/* Photo Capture & Thumbnail Preview */}
+                        <div className="flex items-center gap-1.5">
+                          {item.photoUrl && (
+                            <div className="relative group">
+                              <img
+                                src={item.photoUrl}
+                                alt="รูปตาชั่ง"
+                                className="w-10 h-10 rounded-xl object-cover border border-[#C7E2D6] shadow-2xs cursor-pointer hover:scale-105 transition-transform"
+                                onClick={() => {
+                                  const w = window.open("");
+                                  if (w) {
+                                    w.document.write(`<title>ภาพถ่ายตรวจรับ - ${item.name}</title><body style="margin:0; background:#000; display:flex; justify-content:center; align-items:center; min-height:100vh;"><img src="${item.photoUrl}" style="max-width:95vw; max-height:95vh; object-fit:contain; border-radius:8px;" /></body>`);
+                                  }
+                                }}
+                                title="คลิกดูภาพเต็ม"
+                              />
+                              <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[#1F5E4B] ring-2 ring-white" />
+                            </div>
+                          )}
+                          <label className="cursor-pointer inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2.5 rounded-xl border border-[#E7E4DC] bg-white hover:bg-[#FAF9F6] transition-smooth text-[#18201C] shadow-xs active:scale-95">
+                            <Camera className="w-4 h-4 text-[#66746C]" />
+                            <span className="hidden sm:inline">{item.photoUrl ? "เปลี่ยนรูป" : "ถ่ายตาชั่ง"}</span>
+                            <span className="sm:hidden">{item.photoUrl ? "เปลี่ยน" : "ถ่าย"}</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              capture="environment"
+                              className="hidden"
+                              onChange={(e) => handlePhotoCapture(item.id, e)}
                             />
-                            <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-[#1F5E4B] ring-2 ring-white" />
-                          </div>
-                        )}
-                        <label className="cursor-pointer inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl border border-[#E7E4DC] bg-white hover:bg-[#FAF9F6] transition-smooth text-[#18201C] shadow-xs active:scale-95">
-                          <Camera className="w-4 h-4 text-[#66746C]" />
-                          <span className="hidden sm:inline">{item.photoUrl ? "เปลี่ยนรูป" : "ถ่ายตาชั่ง"}</span>
-                          <span className="sm:hidden">{item.photoUrl ? "เปลี่ยน" : "ถ่าย"}</span>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            capture="environment"
-                            className="hidden"
-                            onChange={(e) => handlePhotoCapture(item.id, e)}
-                          />
-                        </label>
+                          </label>
+                        </div>
                       </div>
                     </div>
                   </div>

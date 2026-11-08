@@ -59,8 +59,8 @@ describe("Package 19: Mobile UX Polish & Bottom Navigation Suite", () => {
       "Features quick accept banner for fast morning duty workflow"
     );
     assert.ok(
-      source.includes("w-9 h-9 rounded-lg bg-white border border-[#E7E4DC] shadow-xs font-bold"),
-      "Stepper buttons have enlarged touch targets (w-9 h-9)"
+      source.includes("w-10 h-10 rounded-xl bg-white border border-[#E7E4DC] shadow-xs font-bold"),
+      "Stepper buttons have enlarged touch targets (w-10 h-10)"
     );
     assert.ok(
       source.includes("sticky bottom-20 md:bottom-4"),
@@ -68,13 +68,17 @@ describe("Package 19: Mobile UX Polish & Bottom Navigation Suite", () => {
     );
   });
 
-  it("T-093: Mobile food card layout reduces cognitive noise", () => {
+  it("T-093: Mobile food card layout reduces cognitive noise with food emojis and surface elevation", () => {
+    assert.ok(
+      source.includes("getFoodEmoji"),
+      "Provides recognizable food emoji icons for rapid visual scanning"
+    );
     assert.ok(
       source.includes("sm:hidden flex items-center justify-between text-xs text-[#66746C] mt-2 font-medium"),
       "Provides streamlined single-line summary on mobile"
     );
     assert.ok(
-      source.includes("hidden sm:flex flex-wrap items-center gap-2 sm:gap-2.5 mt-2.5"),
+      source.includes("hidden sm:flex flex-wrap items-center gap-2 sm:gap-2.5"),
       "Detailed 3-column chip layout reserved for desktop"
     );
   });
