@@ -100,10 +100,14 @@ export default function MasterMenuLibrary({
   const [editingMenu, setEditingMenu] = useState<PresetMenu | null>(null);
   const [isCreatingNew, setIsCreatingNew] = useState(false);
   const [assigningMenu, setAssigningMenu] = useState<PresetMenu | null>(null);
+  const [customAssignDate, setCustomAssignDate] = useState<string>("");
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // 20 school days in Round 1
-  const roundDays = useMemo(() => getRoundSchoolDays(), []);
+  // School days in current round based on school settings
+  const roundDays = useMemo(
+    () => getRoundSchoolDays(settings.currentRoundStartDate, settings.currentRoundEndDate),
+    [settings.currentRoundStartDate, settings.currentRoundEndDate]
+  );
 
   // Filtered menus
   const filteredMenus = useMemo(() => {
@@ -547,6 +551,37 @@ export default function MasterMenuLibrary({
                   </button>
                 );
               })}
+            </div>
+
+            {/* Custom Date Assignment Outside Round 1 */}
+            <div className="pt-3 border-t border-[#ECE8DE] space-y-2">
+              <span className="text-xs font-bold text-[#18201C] block">
+                หรือเลือกกำหนดลงวันที่อื่นๆ นอกงวดหลัก:
+              </span>
+              <div className="flex items-center gap-2">
+                <input
+                  type="date"
+                  value={customAssignDate}
+                  onChange={(e) => setCustomAssignDate(e.target.value)}
+                  className="flex-1 bg-[#FAF9F6] border border-[#E7E4DC] hover:border-[#1F5E4B] focus:border-[#1F5E4B] rounded-xl px-3 py-2 text-xs font-mono font-bold text-[#18201C] outline-none transition-smooth"
+                />
+                <button
+                  type="button"
+                  disabled={!customAssignDate}
+                  onClick={() => {
+                    if (!customAssignDate || !assigningMenu) return;
+                    onAssignMenuToDate(assigningMenu, customAssignDate);
+                    showToast(
+                      `✓ กำหนดเมนู "${assigningMenu.name}" ลงใน ${formatShortThaiDate(customAssignDate)} เรียบร้อยแล้ว`
+                    );
+                    setAssigningMenu(null);
+                    setCustomAssignDate("");
+                  }}
+                  className="px-4 py-2 rounded-xl bg-[#1F5E4B] hover:bg-[#143B30] disabled:bg-gray-300 text-white text-xs font-bold transition-smooth whitespace-nowrap shadow-xs"
+                >
+                  กำหนดลงวันนี้
+                </button>
+              </div>
             </div>
 
             <div className="pt-2 border-t border-[#ECE8DE] flex justify-end">

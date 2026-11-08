@@ -244,7 +244,8 @@ export default function HomePage() {
             setPresetMenus(DEFAULT_PRESET_MENUS);
           }
           if (cloud.datePlans) {
-            const hydrated = ensureDatePlans(cloud.datePlans, cloud.weeklyPlan || DEFAULT_WEEKLY_PLAN);
+            const mergedDatePlans = { ...(local?.datePlans || {}), ...cloud.datePlans };
+            const hydrated = ensureDatePlans(mergedDatePlans, cloud.weeklyPlan || DEFAULT_WEEKLY_PLAN);
             setDatePlans(hydrated);
             saveLocalState({ datePlans: hydrated });
           } else {
@@ -437,6 +438,29 @@ export default function HomePage() {
       saveCloudState({ weeklyPlan: updatedPlan }).catch(console.warn);
       return updatedPlan;
     });
+
+    if (selectedPlanningDate) {
+      setDatePlans((prev) => {
+        const curDatePlan = prev[selectedPlanningDate] || {
+          menuName: "",
+          category: "อาหารจานเดียว",
+          ingredients: [],
+          inspectionDate: selectedPlanningDate,
+        };
+        const updatedDatePlans = {
+          ...prev,
+          [selectedPlanningDate]: {
+            ...curDatePlan,
+            menuName: newName,
+            inspectionDate: selectedPlanningDate,
+          },
+        };
+        saveLocalState({ datePlans: updatedDatePlans });
+        saveCloudState({ datePlans: updatedDatePlans }).catch(console.warn);
+        return updatedDatePlans;
+      });
+    }
+
     setIsPlanFrozen(false);
   };
 
@@ -485,24 +509,32 @@ export default function HomePage() {
 
   // Date-Based Calendar Handlers
   const handleUpdateDatePlan = async (dateStr: string, plan: DayPlan) => {
+    let nextDatePlans: Record<string, DayPlan> = {};
     setDatePlans((prev) => {
-      const updated = { ...prev, [dateStr]: plan };
-      saveLocalState({ datePlans: updated });
-      saveCloudState({ datePlans: updated }).catch(console.warn);
-      return updated;
+      nextDatePlans = { ...prev, [dateStr]: plan };
+      return nextDatePlans;
     });
+    saveLocalState({ datePlans: nextDatePlans });
+    saveCloudState({ datePlans: nextDatePlans }).catch(console.warn);
 
-    const weekdayKeys: DayKey[] = ["monday", "tuesday", "wednesday", "thursday", "friday"];
-    const matchedDay = weekdayKeys.find(
-      (k) => DEFAULT_WEEKDAY_DATES[k] === dateStr || weeklyPlan[k]?.inspectionDate === dateStr
-    );
+    // Safely map day of week (Monday=1, ..., Friday=5)
+    const d = new Date(dateStr + "T00:00:00");
+    const dayNum = d.getDay();
+    const dayKeyMap: Record<number, DayKey> = {
+      1: "monday",
+      2: "tuesday",
+      3: "wednesday",
+      4: "thursday",
+      5: "friday",
+    };
+    const targetDayKey = dayKeyMap[dayNum];
 
-    if (matchedDay) {
+    if (targetDayKey) {
       setWeeklyPlan((prev) => {
-        const cur = prev[matchedDay] || DEFAULT_WEEKLY_PLAN[matchedDay];
+        const cur = prev[targetDayKey] || DEFAULT_WEEKLY_PLAN[targetDayKey];
         const updatedWeekly: WeeklyPlan = {
           ...prev,
-          [matchedDay]: {
+          [targetDayKey]: {
             ...cur,
             menuName: plan.menuName,
             category: plan.category || "อาหารจานเดียว",
@@ -518,39 +550,52 @@ export default function HomePage() {
   };
 
   const handleSelectDateForDetail = (dateStr: string, dayKey?: DayKey) => {
-    const d = new Date(dateStr);
+    const d = new Date(dateStr + "T00:00:00");
     const dayNum = d.getDay();
     let targetDayKey: DayKey = "monday";
     if (dayNum === 2) targetDayKey = "tuesday";
     else if (dayNum === 3) targetDayKey = "wednesday";
     else if (dayNum === 4) targetDayKey = "thursday";
     else if (dayNum === 5) targetDayKey = "friday";
-    else if (dayKey) targetDayKey = dayKey;
+    if (dayKey) targetDayKey = dayKey;
 
     setSelectedDayKey(targetDayKey);
     setSelectedPlanningDate(dateStr);
 
-    if (datePlans[dateStr]) {
-      const plan = datePlans[dateStr];
-      setWeeklyPlan((prev) => {
-        const cur = prev[targetDayKey] || DEFAULT_WEEKLY_PLAN[targetDayKey];
-        const updated: WeeklyPlan = {
-          ...prev,
-          [targetDayKey]: {
-            ...cur,
-            menuName: plan.menuName || cur.menuName,
-            category: plan.category || cur.category,
-            ingredients:
-              plan.ingredients && plan.ingredients.length > 0
-                ? plan.ingredients.map((i) => ({ ...i }))
-                : cur.ingredients,
-            inspectionDate: dateStr,
-          },
-        };
-        saveLocalState({ weeklyPlan: updated });
-        return updated;
+    const existingPlan = datePlans[dateStr];
+    const targetPlan: DayPlan = existingPlan || {
+      menuName: "",
+      category: "อาหารจานเดียว",
+      ingredients: [],
+      inspectionDate: dateStr,
+      isFrozen: false,
+      isReceivingConfirmed: false,
+      inspectionItems: [],
+    };
+
+    if (!existingPlan) {
+      setDatePlans((prev) => {
+        const next = { ...prev, [dateStr]: targetPlan };
+        saveLocalState({ datePlans: next });
+        return next;
       });
     }
+
+    setWeeklyPlan((prev) => {
+      const cur = prev[targetDayKey] || DEFAULT_WEEKLY_PLAN[targetDayKey];
+      const updated: WeeklyPlan = {
+        ...prev,
+        [targetDayKey]: {
+          ...cur,
+          menuName: targetPlan.menuName,
+          category: targetPlan.category || cur.category,
+          ingredients: (targetPlan.ingredients || []).map((i) => ({ ...i })),
+          inspectionDate: dateStr,
+        },
+      };
+      saveLocalState({ weeklyPlan: updated });
+      return updated;
+    });
 
     setMenuPlanningView("DATE_DETAIL");
   };
@@ -577,7 +622,7 @@ export default function HomePage() {
   };
 
   const handleAssignMenuToDate = async (menu: PresetMenu, dateStr: string) => {
-    const d = new Date(dateStr);
+    const d = new Date(dateStr + "T00:00:00");
     const dayNum = d.getDay();
     let targetDayKey: DayKey = "monday";
     if (dayNum === 2) targetDayKey = "tuesday";
@@ -585,46 +630,51 @@ export default function HomePage() {
     else if (dayNum === 4) targetDayKey = "thursday";
     else if (dayNum === 5) targetDayKey = "friday";
 
-    const updatedDatePlans = {
-      ...datePlans,
-      [dateStr]: {
-        menuName: menu.name,
-        category: menu.category || "อาหารจานเดียว",
-        ingredients: menu.ingredients.map((item, idx) => ({
-          ...item,
-          id: `ing-${dateStr}-${idx + 1}`,
-        })),
-        isFrozen: false,
-        frozenAtTime: null,
-        inspectionItems: [],
-        isReceivingConfirmed: false,
-        confirmedAtTime: null,
-        inspectionDate: dateStr,
-      },
+    const targetIngredients = menu.ingredients.map((item, idx) => ({
+      ...item,
+      id: `ing-${dateStr}-${idx + 1}`,
+    }));
+
+    const newPlan: DayPlan = {
+      menuName: menu.name,
+      category: menu.category || "อาหารจานเดียว",
+      ingredients: targetIngredients,
+      isFrozen: false,
+      frozenAtTime: null,
+      inspectionItems: [],
+      isReceivingConfirmed: false,
+      confirmedAtTime: null,
+      inspectionDate: dateStr,
     };
 
-    setDatePlans(updatedDatePlans);
-    saveLocalState({ datePlans: updatedDatePlans });
-    await saveCloudState({ datePlans: updatedDatePlans }).catch(console.warn);
+    let nextDatePlans: Record<string, DayPlan> = {};
+    setDatePlans((prev) => {
+      nextDatePlans = {
+        ...prev,
+        [dateStr]: newPlan,
+      };
+      return nextDatePlans;
+    });
 
-    // If matches currently selected dayKey, update weeklyPlan too
-    if (selectedDayKey === targetDayKey) {
-      setWeeklyPlan((prev) => {
-        const cur = prev[targetDayKey] || DEFAULT_WEEKLY_PLAN[targetDayKey];
-        const updated = {
-          ...prev,
-          [targetDayKey]: {
-            ...cur,
-            menuName: menu.name,
-            category: menu.category || "อาหารจานเดียว",
-            ingredients: menu.ingredients.map((i, idx) => ({ ...i, id: `ing-${dateStr}-${idx + 1}` })),
-            inspectionDate: dateStr,
-          },
-        };
-        saveLocalState({ weeklyPlan: updated });
-        return updated;
-      });
-    }
+    saveLocalState({ datePlans: nextDatePlans });
+    saveCloudState({ datePlans: nextDatePlans }).catch(console.warn);
+
+    // Sync into weeklyPlan for the corresponding day of week
+    setWeeklyPlan((prev) => {
+      const cur = prev[targetDayKey] || DEFAULT_WEEKLY_PLAN[targetDayKey];
+      const updated = {
+        ...prev,
+        [targetDayKey]: {
+          ...cur,
+          menuName: menu.name,
+          category: menu.category || "อาหารจานเดียว",
+          ingredients: targetIngredients.map((i) => ({ ...i })),
+          inspectionDate: dateStr,
+        },
+      };
+      saveLocalState({ weeklyPlan: updated });
+      return updated;
+    });
   };
 
   const handleDeleteMenu = async () => {
@@ -643,6 +693,29 @@ export default function HomePage() {
         saveCloudState({ weeklyPlan: updatedPlan, dailyIngredients: [] }).catch(console.warn);
         return updatedPlan;
       });
+
+      // Clear from datePlans[selectedPlanningDate] as well
+      if (selectedPlanningDate) {
+        setDatePlans((prev) => {
+          const cur = prev[selectedPlanningDate];
+          const updatedDatePlans = {
+            ...prev,
+            [selectedPlanningDate]: {
+              ...cur,
+              menuName: "",
+              category: "อาหารจานเดียว",
+              ingredients: [],
+              isFrozen: false,
+              isReceivingConfirmed: false,
+              inspectionDate: selectedPlanningDate,
+            },
+          };
+          saveLocalState({ datePlans: updatedDatePlans });
+          saveCloudState({ datePlans: updatedDatePlans }).catch(console.warn);
+          return updatedDatePlans;
+        });
+      }
+
       setDailyIngredients([]);
       setIsPlanFrozen(false);
       alert(`✓ ล้างรายการเมนูและวัตถุดิบ${activeDayDefinition.label}เรียบร้อยแล้ว`);
@@ -963,7 +1036,32 @@ export default function HomePage() {
     };
 
     setWeeklyPlan(updatedPlan);
-    saveLocalState({ weeklyPlan: updatedPlan, transactions: updatedTx });
+
+    // Sync receiving confirmation to datePlans for this date
+    if (actualInspectionDate) {
+      setDatePlans((prev) => {
+        const curDatePlan = prev[actualInspectionDate] || {
+          menuName: curDay.menuName,
+          category: curDay.category || "อาหารจานเดียว",
+          ingredients: curDay.ingredients || [],
+          inspectionDate: actualInspectionDate,
+        };
+        const updatedDatePlans = {
+          ...prev,
+          [actualInspectionDate]: {
+            ...curDatePlan,
+            isReceivingConfirmed: true,
+            confirmedAtTime: nowTime,
+            inspectionItems,
+          },
+        };
+        saveLocalState({ weeklyPlan: updatedPlan, transactions: updatedTx, datePlans: updatedDatePlans });
+        return updatedDatePlans;
+      });
+    } else {
+      saveLocalState({ weeklyPlan: updatedPlan, transactions: updatedTx });
+    }
+
     await saveCloudState({
       weeklyPlan: updatedPlan,
       transactions: updatedTx,
@@ -1166,6 +1264,8 @@ export default function HomePage() {
 
   const handleUnlockReceiving = async () => {
     const curDay = weeklyPlan[selectedDayKey] || DEFAULT_WEEKLY_PLAN[selectedDayKey];
+    const actualInspectionDate =
+      curDay.inspectionDate || getDayDefaultDate(selectedDayKey, settings.currentRoundStartDate);
     const updatedPlan: WeeklyPlan = {
       ...weeklyPlan,
       [selectedDayKey]: {
@@ -1175,16 +1275,45 @@ export default function HomePage() {
       },
     };
     setWeeklyPlan(updatedPlan);
-    saveLocalState({ weeklyPlan: updatedPlan });
+
+    if (actualInspectionDate) {
+      setDatePlans((prev) => {
+        const curDatePlan = prev[actualInspectionDate];
+        if (!curDatePlan) {
+          saveLocalState({ weeklyPlan: updatedPlan });
+          return prev;
+        }
+        const updated = {
+          ...prev,
+          [actualInspectionDate]: {
+            ...curDatePlan,
+            isReceivingConfirmed: false,
+            confirmedAtTime: null,
+          },
+        };
+        saveLocalState({ weeklyPlan: updatedPlan, datePlans: updated });
+        return updated;
+      });
+    } else {
+      saveLocalState({ weeklyPlan: updatedPlan });
+    }
+
     await saveCloudState({ weeklyPlan: updatedPlan });
   };
 
   const handleUpdateInspectionDate = async (newDate: string) => {
+    const plannedForDate = datePlans[newDate];
     const curDay = weeklyPlan[selectedDayKey] || DEFAULT_WEEKLY_PLAN[selectedDayKey];
     const updatedPlan: WeeklyPlan = {
       ...weeklyPlan,
       [selectedDayKey]: {
         ...curDay,
+        menuName: plannedForDate?.menuName || curDay.menuName,
+        category: plannedForDate?.category || curDay.category,
+        ingredients:
+          plannedForDate?.ingredients && plannedForDate.ingredients.length > 0
+            ? plannedForDate.ingredients.map((i) => ({ ...i }))
+            : curDay.ingredients,
         inspectionDate: newDate,
       },
     };
@@ -1349,9 +1478,14 @@ export default function HomePage() {
       setWeeklyPlan(updatedPlan);
       setDailyIngredients(updatedIngredients);
 
-      if (selectedPlanningDate && datePlans[selectedPlanningDate]) {
+      if (selectedPlanningDate) {
         setDatePlans((prev) => {
-          const curDatePlan = prev[selectedPlanningDate];
+          const curDatePlan = prev[selectedPlanningDate] || {
+            menuName: curDay.menuName || "",
+            category: curDay.category || "อาหารจานเดียว",
+            ingredients: [],
+            inspectionDate: selectedPlanningDate,
+          };
           const updatedIngs = [...(curDatePlan.ingredients || []), newItem];
           const updatedDatePlans = {
             ...prev,
@@ -1439,6 +1573,7 @@ export default function HomePage() {
           category: newMenu.category,
           ingredients: newMenu.ingredients.map((ing) => ({ ...ing })),
           isFrozen: false,
+          inspectionDate: selectedPlanningDate || curDay.inspectionDate,
         },
       };
 
@@ -1446,18 +1581,51 @@ export default function HomePage() {
       setSelectedMenuId(newMenu.id);
       setWeeklyPlan(updatedPlan);
       setDailyIngredients(newMenu.ingredients.map((ing) => ({ ...ing })));
+
+      let nextDatePlans: Record<string, DayPlan> | null = null;
+      if (selectedPlanningDate) {
+        setDatePlans((prev) => {
+          const curDatePlan = prev[selectedPlanningDate] || {
+            menuName: "",
+            category: "อาหารจานเดียว",
+            ingredients: [],
+            inspectionDate: selectedPlanningDate,
+          };
+          nextDatePlans = {
+            ...prev,
+            [selectedPlanningDate]: {
+              ...curDatePlan,
+              menuName: newMenu.name,
+              category: newMenu.category,
+              ingredients: newMenu.ingredients.map((ing) => ({ ...ing })),
+              inspectionDate: selectedPlanningDate,
+              isFrozen: false,
+            },
+          };
+          return nextDatePlans;
+        });
+      }
+
       setIsPlanFrozen(false);
       setShowNewMenuModal(false);
       setNewMenuName("");
       setSyncStatus("SAVING");
+      saveLocalState({
+        presetMenus: updatedMenus,
+        selectedMenuId: newMenu.id,
+        weeklyPlan: updatedPlan,
+        dailyIngredients: newMenu.ingredients,
+        ...(nextDatePlans ? { datePlans: nextDatePlans } : {}),
+      });
       await saveCloudState({
         presetMenus: updatedMenus,
         selectedMenuId: newMenu.id,
         weeklyPlan: updatedPlan,
         dailyIngredients: newMenu.ingredients,
+        ...(nextDatePlans ? { datePlans: nextDatePlans } : {}),
       });
       setSyncStatus("SYNCED");
-      alert(`✓ บันทึกเมนู "${newMenu.name}" เข้าสู่ระบบ Cloud เรียบร้อยแล้ว`);
+      alert(`✓ บันทึกเมนู "${newMenu.name}" เข้าสู่ระบบเรียบร้อยแล้ว`);
     }
   };
 
@@ -1555,6 +1723,31 @@ export default function HomePage() {
       setSelectedDayKey(targetDay);
       setDailyIngredients(finalIngredients);
       saveLocalState({ weeklyPlan: updatedPlan });
+
+      const targetDate = targetPlan.inspectionDate;
+      if (targetDate) {
+        setDatePlans((prev) => {
+          const cur = prev[targetDate] || {
+            menuName: "",
+            category: "อาหารจานเดียว",
+            ingredients: [],
+            inspectionDate: targetDate,
+          };
+          const updatedDatePlans = {
+            ...prev,
+            [targetDate]: {
+              ...cur,
+              menuName: targetMenuTitle,
+              ingredients: finalIngredients.map((i) => ({ ...i })),
+              inspectionDate: targetDate,
+              isFrozen: false,
+            },
+          };
+          saveLocalState({ datePlans: updatedDatePlans });
+          return updatedDatePlans;
+        });
+      }
+
       setSyncStatus("SAVING");
       await saveCloudState({ weeklyPlan: updatedPlan });
       setSyncStatus("SYNCED");
@@ -2660,12 +2853,39 @@ export default function HomePage() {
                                 category: selected.category || "อาหารจานเดียว",
                                 ingredients: clonedIngs,
                                 isFrozen: false,
+                                inspectionDate: selectedPlanningDate || prev[selectedDayKey]?.inspectionDate,
                               },
                             };
                             saveLocalState({ weeklyPlan: updatedPlan });
                             saveCloudState({ weeklyPlan: updatedPlan }).catch(console.warn);
                             return updatedPlan;
                           });
+
+                          if (selectedPlanningDate) {
+                            setDatePlans((prev) => {
+                              const cur = prev[selectedPlanningDate] || {
+                                menuName: "",
+                                category: "อาหารจานเดียว",
+                                ingredients: [],
+                                inspectionDate: selectedPlanningDate,
+                              };
+                              const updatedDatePlans = {
+                                ...prev,
+                                [selectedPlanningDate]: {
+                                  ...cur,
+                                  menuName: selected.name,
+                                  category: selected.category || "อาหารจานเดียว",
+                                  ingredients: clonedIngs,
+                                  inspectionDate: selectedPlanningDate,
+                                  isFrozen: false,
+                                },
+                              };
+                              saveLocalState({ datePlans: updatedDatePlans });
+                              saveCloudState({ datePlans: updatedDatePlans }).catch(console.warn);
+                              return updatedDatePlans;
+                            });
+                          }
+
                           setIsPlanFrozen(false);
                         }
                       }}

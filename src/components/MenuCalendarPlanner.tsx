@@ -253,19 +253,22 @@ export default function MenuCalendarPlanner({
       ingredients: [],
     };
 
-    // Default basic starting ingredients for a custom dish
-    const startingIngs: MenuItem[] = [
-      { id: `ing-${Date.now()}-1`, name: "เนื้อสัตว์หลัก (ไก่/หมู)", qty: 7.0, unit: "กก.", unitPrice: 100 },
-      { id: `ing-${Date.now()}-2`, name: "ผักสดตามฤดูกาล", qty: 5.0, unit: "กก.", unitPrice: 30 },
-      { id: `ing-${Date.now()}-3`, name: "ข้าวสารหอมมะลิ", qty: 8.5, unit: "กก.", unitPrice: 38 },
-      { id: `ing-${Date.now()}-4`, name: "เครื่องปรุงรส", qty: 1.0, unit: "ขวด", unitPrice: 45 },
-    ];
+    // Use existing ingredients if already customized for this day, otherwise supply starter template
+    const ingredientsToUse: MenuItem[] =
+      existing.ingredients && existing.ingredients.length > 0
+        ? existing.ingredients
+        : [
+            { id: `ing-${Date.now()}-1`, name: "เนื้อสัตว์หลัก (ไก่/หมู)", qty: 7.0, unit: "กก.", unitPrice: 100 },
+            { id: `ing-${Date.now()}-2`, name: "ผักสดตามฤดูกาล", qty: 5.0, unit: "กก.", unitPrice: 30 },
+            { id: `ing-${Date.now()}-3`, name: "ข้าวสารหอมมะลิ", qty: 8.5, unit: "กก.", unitPrice: 38 },
+            { id: `ing-${Date.now()}-4`, name: "เครื่องปรุงรส", qty: 1.0, unit: "ขวด", unitPrice: 45 },
+          ];
 
     const updatedPlan: DayPlan = {
       ...existing,
       menuName: trimmed,
       category: customCategory,
-      ingredients: startingIngs,
+      ingredients: ingredientsToUse,
       inspectionDate: selectedDateForModal,
       isFrozen: false,
     };
@@ -278,7 +281,7 @@ export default function MenuCalendarPlanner({
         id: `preset-${Date.now()}`,
         name: trimmed,
         category: customCategory,
-        ingredients: startingIngs.map((i) => ({ ...i })),
+        ingredients: ingredientsToUse.map((i) => ({ ...i })),
       };
       onSaveNewPreset(newPreset);
     }
@@ -466,25 +469,47 @@ export default function MenuCalendarPlanner({
               );
             }
 
-            // Outside Round 1 School Days
+            // Outside Round 1 School Days (Fully Interactive & Clickable for planning ahead!)
             if (!day.isInRound) {
               return (
                 <div
                   key={`${day.dateStr}-${idx}`}
-                  className="min-h-[105px] p-2.5 rounded-2xl bg-white/60 border border-[#EFECE6] text-[#8C9890] flex flex-col justify-between opacity-70"
+                  onClick={() => setSelectedDateForModal(day.dateStr)}
+                  className={`min-h-[105px] p-2.5 rounded-2xl border transition-all cursor-pointer group flex flex-col justify-between shadow-2xs ${
+                    hasMenu
+                      ? "bg-white border-[#E7E4DC] hover:border-[#1F5E4B] hover:shadow-card"
+                      : "bg-[#FCFBF8] border-dashed border-[#1F5E4B]/30 hover:border-[#1F5E4B] hover:bg-[#F2F8F5]/50"
+                  }`}
                 >
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-mono font-bold text-[#4B5850]">{day.dayNum}</span>
-                    <span className="text-[9px] text-[#8C9890]">นอกงวดที่ 1</span>
+                    <span className="text-xs font-mono font-bold text-[#4B5850] group-hover:text-[#1F5E4B]">{day.dayNum}</span>
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 font-semibold">นอกงวดหลัก</span>
                   </div>
                   {hasMenu ? (
-                    <div className="text-xs font-bold text-[#18201C] line-clamp-2">
-                      {plan.menuName}
+                    <div className="mt-1">
+                      <div className="text-xs font-bold text-[#18201C] group-hover:text-[#1F5E4B] line-clamp-2 leading-snug">
+                        <span className="mr-1">{getFoodEmoji(plan.menuName, plan.category)}</span>
+                        <span>{plan.menuName}</span>
+                      </div>
+                      <span className="text-[10px] text-[#66746C] block mt-0.5 truncate">
+                        {plan.category || "อาหารจานเดียว"}
+                      </span>
                     </div>
                   ) : (
-                    <div className="text-center text-[11px] text-[#A2A9A4] py-2">ไม่ได้กำหนด</div>
+                    <div className="text-center py-2">
+                      <span className="text-xs font-bold text-[#1F5E4B] flex items-center justify-center gap-1 group-hover:scale-105 transition-transform">
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>เลือกเมนู</span>
+                      </span>
+                      <span className="text-[9px] text-[#8C9890] block mt-0.5">คลิกเพื่อกำหนด</span>
+                    </div>
                   )}
-                  <div className="text-[9px] text-gray-400 text-center">-</div>
+                  <div className="pt-1.5 border-t border-[#F0ECE4] flex items-center justify-between text-[10px] text-[#66746C] font-mono">
+                    <span>{hasMenu ? `${ingredientCount} รายการ` : "-"}</span>
+                    <span className={`font-bold ${hasMenu ? "text-[#1F5E4B]" : "text-[#8C9890]"}`}>
+                      {hasMenu ? `${dayCost.toLocaleString()} ฿` : "0 ฿"}
+                    </span>
+                  </div>
                 </div>
               );
             }
