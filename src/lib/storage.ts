@@ -805,6 +805,154 @@ export function getDayDefaultDate(dayKey: DayKey, baseStartDate?: string): strin
   return DEFAULT_WEEKDAY_DATES[dayKey];
 }
 
+export function getReceivingDocNo(dateStr?: string | null): string {
+  if (!dateStr) return "RCV-2569";
+  const iso = toISODate(dateStr);
+  const parts = iso.split("-");
+  if (parts.length === 3) {
+    let y = parseInt(parts[0], 10);
+    if (y < 2400) y += 543;
+    return `RCV-${y}-${parts[1]}-${parts[2]}`;
+  }
+  return `RCV-${iso}`;
+}
+
+export function getReceivingTxDocNo(dateStr?: string | null): string {
+  return `FIN-${getReceivingDocNo(dateStr)}`;
+}
+
+export function syncTransactionsWithDailyPlans(
+  transactions: FinancialTransactionDisplay[] = [],
+  datePlans: Record<string, DayPlan> = {},
+  weeklyPlan: WeeklyPlan = DEFAULT_WEEKLY_PLAN,
+  roundStartDate: string = "2026-11-02",
+  daysCount: number = 20
+): { updatedTransactions: FinancialTransactionDisplay[]; syncedCount: number; totalMenuCost: number } {
+  const roundDays = getRoundSchoolDays(roundStartDate, "2026-12-31").slice(0, daysCount);
+  const updatedTx = [...(transactions || [])];
+  let syncedCount = 0;
+  let totalMenuCost = 0;
+
+  const dayKeyMap: Record<number, DayKey> = {
+    1: "monday",
+    2: "tuesday",
+    3: "wednesday",
+    4: "thursday",
+    5: "friday",
+  };
+
+  const thaiDayNames: Record<number, string> = {
+    1: "วันจันทร์",
+    2: "วันอังคาร",
+    3: "วันพุธ",
+    4: "วันพฤหัสบดี",
+    5: "วันศุกร์",
+  };
+
+  const targetDateSet = new Set<string>([...roundDays]);
+  Object.keys(datePlans || {}).forEach((d) => {
+    const iso = toISODate(d);
+    const day = new Date(iso + "T00:00:00").getDay();
+    if (day >= 1 && day <= 5) {
+      targetDateSet.add(iso);
+    }
+  });
+
+  const allTargetDates = Array.from(targetDateSet).sort();
+
+  for (const dateStr of allTargetDates) {
+    const iso = toISODate(dateStr);
+    const d = new Date(iso + "T00:00:00");
+    const dayNum = d.getDay();
+    const dayKey = dayKeyMap[dayNum];
+    const dayName = thaiDayNames[dayNum] || "วันทำการ";
+
+    const dPlan = datePlans[iso];
+    const wPlan = dayKey ? weeklyPlan[dayKey] : undefined;
+
+    let targetPlan: DayPlan | undefined = dPlan;
+    if ((!targetPlan || !targetPlan.ingredients || targetPlan.ingredients.length === 0) && (!datePlans || Object.keys(datePlans).length === 0)) {
+      if (wPlan && wPlan.inspectionDate === iso && wPlan.ingredients && wPlan.ingredients.length > 0) {
+        targetPlan = wPlan;
+      }
+    }
+
+    const targetDocNo = getReceivingTxDocNo(iso);
+    const formattedDate = formatThaiDateShort(iso);
+
+    if (!targetPlan || !targetPlan.ingredients || targetPlan.ingredients.length === 0) {
+      const existingIdx = updatedTx.findIndex(
+        (t) =>
+          t.documentNo === targetDocNo ||
+          t.documentNo === `FIN-RCV-${iso}` ||
+          (toISODate(t.date) === iso && t.category === "ค่าวัตถุดิบ" && t.documentNo.startsWith("FIN-RCV-"))
+      );
+      if (existingIdx >= 0 && !targetPlan?.isReceivingConfirmed) {
+        updatedTx.splice(existingIdx, 1);
+      }
+      continue;
+    }
+
+    const dayCost = targetPlan.ingredients.reduce(
+      (sum, item) => sum + Number(((item.qty || 0) * (item.unitPrice || 0)).toFixed(2)),
+      0
+    );
+
+    if (dayCost <= 0) continue;
+
+    const rawMenuName = targetPlan.menuName?.trim();
+    const menuName =
+      rawMenuName && !rawMenuName.startsWith("เมนูวัน")
+        ? rawMenuName
+        : dayKey
+        ? DEFAULT_WEEKLY_PLAN[dayKey].menuName
+        : "อาหารกลางวัน";
+    const cleanAmount = Math.round(dayCost * 100) / 100;
+    totalMenuCost += cleanAmount;
+    syncedCount++;
+
+    const existingIdx = updatedTx.findIndex((t) => {
+      if (t.documentNo === targetDocNo) return true;
+      if (t.documentNo === `FIN-RCV-${iso}`) return true;
+      if (toISODate(t.date) === iso && t.category === "ค่าวัตถุดิบ") return true;
+      if (t.documentNo.startsWith("FIN-RCV-") && toISODate(t.date) === iso) return true;
+      return false;
+    });
+
+    const txDesc = `ตัดจ่ายค่าวัตถุดิบอาหารสด (${menuName}) ประจำ${dayName} (${formattedDate})`;
+
+    if (existingIdx >= 0) {
+      updatedTx[existingIdx] = {
+        ...updatedTx[existingIdx],
+        documentNo: targetDocNo,
+        date: formattedDate,
+        type: "EXPENSE",
+        category: "ค่าวัตถุดิบ",
+        description: txDesc,
+        amount: cleanAmount,
+      };
+    } else {
+      updatedTx.push({
+        id: `tx-recv-${iso}`,
+        documentNo: targetDocNo,
+        date: formattedDate,
+        type: "EXPENSE",
+        category: "ค่าวัตถุดิบ",
+        description: txDesc,
+        amount: cleanAmount,
+      });
+    }
+  }
+
+  updatedTx.sort((a, b) => parseDateToTimestamp(a.date) - parseDateToTimestamp(b.date));
+
+  return {
+    updatedTransactions: updatedTx,
+    syncedCount,
+    totalMenuCost: Math.round(totalMenuCost * 100) / 100,
+  };
+}
+
 export function loadLocalState(): AppSyncPayload | null {
   if (typeof window === "undefined") return null;
   try {
