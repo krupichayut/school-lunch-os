@@ -410,6 +410,7 @@ export interface AppSyncPayload {
   weeklyPlan?: WeeklyPlan;
   datePlans?: Record<string, DayPlan>;
   selectedDayKey?: DayKey;
+  inspectionTargetDate?: string;
   presetMenus?: PresetMenu[];
   selectedMenuId?: string;
   activeMenuId?: string;
@@ -684,6 +685,77 @@ export function formatThaiDateShort(dateStr?: string | null): string {
     return `${d} ${thaiMonths[m] || ""} ${thaiYear}`;
   }
   return dateStr;
+}
+
+export function formatThaiMonthShort(dateStr?: string | null): string {
+  if (!dateStr) return "";
+  const iso = toISODate(dateStr);
+  const parts = iso.split("-");
+  if (parts.length === 3) {
+    const m = parseInt(parts[1], 10);
+    const thaiMonths = [
+      "", "ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.",
+      "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."
+    ];
+    return thaiMonths[m] || "";
+  }
+  return "";
+}
+
+export interface WeekDateInfo {
+  key: DayKey;
+  dateStr: string;
+  dayNum: number;
+  monthShort: string;
+  dayOfWeek: number;
+}
+
+export function getWeekDates(targetDateStr: string): WeekDateInfo[] {
+  const d = new Date(toISODate(targetDateStr) + "T00:00:00");
+  const currentDay = d.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
+  const distanceToMonday = currentDay === 0 ? -6 : 1 - currentDay;
+  const monday = new Date(d);
+  monday.setDate(d.getDate() + distanceToMonday);
+
+  const dayKeys: DayKey[] = ["monday", "tuesday", "wednesday", "thursday", "friday"];
+  const result: WeekDateInfo[] = [];
+
+  for (let i = 0; i < 5; i++) {
+    const cur = new Date(monday);
+    cur.setDate(monday.getDate() + i);
+    const y = cur.getFullYear();
+    const m = String(cur.getMonth() + 1).padStart(2, "0");
+    const day = String(cur.getDate()).padStart(2, "0");
+    const dateStr = `${y}-${m}-${day}`;
+    result.push({
+      key: dayKeys[i],
+      dateStr,
+      dayNum: cur.getDate(),
+      monthShort: formatThaiMonthShort(dateStr),
+      dayOfWeek: cur.getDay(),
+    });
+  }
+  return result;
+}
+
+export function shiftSchoolDay(dateStr: string, direction: "prev" | "next"): string {
+  const d = new Date(toISODate(dateStr) + "T00:00:00");
+  const day = d.getDay();
+  let offset = direction === "next" ? 1 : -1;
+  if (direction === "next" && day === 5) {
+    offset = 3; // Friday -> Monday
+  } else if (direction === "prev" && day === 1) {
+    offset = -3; // Monday -> Friday
+  } else if (day === 0) {
+    offset = direction === "next" ? 1 : -2;
+  } else if (day === 6) {
+    offset = direction === "next" ? 2 : -1;
+  }
+  d.setDate(d.getDate() + offset);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const dayStr = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${dayStr}`;
 }
 
 export function formatThaiDateFull(dateStr?: string | null): string {

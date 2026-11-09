@@ -18,6 +18,7 @@ import {
   Sparkles,
   ChevronDown,
   ChevronLeft,
+  ChevronRight,
   Download,
   Smartphone,
   LayoutDashboard,
@@ -79,6 +80,9 @@ import {
   isWeekend,
   formatThaiDateShort,
   formatThaiDateFull,
+  formatThaiMonthShort,
+  getWeekDates,
+  shiftSchoolDay,
   toISODate,
   getDayDefaultDate,
   parseDateToTimestamp,
@@ -173,6 +177,9 @@ export default function HomePage() {
   );
   const [menuPlanningView, setMenuPlanningView] = useState<"CALENDAR" | "LIBRARY" | "DATE_DETAIL">("CALENDAR");
   const [selectedPlanningDate, setSelectedPlanningDate] = useState<string>("2026-11-06");
+  const [inspectionTargetDate, setInspectionTargetDate] = useState<string>(() =>
+    getDayDefaultDate(getDefaultActiveDayKey(), "2026-11-02")
+  );
   const [showInstallGuide, setShowInstallGuide] = useState(false);
 
   // Auto-persist Weekly Plan & Day Selection to Local Storage
@@ -182,8 +189,8 @@ export default function HomePage() {
       isWeeklyMount.current = false;
       return;
     }
-    saveLocalState({ weeklyPlan, selectedDayKey, datePlans });
-  }, [weeklyPlan, selectedDayKey, datePlans]);
+    saveLocalState({ weeklyPlan, selectedDayKey, datePlans, inspectionTargetDate });
+  }, [weeklyPlan, selectedDayKey, datePlans, inspectionTargetDate]);
 
   // Persistent State Hydration: LocalStorage First, then Cloud Sync
   useEffect(() => {
@@ -199,6 +206,9 @@ export default function HomePage() {
       }
       if (local.selectedDayKey) {
         setSelectedDayKey(local.selectedDayKey);
+      }
+      if (local.inspectionTargetDate) {
+        setInspectionTargetDate(local.inspectionTargetDate);
       }
       if (local.presetMenus && local.presetMenus.length > 0) {
         setPresetMenus(local.presetMenus);
@@ -237,6 +247,9 @@ export default function HomePage() {
           }
           if (cloud.selectedDayKey) {
             setSelectedDayKey(cloud.selectedDayKey);
+          }
+          if (cloud.inspectionTargetDate) {
+            setInspectionTargetDate(cloud.inspectionTargetDate);
           }
           if (cloud.presetMenus && cloud.presetMenus.length > 0) {
             setPresetMenus(cloud.presetMenus);
@@ -859,6 +872,25 @@ export default function HomePage() {
     return [];
   }, [activeDayPlan.inspectionItems, activeDayPlan.ingredients]);
 
+  const inspectionWeekDates = useMemo(() => {
+    const weekDays = getWeekDates(inspectionTargetDate);
+    const todayIso = toISODate(new Date().toISOString().split("T")[0]);
+    return weekDays.map((w) => {
+      const plan = datePlans[w.dateStr] || (w.key === selectedDayKey ? activeDayPlan : undefined);
+      const isConfirmed = plan ? !!plan.isReceivingConfirmed : false;
+      const hasMenu = plan ? !!(plan.menuName && plan.menuName.trim() && !plan.menuName.startsWith("เมนูวัน")) : false;
+      const isSelected = w.dateStr === inspectionTargetDate;
+      const isToday = w.dateStr === todayIso;
+      return {
+        ...w,
+        isConfirmed,
+        hasMenu,
+        isSelected,
+        isToday,
+      };
+    });
+  }, [inspectionTargetDate, datePlans, selectedDayKey, activeDayPlan]);
+
   const handleUpdateReceivedQty = (id: string, newQty: number) => {
     const cleanQty = Math.round(Math.max(0, newQty) * 10) / 10;
     setWeeklyPlan((prev) => {
@@ -993,7 +1025,7 @@ export default function HomePage() {
 
     const curDay = weeklyPlan[selectedDayKey] || DEFAULT_WEEKLY_PLAN[selectedDayKey];
     const actualInspectionDate =
-      curDay.inspectionDate || getDayDefaultDate(selectedDayKey, settings.currentRoundStartDate);
+      inspectionTargetDate || curDay.inspectionDate || getDayDefaultDate(selectedDayKey, settings.currentRoundStartDate);
     const formattedInspectionDate = formatThaiDateShort(actualInspectionDate);
 
     // Auto-create or update ledger expense for this receiving record
@@ -1032,6 +1064,7 @@ export default function HomePage() {
         isReceivingConfirmed: true,
         confirmedAtTime: nowTime,
         inspectionItems,
+        inspectionDate: actualInspectionDate,
       },
     };
 
@@ -1053,13 +1086,14 @@ export default function HomePage() {
             isReceivingConfirmed: true,
             confirmedAtTime: nowTime,
             inspectionItems,
+            inspectionDate: actualInspectionDate,
           },
         };
-        saveLocalState({ weeklyPlan: updatedPlan, transactions: updatedTx, datePlans: updatedDatePlans });
+        saveLocalState({ weeklyPlan: updatedPlan, transactions: updatedTx, datePlans: updatedDatePlans, inspectionTargetDate: actualInspectionDate });
         return updatedDatePlans;
       });
     } else {
-      saveLocalState({ weeklyPlan: updatedPlan, transactions: updatedTx });
+      saveLocalState({ weeklyPlan: updatedPlan, transactions: updatedTx, inspectionTargetDate });
     }
 
     await saveCloudState({
@@ -1265,7 +1299,7 @@ export default function HomePage() {
   const handleUnlockReceiving = async () => {
     const curDay = weeklyPlan[selectedDayKey] || DEFAULT_WEEKLY_PLAN[selectedDayKey];
     const actualInspectionDate =
-      curDay.inspectionDate || getDayDefaultDate(selectedDayKey, settings.currentRoundStartDate);
+      inspectionTargetDate || curDay.inspectionDate || getDayDefaultDate(selectedDayKey, settings.currentRoundStartDate);
     const updatedPlan: WeeklyPlan = {
       ...weeklyPlan,
       [selectedDayKey]: {
@@ -1280,7 +1314,7 @@ export default function HomePage() {
       setDatePlans((prev) => {
         const curDatePlan = prev[actualInspectionDate];
         if (!curDatePlan) {
-          saveLocalState({ weeklyPlan: updatedPlan });
+          saveLocalState({ weeklyPlan: updatedPlan, inspectionTargetDate: actualInspectionDate });
           return prev;
         }
         const updated = {
@@ -1291,35 +1325,105 @@ export default function HomePage() {
             confirmedAtTime: null,
           },
         };
-        saveLocalState({ weeklyPlan: updatedPlan, datePlans: updated });
+        saveLocalState({ weeklyPlan: updatedPlan, datePlans: updated, inspectionTargetDate: actualInspectionDate });
         return updated;
       });
     } else {
-      saveLocalState({ weeklyPlan: updatedPlan });
+      saveLocalState({ weeklyPlan: updatedPlan, inspectionTargetDate });
     }
 
     await saveCloudState({ weeklyPlan: updatedPlan });
   };
 
-  const handleUpdateInspectionDate = async (newDate: string) => {
-    const plannedForDate = datePlans[newDate];
-    const curDay = weeklyPlan[selectedDayKey] || DEFAULT_WEEKLY_PLAN[selectedDayKey];
-    const updatedPlan: WeeklyPlan = {
-      ...weeklyPlan,
-      [selectedDayKey]: {
-        ...curDay,
-        menuName: plannedForDate?.menuName || curDay.menuName,
-        category: plannedForDate?.category || curDay.category,
-        ingredients:
-          plannedForDate?.ingredients && plannedForDate.ingredients.length > 0
-            ? plannedForDate.ingredients.map((i) => ({ ...i }))
-            : curDay.ingredients,
-        inspectionDate: newDate,
-      },
+  const handleSelectInspectionDate = (newDateStr: string) => {
+    if (!newDateStr) return;
+    const iso = toISODate(newDateStr);
+    const d = new Date(iso + "T00:00:00");
+    const dayNum = d.getDay();
+    const dayKeyMap: Record<number, DayKey> = {
+      1: "monday",
+      2: "tuesday",
+      3: "wednesday",
+      4: "thursday",
+      5: "friday",
     };
-    setWeeklyPlan(updatedPlan);
-    saveLocalState({ weeklyPlan: updatedPlan });
-    await saveCloudState({ weeklyPlan: updatedPlan });
+    const targetDayKey = dayKeyMap[dayNum] || "monday";
+
+    setInspectionTargetDate(iso);
+    setSelectedDayKey(targetDayKey);
+
+    const targetPlan = datePlans[iso];
+    setWeeklyPlan((prev) => {
+      const cur = prev[targetDayKey] || DEFAULT_WEEKLY_PLAN[targetDayKey];
+      const updated: WeeklyPlan = {
+        ...prev,
+        [targetDayKey]: {
+          ...cur,
+          menuName: targetPlan?.menuName || cur.menuName,
+          category: targetPlan?.category || cur.category,
+          ingredients:
+            targetPlan?.ingredients && targetPlan.ingredients.length > 0
+              ? targetPlan.ingredients.map((i) => ({ ...i }))
+              : cur.ingredients,
+          inspectionItems:
+            targetPlan?.inspectionItems && targetPlan.inspectionItems.length > 0
+              ? targetPlan.inspectionItems.map((i) => ({ ...i }))
+              : cur.inspectionItems,
+          isReceivingConfirmed:
+            targetPlan !== undefined ? !!targetPlan.isReceivingConfirmed : cur.isReceivingConfirmed,
+          confirmedAtTime:
+            targetPlan !== undefined ? targetPlan.confirmedAtTime || null : cur.confirmedAtTime,
+          isFrozen: targetPlan !== undefined ? !!targetPlan.isFrozen : cur.isFrozen,
+          frozenAtTime: targetPlan !== undefined ? targetPlan.frozenAtTime || null : cur.frozenAtTime,
+          inspectionDate: iso,
+        },
+      };
+      saveLocalState({
+        weeklyPlan: updated,
+        selectedDayKey: targetDayKey,
+        inspectionTargetDate: iso,
+      });
+      saveCloudState({
+        weeklyPlan: updated,
+        selectedDayKey: targetDayKey,
+        inspectionTargetDate: iso,
+      }).catch(console.warn);
+      return updated;
+    });
+  };
+
+  const handlePrevInspectionDay = () => {
+    const prevDate = shiftSchoolDay(inspectionTargetDate, "prev");
+    handleSelectInspectionDate(prevDate);
+  };
+
+  const handleNextInspectionDay = () => {
+    const nextDate = shiftSchoolDay(inspectionTargetDate, "next");
+    handleSelectInspectionDate(nextDate);
+  };
+
+  const handleJumpToToday = () => {
+    let todayStr = toISODate(new Date().toISOString().split("T")[0]);
+    const d = new Date(todayStr + "T00:00:00");
+    const day = d.getDay();
+    if (day === 0) {
+      d.setDate(d.getDate() + 1); // Sunday -> Monday
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const dayStr = String(d.getDate()).padStart(2, "0");
+      todayStr = `${y}-${m}-${dayStr}`;
+    } else if (day === 6) {
+      d.setDate(d.getDate() - 1); // Saturday -> Friday
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, "0");
+      const dayStr = String(d.getDate()).padStart(2, "0");
+      todayStr = `${y}-${m}-${dayStr}`;
+    }
+    handleSelectInspectionDate(todayStr);
+  };
+
+  const handleUpdateInspectionDate = async (newDate: string) => {
+    handleSelectInspectionDate(newDate);
   };
 
   // Modal Handlers
@@ -1406,7 +1510,7 @@ export default function HomePage() {
       const updatedInspection = [...currentList, newItem];
 
       const actualInspectionDate =
-        curDay.inspectionDate || getDayDefaultDate(selectedDayKey, settings.currentRoundStartDate);
+        inspectionTargetDate || curDay.inspectionDate || getDayDefaultDate(selectedDayKey, settings.currentRoundStartDate);
       const formattedInspectionDate = formatThaiDateShort(actualInspectionDate);
 
       const newTx: FinancialTransactionDisplay = {
@@ -1428,6 +1532,7 @@ export default function HomePage() {
         [selectedDayKey]: {
           ...curDay,
           inspectionItems: updatedInspection,
+          inspectionDate: actualInspectionDate,
         },
       };
 
@@ -1437,7 +1542,30 @@ export default function HomePage() {
       setAdHocPrice("");
 
       setSyncStatus("SAVING");
-      saveLocalState({ weeklyPlan: updatedPlan, transactions: updatedTx });
+
+      if (actualInspectionDate) {
+        setDatePlans((prev) => {
+          const curDatePlan = prev[actualInspectionDate] || {
+            menuName: curDay.menuName,
+            category: curDay.category || "อาหารจานเดียว",
+            ingredients: curDay.ingredients || [],
+            inspectionDate: actualInspectionDate,
+          };
+          const updatedDatePlans = {
+            ...prev,
+            [actualInspectionDate]: {
+              ...curDatePlan,
+              inspectionItems: updatedInspection,
+              inspectionDate: actualInspectionDate,
+            },
+          };
+          saveLocalState({ weeklyPlan: updatedPlan, transactions: updatedTx, datePlans: updatedDatePlans, inspectionTargetDate: actualInspectionDate });
+          return updatedDatePlans;
+        });
+      } else {
+        saveLocalState({ weeklyPlan: updatedPlan, transactions: updatedTx, inspectionTargetDate });
+      }
+
       await saveCloudState({
         weeklyPlan: updatedPlan,
         transactions: updatedTx,
@@ -2100,34 +2228,95 @@ export default function HomePage() {
         {/* ========================================================================= */}
         {activeTab === "KITCHEN_HUD" && (
           <div className="max-w-2xl mx-auto space-y-4">
-            {/* 5-Day Switcher in Kitchen HUD */}
-            <div className="flex items-center gap-1.5 bg-[#F4F2EB] p-1.5 rounded-2xl border border-[#E7E4DC] overflow-x-auto w-full shadow-xs">
-              {DAY_DEFINITIONS.map(({ key, shortLabel, dotColor }) => {
-                const isSelected = selectedDayKey === key;
-                const isToday = todayDayKey === key;
-                return (
+            {/* SMART DATE NAVIGATOR BAR */}
+            <div className="bg-[#FAF9F6] border border-[#E7E4DC] rounded-3xl p-3 sm:p-4 space-y-3 shadow-xs">
+              <div className="flex flex-wrap items-center justify-between gap-2.5">
+                {/* Quick Stepper Controls */}
+                <div className="flex items-center gap-1 bg-white p-1 rounded-2xl border border-[#E7E4DC] shadow-2xs">
                   <button
-                    key={key}
                     type="button"
-                    onClick={() => {
-                      setSelectedDayKey(key);
-                    }}
-                    className={`flex-1 min-w-[70px] py-2 px-2.5 rounded-xl text-xs font-bold transition-smooth flex items-center justify-center gap-1.5 whitespace-nowrap ${
-                      isSelected
-                        ? "bg-white text-[#1F5E4B] shadow-xs border border-[#C7E2D6]"
-                        : "text-[#66746C] hover:text-[#18201C] hover:bg-white/60"
-                    }`}
+                    onClick={handlePrevInspectionDay}
+                    className="w-8 h-8 rounded-xl hover:bg-[#F4F2EB] active:scale-95 flex items-center justify-center text-[#4B5850] font-bold transition-smooth text-xs"
+                    title="วันทำการก่อนหน้า (ข้ามเสาร์-อาทิตย์)"
                   >
-                    <span className={`w-2 h-2 rounded-full ${dotColor}`} />
-                    <span>{shortLabel}</span>
-                    {isToday && (
-                      <span className="text-[10px] bg-[#1F5E4B] text-white px-1.5 py-0.2 rounded-sm font-bold">
-                        วันนี้
-                      </span>
-                    )}
+                    <ChevronLeft className="w-4 h-4 text-[#4B5850]" />
                   </button>
-                );
-              })}
+                  <button
+                    type="button"
+                    onClick={handleJumpToToday}
+                    className="px-3 py-1.5 rounded-xl bg-[#1F5E4B] hover:bg-[#143B30] text-white text-xs font-bold shadow-2xs transition-smooth active:scale-95 flex items-center gap-1"
+                    title="กระโดดกลับมาวันปัจจุบัน"
+                  >
+                    <span>⚡</span>
+                    <span>วันนี้</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleNextInspectionDay}
+                    className="w-8 h-8 rounded-xl hover:bg-[#F4F2EB] active:scale-95 flex items-center justify-center text-[#4B5850] font-bold transition-smooth text-xs"
+                    title="วันทำการถัดไป (ข้ามเสาร์-อาทิตย์)"
+                  >
+                    <ChevronRight className="w-4 h-4 text-[#4B5850]" />
+                  </button>
+                </div>
+
+                {/* Active Date Display & Native Picker Trigger */}
+                <div className="flex items-center gap-2">
+                  <div className="text-right">
+                    <span className="text-[10px] text-[#8C9890] block font-semibold leading-tight">
+                      วันที่ตรวจรับจริง:
+                    </span>
+                    <span className="text-xs sm:text-sm font-extrabold text-[#18201C] flex items-center gap-1.5">
+                      <Calendar className="w-3.5 h-3.5 text-[#1F5E4B]" />
+                      <span>{formatThaiDateFull(inspectionTargetDate)}</span>
+                    </span>
+                  </div>
+                  <input
+                    type="date"
+                    value={toISODate(inspectionTargetDate)}
+                    onChange={(e) => handleSelectInspectionDate(e.target.value)}
+                    className="bg-white border border-[#C7E2D6] hover:border-[#1F5E4B] focus:border-[#1F5E4B] text-[#1F5E4B] font-mono text-xs font-bold rounded-xl px-2.5 py-1.5 cursor-pointer shadow-2xs outline-none transition-smooth"
+                    title="คลิกเพื่อเลือกวันใดๆ จากปฏิทิน"
+                  />
+                </div>
+              </div>
+
+              {/* Dynamic Week Day Chips */}
+              <div className="pt-2 border-t border-[#EFECE6] flex items-center gap-1.5 overflow-x-auto">
+                {inspectionWeekDates.map((w) => {
+                  const dayDef = DAY_DEFINITIONS.find((d) => d.key === w.key);
+                  const isSelected = w.isSelected;
+                  return (
+                    <button
+                      key={w.dateStr}
+                      type="button"
+                      onClick={() => handleSelectInspectionDate(w.dateStr)}
+                      className={`flex-1 min-w-[65px] py-2 px-1.5 rounded-2xl text-center transition-smooth relative ${
+                        isSelected
+                          ? "bg-white border-2 border-[#1F5E4B] text-[#1F5E4B] shadow-2xs font-extrabold"
+                          : "bg-white/70 hover:bg-white border border-[#E7E4DC] text-[#66746C] font-medium"
+                      }`}
+                    >
+                      <div className="flex items-center justify-center gap-1">
+                        <span className={`w-1.5 h-1.5 rounded-full ${dayDef?.dotColor || "bg-[#1F5E4B]"}`} />
+                        <span className="text-[10px] block opacity-80">{dayDef?.shortLabel || w.key}</span>
+                      </div>
+                      <span className="text-xs font-bold font-mono block mt-0.5">
+                        {w.dayNum} {w.monthShort}
+                      </span>
+                      {w.isConfirmed ? (
+                        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-emerald-700 bg-emerald-50 px-1 py-0.2 rounded-sm border border-emerald-200 mt-1">
+                          ✓ ตรวจแล้ว
+                        </span>
+                      ) : w.isToday ? (
+                        <span className="inline-flex items-center gap-0.5 text-[9px] font-bold text-[#1F5E4B] bg-[#EBF4F0] px-1 py-0.2 rounded-sm border border-[#C7E2D6] mt-1">
+                          วันนี้
+                        </span>
+                      ) : null}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             {/* Weekend Context Notice if accessed on Saturday or Sunday */}
@@ -2165,7 +2354,7 @@ export default function HomePage() {
                     </span>
                   </div>
                   <h2 className="text-xl font-extrabold text-[#18201C] mt-1 tracking-tight">
-                    ตรวจรับของสดในโรงครัว
+                    ตรวจรับของสด: <span className="text-[#1F5E4B]">{formatThaiDateFull(inspectionTargetDate)}</span>
                   </h2>
                   <p className="text-xs text-[#66746C] mt-1 flex flex-wrap items-center gap-1.5">
                     <span>เมนู{activeDayDefinition.label}:</span>
@@ -2179,29 +2368,6 @@ export default function HomePage() {
                       งบจัดสรร {dailyBudgetCeiling.toLocaleString()} ฿/วัน
                     </span>
                   </p>
-
-                  {/* Backdated Inspection Date Selector */}
-                  <div className="mt-2.5 flex flex-wrap items-center gap-2">
-                    <span className="text-xs font-bold text-[#4B5850] flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5 text-[#1F5E4B]" />
-                      <span>วันที่ตรวจรับจริง:</span>
-                    </span>
-                    <input
-                      type="date"
-                      value={toISODate(
-                        activeDayPlan.inspectionDate ||
-                          getDayDefaultDate(selectedDayKey, settings.currentRoundStartDate)
-                      )}
-                      onChange={(e) => handleUpdateInspectionDate(e.target.value)}
-                      className="text-xs font-mono font-bold text-[#18201C] bg-[#FAF9F6] border border-[#E7E4DC] hover:border-[#1F5E4B] focus:border-[#1F5E4B] rounded-xl px-2.5 py-1 outline-none transition-smooth shadow-2xs"
-                    />
-                    <span className="text-xs font-bold text-[#1F5E4B] bg-[#EBF4F0] px-2 py-0.5 rounded-lg border border-[#C7E2D6]">
-                      {formatThaiDateShort(
-                        activeDayPlan.inspectionDate ||
-                          getDayDefaultDate(selectedDayKey, settings.currentRoundStartDate)
-                      )}
-                    </span>
-                  </div>
                 </div>
 
                 <div className="text-right">
@@ -2517,7 +2683,13 @@ export default function HomePage() {
                 ) : (
                   <>
                     <ClipboardCheck className="w-5 h-5 text-[#EAD598]" />
-                    <span>ลงนามยืนยันการตรวจรับ (คณะครูเวร {todayDutyInfo.teachers.length} ท่าน)</span>
+                    <span>
+                      ลงนามยืนยันการตรวจรับ (คณะครูเวร{" "}
+                      {settings.dutyRoster?.[selectedDayKey] && settings.dutyRoster[selectedDayKey].length > 0
+                        ? settings.dutyRoster[selectedDayKey].length
+                        : todayDutyInfo.teachers.length}{" "}
+                      ท่าน)
+                    </span>
                   </>
                 )}
               </button>
