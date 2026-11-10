@@ -51,3 +51,42 @@ button, a, input, select {
 ::-webkit-scrollbar-thumb:hover {
   background: #C7C1B4;
 }
+
+/* ========================================================================= */
+/* MOBILE NATIVE APP POLISH & SAFE-AREA INSETS (iOS & ANDROID) */
+/* ========================================================================= */
+
+/* Safe area insets for iPhone Dynamic Island, Notch, and Home Indicator */
+.safe-area-top {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
+.safe-area-bottom {
+  padding-bottom: max(env(safe-area-inset-bottom, 0px), 16px);
+}
+
+.pb-safe {
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* Eliminate tap-highlight gray flash on mobile WebKit */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* iOS Safari Auto-Zoom Prevention on Form Controls (<16px triggers zoom) */
+@media (max-width: 768px) {
+  input[type="text"],
+  input[type="number"],
+  input[type="date"],
+  input[type="search"],
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+}
+
+/* Smooth touch scrolling */
+.touch-scroll {
+  -webkit-overflow-scrolling: touch;
+}

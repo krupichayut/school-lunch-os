@@ -201,6 +201,58 @@ export default function MenuCalendarPlanner({
     };
   }, [datePlans, roundStart, roundEnd, daysPerRound]);
 
+  // Group days into weeks for mobile agenda view (< md screens)
+  const calendarWeeks = useMemo(() => {
+    const weeks: Array<{
+      weekIndex: number;
+      schoolDays: typeof calendarDays;
+      label: string;
+      dateRangeLabel: string;
+      totalCost: number;
+      plannedDaysCount: number;
+    }> = [];
+
+    for (let i = 0; i < calendarDays.length; i += 7) {
+      const weekChunk = calendarDays.slice(i, i + 7);
+      // School days in current month (Monday - Friday)
+      const schoolDays = weekChunk.filter((d) => !d.isWeekend && d.isCurrentMonth);
+      if (schoolDays.length === 0) continue;
+
+      const firstDay = schoolDays[0];
+      const lastDay = schoolDays[schoolDays.length - 1];
+      const monthName = THAI_MONTH_NAMES[currentMonth] || "";
+      const dateRangeLabel = `${firstDay.dayNum} – ${lastDay.dayNum} ${monthName}`;
+      const label = `สัปดาห์ที่ ${weeks.length + 1}`;
+
+      let totalCost = 0;
+      let plannedDaysCount = 0;
+      schoolDays.forEach((d) => {
+        const p = datePlans[d.dateStr];
+        if (p?.menuName) {
+          plannedDaysCount += 1;
+          const cost = (p.ingredients || []).reduce(
+            (sum, ing) => sum + Number((ing.qty * ing.unitPrice).toFixed(2)),
+            0
+          );
+          totalCost += cost;
+        }
+      });
+
+      weeks.push({
+        weekIndex: weeks.length,
+        schoolDays,
+        label,
+        dateRangeLabel,
+        totalCost,
+        plannedDaysCount,
+      });
+    }
+
+    return weeks;
+  }, [calendarDays, datePlans, currentMonth]);
+
+  const [activeMobileWeekIdx, setActiveMobileWeekIdx] = useState<number>(0);
+
   // Filtered Presets for Modal
   const filteredPresets = useMemo(() => {
     return presetMenus.filter((m) => {
@@ -426,8 +478,8 @@ export default function MenuCalendarPlanner({
           </div>
         </div>
 
-        {/* 2. Interactive Calendar Grid (7 Columns) */}
-        <div className="grid grid-cols-7 gap-2">
+        {/* 2. Interactive Calendar Grid (7 Columns - Desktop & Tablet) */}
+        <div className="hidden md:grid grid-cols-7 gap-2">
           {/* Weekday Columns */}
           <div className="text-center py-2 text-xs font-extrabold text-red-500">อาทิตย์</div>
           <div className="text-center py-2 text-xs font-extrabold text-amber-700">จันทร์</div>
@@ -593,6 +645,215 @@ export default function MenuCalendarPlanner({
               </div>
             );
           })}
+        </div>
+
+        {/* ========================================================================= */}
+        {/* MOBILE WEEK-DAY AGENDA VIEW (SHOWN ONLY ON < md SCREENS) */}
+        {/* ========================================================================= */}
+        <div className="md:hidden space-y-3">
+          {/* Week Selector Strip */}
+          {calendarWeeks.length > 0 && (
+            <div className="bg-white border border-[#E7E4DC] rounded-2xl p-3 shadow-2xs space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveMobileWeekIdx((prev) => Math.max(0, prev - 1))}
+                  disabled={activeMobileWeekIdx === 0}
+                  className="w-9 h-9 rounded-xl bg-[#FAF9F6] border border-[#E7E4DC] disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center font-bold text-[#18201C] transition-smooth active:scale-95"
+                  aria-label="สัปดาห์ก่อนหน้า"
+                >
+                  <ChevronLeft className="w-4 h-4 text-[#4B5850]" />
+                </button>
+                <div className="text-center">
+                  <div className="text-xs font-extrabold text-[#18201C] flex items-center justify-center gap-1.5">
+                    <span>{calendarWeeks[activeMobileWeekIdx]?.label}</span>
+                    <span className="text-[11px] font-normal text-[#66746C]">({calendarWeeks[activeMobileWeekIdx]?.dateRangeLabel})</span>
+                  </div>
+                  <div className="text-[10px] text-[#8C9890] mt-0.5 font-mono">
+                    จัดเมนูแล้ว {calendarWeeks[activeMobileWeekIdx]?.plannedDaysCount || 0} / {calendarWeeks[activeMobileWeekIdx]?.schoolDays.length || 0} วัน • งบสัปดาห์ {calendarWeeks[activeMobileWeekIdx]?.totalCost.toLocaleString() || 0} ฿
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setActiveMobileWeekIdx((prev) => Math.min(calendarWeeks.length - 1, prev + 1))}
+                  disabled={activeMobileWeekIdx >= calendarWeeks.length - 1}
+                  className="w-9 h-9 rounded-xl bg-[#FAF9F6] border border-[#E7E4DC] disabled:opacity-30 disabled:pointer-events-none flex items-center justify-center font-bold text-[#18201C] transition-smooth active:scale-95"
+                  aria-label="สัปดาห์ถัดไป"
+                >
+                  <ChevronRight className="w-4 h-4 text-[#4B5850]" />
+                </button>
+              </div>
+
+              {/* Quick Week Indicator Tabs */}
+              <div className="flex items-center justify-center gap-1.5 pt-1.5 border-t border-[#F0ECE4]">
+                {calendarWeeks.map((w, idx) => (
+                  <button
+                    key={w.weekIndex}
+                    type="button"
+                    onClick={() => setActiveMobileWeekIdx(idx)}
+                    className={`px-2.5 py-1 rounded-xl text-[11px] font-bold transition-all ${
+                      activeMobileWeekIdx === idx
+                        ? "bg-[#1F5E4B] text-white shadow-2xs"
+                        : "bg-[#FAF9F6] text-[#66746C] hover:bg-[#F0ECE4]"
+                    }`}
+                  >
+                    สัปดาห์ {idx + 1}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* List of School Day Cards in the Active Week */}
+          <div className="space-y-3">
+            {calendarWeeks[activeMobileWeekIdx]?.schoolDays.map((day) => {
+              const plan = datePlans[day.dateStr];
+              const hasMenu = Boolean(plan?.menuName);
+              const ingredients = plan?.ingredients || [];
+              const ingredientCount = ingredients.length;
+              const dayCost = ingredients.reduce(
+                (sum, ing) => sum + Number((ing.qty * ing.unitPrice).toFixed(2)),
+                0
+              );
+              const perStudentCost = (dayCost / (settings.studentCount || 86)).toFixed(1);
+
+              const dayBorderColor =
+                day.dayOfWeek === 1
+                  ? "border-l-amber-500"
+                  : day.dayOfWeek === 2
+                  ? "border-l-pink-500"
+                  : day.dayOfWeek === 3
+                  ? "border-l-emerald-600"
+                  : day.dayOfWeek === 4
+                  ? "border-l-orange-500"
+                  : "border-l-blue-600";
+
+              const dayBadgeColor =
+                day.dayOfWeek === 1
+                  ? "bg-amber-50 text-amber-800 border-amber-200"
+                  : day.dayOfWeek === 2
+                  ? "bg-pink-50 text-pink-800 border-pink-200"
+                  : day.dayOfWeek === 3
+                  ? "bg-emerald-50 text-emerald-800 border-emerald-200"
+                  : day.dayOfWeek === 4
+                  ? "bg-orange-50 text-orange-800 border-orange-200"
+                  : "bg-blue-50 text-blue-800 border-blue-200";
+
+              const thaiDayName =
+                day.dayOfWeek === 1
+                  ? "วันจันทร์"
+                  : day.dayOfWeek === 2
+                  ? "วันอังคาร"
+                  : day.dayOfWeek === 3
+                  ? "วันพุธ"
+                  : day.dayOfWeek === 4
+                  ? "วันพฤหัสบดี"
+                  : "วันศุกร์";
+
+              return (
+                <div
+                  key={day.dateStr}
+                  className={`bg-white rounded-2xl border border-[#E7E4DC] border-l-4 ${dayBorderColor} p-3.5 shadow-2xs space-y-2.5 transition-smooth`}
+                >
+                  {/* Card Header: Day & Status */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1.5">
+                      <span className={`text-[11px] font-extrabold px-2.5 py-0.5 rounded-full border ${dayBadgeColor}`}>
+                        {thaiDayName} {day.dayNum} {THAI_MONTH_NAMES[currentMonth].slice(0, 4)}.
+                      </span>
+                      {day.roundDayIndex && (
+                        <span className="text-[10px] font-mono text-[#8C9890]">
+                          (งวดวันที่ {day.roundDayIndex})
+                        </span>
+                      )}
+                    </div>
+
+                    {hasMenu ? (
+                      <span
+                        className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                          plan.isReceivingConfirmed
+                            ? "bg-emerald-100 text-emerald-800"
+                            : "bg-[#EBF4F0] text-[#1F5E4B]"
+                        }`}
+                      >
+                        {plan.isReceivingConfirmed ? "✓ ตรวจรับแล้ว" : "✓ วางแผนแล้ว"}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-bold text-[#D97757] bg-[#FDF4F0] px-2 py-0.5 rounded-full border border-[#F2D7CA]">
+                        รอจัดเมนู
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Menu Details or Empty Action */}
+                  {hasMenu ? (
+                    <div className="space-y-2.5">
+                      <div className="flex items-start gap-2.5">
+                        <div className="w-10 h-10 rounded-xl bg-[#FAF9F6] border border-[#E7E4DC] flex items-center justify-center text-xl shrink-0 shadow-2xs">
+                          {getFoodEmoji(plan.menuName, plan.category)}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <h4 className="text-xs font-extrabold text-[#18201C] leading-snug">
+                            {plan.menuName}
+                          </h4>
+                          <div className="flex flex-wrap items-center gap-1.5 mt-1 text-[11px]">
+                            <span className="text-[#66746C]">{plan.category || "อาหารจานเดียว"}</span>
+                            <span className="text-[#8C9890]">•</span>
+                            <span className="text-[#1F5E4B] font-semibold">{ingredientCount} รายการวัตถุดิบ</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Financial info bar */}
+                      <div className="flex items-center justify-between bg-[#FAF9F6] px-3 py-1.5 rounded-xl border border-[#E7E4DC] text-xs">
+                        <span className="text-[11px] text-[#66746C]">ต้นทุนวัตถุดิบรวม:</span>
+                        <div className="text-right font-mono">
+                          <span className="font-extrabold text-[#1F5E4B] tabular-nums">
+                            {dayCost.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ฿
+                          </span>
+                          <span className="text-[10px] text-[#8C9890] ml-1 font-normal">
+                            ({perStudentCost} ฿/คน)
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Mobile Card Action Buttons */}
+                      <div className="flex items-center justify-end gap-2 pt-1 border-t border-[#F0ECE4]">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedDateForModal(day.dateStr)}
+                          className="px-3 py-2 rounded-xl bg-white border border-[#E7E4DC] hover:border-[#1F5E4B] text-xs font-bold text-[#18201C] transition-smooth shadow-2xs flex items-center gap-1 active:scale-95"
+                        >
+                          <Edit3 className="w-3.5 h-3.5 text-[#1F5E4B]" />
+                          <span>เปลี่ยนเมนู</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onSelectDateForDetail(day.dateStr)}
+                          className="px-3 py-2 rounded-xl bg-[#1F5E4B] hover:bg-[#143B30] text-white text-xs font-bold transition-smooth shadow-2xs flex items-center gap-1 active:scale-95"
+                        >
+                          <UtensilsCrossed className="w-3.5 h-3.5" />
+                          <span>จัดการวัตถุดิบ</span>
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="py-3.5 px-3 rounded-xl border border-dashed border-[#C7E2D6] bg-[#F2F8F5]/40 text-center space-y-2">
+                      <p className="text-xs text-[#66746C]">ยังไม่ได้กำหนดเมนูสำหรับวันนี้</p>
+                      <button
+                        type="button"
+                        onClick={() => setSelectedDateForModal(day.dateStr)}
+                        className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#1F5E4B] text-white text-xs font-bold shadow-2xs hover:bg-[#143B30] transition-smooth active:scale-95"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        <span>กำหนดเมนูวันนี้</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </div>
 

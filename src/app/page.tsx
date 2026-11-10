@@ -184,6 +184,7 @@ export default function HomePage() {
     getDayDefaultDate(getDefaultActiveDayKey(), "2026-11-02")
   );
   const [showInstallGuide, setShowInstallGuide] = useState(false);
+  const [showMobileSummarySheet, setShowMobileSummarySheet] = useState(false);
 
   // Auto-persist Weekly Plan & Day Selection to Local Storage
   const isWeeklyMount = useRef(true);
@@ -2181,7 +2182,8 @@ export default function HomePage() {
       {/* 1. TOP EXECUTIVE COMMAND BAR (NORDIC BOTANICAL ATELIER) */}
       {/* ========================================================================= */}
       <header className="sticky top-0 z-40 backdrop-blur-xl bg-white/90 border-b border-[#E7E4DC] shadow-soft">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3 flex flex-col md:flex-row md:items-center justify-between gap-3">
+        {/* DESKTOP & TABLET HEADER (>= md) */}
+        <div className="hidden md:flex max-w-7xl mx-auto px-4 sm:px-6 py-3 flex-row items-center justify-between gap-3">
           {/* Brand & School Identity */}
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-white border border-[#E7E4DC] p-0.5 flex items-center justify-center shadow-md shadow-[#1F5E4B]/10 overflow-hidden shrink-0">
@@ -2263,6 +2265,52 @@ export default function HomePage() {
               <Smartphone className="w-3.5 h-3.5 text-[#1F5E4B]" />
               <span className="hidden sm:inline">วิธีติดตั้งบนมือถือ</span>
               <span className="sm:hidden">ติดตั้งแอป</span>
+            </button>
+          </div>
+        </div>
+
+        {/* SLEEK MOBILE NATIVE APP BAR (< md SCREENS: 54px ULTRA-COMPACT) */}
+        <div className="md:hidden px-3.5 py-2.5 flex items-center justify-between gap-2 safe-area-top">
+          {/* Brand Left */}
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="w-8 h-8 rounded-xl bg-white border border-[#E7E4DC] p-0.5 flex items-center justify-center shadow-xs overflow-hidden shrink-0">
+              <img
+                src="/app-logo.png"
+                alt="School Lunch OS Logo"
+                className="w-full h-full object-contain rounded-lg"
+              />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[12px] font-extrabold text-[#18201C] tracking-tight">School Lunch OS</span>
+                <span className="text-[10px] text-[#8C9890] font-mono">v2.2</span>
+              </div>
+              <p className="text-[10px] text-[#66746C] truncate max-w-[170px] font-medium leading-none mt-0.5">
+                {settings.schoolName}
+              </p>
+            </div>
+          </div>
+
+          {/* Quick Balance Pill (Tap opens Mobile Executive Drawer) */}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => setShowMobileSummarySheet(true)}
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-[#F2F8F5] active:bg-[#E5F2EC] border border-[#C7E2D6] text-xs font-bold text-[#1F5E4B] shadow-2xs transition-smooth active:scale-95"
+              title="แตะเพื่อดูสรุปข้อมูลผู้บริหารและครูเวร"
+            >
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              <span className="font-mono tabular-nums">{netCashRemaining.toLocaleString()} ฿</span>
+              <span className="text-[9px] text-[#66746C]">▾</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setShowMobileSummarySheet(true)}
+              className="w-8 h-8 rounded-full bg-white border border-[#E7E4DC] flex items-center justify-center text-[#4B5850] shadow-2xs hover:bg-[#FAF9F6] active:scale-95"
+              title="ข้อมูลครูเวรและนักเรียน"
+              aria-label="ข้อมูลครูเวรและนักเรียน"
+            >
+              <UserCheck className="w-4 h-4 text-[#1F5E4B]" />
             </button>
           </div>
         </div>
@@ -3916,8 +3964,8 @@ export default function HomePage() {
               </div>
             </div>
 
-            {/* Ledger Table */}
-            <div className="overflow-x-auto">
+            {/* Ledger Table - Desktop & Tablet (>= md) */}
+            <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left text-xs text-[#18201C]">
                 <thead className="bg-[#FAF9F6] text-[#66746C] font-bold border-y border-[#E7E4DC] text-xs">
                   <tr>
@@ -4015,6 +4063,119 @@ export default function HomePage() {
                   )}
                 </tbody>
               </table>
+            </div>
+
+            {/* MOBILE TRANSACTION FEED (< md SCREENS: NATIVE CARDS, NO HORIZONTAL SCROLL) */}
+            <div className="md:hidden space-y-3 p-3">
+              {transactions.filter((t) => (ledgerFilter === "ALL" ? true : t.type === ledgerFilter)).length === 0 ? (
+                <div className="py-8 px-4 text-center text-[#8C9890] bg-[#FAF9F6] rounded-2xl border border-[#E7E4DC]">
+                  <FileSpreadsheet className="w-8 h-8 mx-auto mb-2 opacity-30 text-[#1F5E4B]" />
+                  <span className="block text-xs font-bold text-[#18201C]">ยังไม่มีรายการบันทึกในสมุดบัญชี</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIncomeName(
+                        `รับเงินจัดสรรงบอาหารกลางวัน ${currentRoundTitle} (${studentCount} คน × ${subsidyPerHead} บ. × ${daysPerInstallment} วัน)`
+                      );
+                      setIncomeAmount(installmentBudgetAllocation.toString());
+                      setShowAddIncomeModal(true);
+                    }}
+                    className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#1F5E4B] text-white text-xs font-bold shadow-soft active:scale-95"
+                  >
+                    <Plus className="w-3.5 h-3.5 text-[#EAD598]" />
+                    <span>บันทึกรับงวดที่ 1 ทันที</span>
+                  </button>
+                </div>
+              ) : (
+                transactions
+                  .filter((t) => (ledgerFilter === "ALL" ? true : t.type === ledgerFilter))
+                  .map((tx) => {
+                    const isIncome = tx.type === "INCOME";
+                    const isGas = tx.category?.includes("ก๊าซ") || tx.description?.includes("ก๊าซ");
+                    const isCook = tx.category?.includes("แม่ครัว") || tx.description?.includes("แม่ครัว");
+                    const isRaw = tx.category?.includes("วัตถุดิบ") || tx.description?.includes("ตัดจ่าย");
+
+                    return (
+                      <div
+                        key={tx.id}
+                        className="bg-white rounded-2xl border border-[#E7E4DC] p-3.5 shadow-2xs space-y-2.5 transition-smooth"
+                      >
+                        {/* Top: Icon + Title + Amount */}
+                        <div className="flex items-start justify-between gap-2.5">
+                          <div className="flex items-start gap-2.5 min-w-0">
+                            <div
+                              className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-base shrink-0 border ${
+                                isIncome
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-100"
+                                  : isGas
+                                  ? "bg-orange-50 text-orange-700 border-orange-100"
+                                  : isCook
+                                  ? "bg-amber-50 text-amber-700 border-amber-100"
+                                  : "bg-red-50 text-red-700 border-red-100"
+                              }`}
+                            >
+                              {isIncome ? "💰" : isGas ? "🔥" : isCook ? "👩‍🍳" : isRaw ? "🍗" : "🧾"}
+                            </div>
+                            <div className="min-w-0">
+                              <h4 className="text-xs font-extrabold text-[#18201C] leading-snug line-clamp-2">
+                                {tx.description || tx.category}
+                              </h4>
+                              <div className="flex flex-wrap items-center gap-1.5 mt-0.5 text-[10px] text-[#8C9890] font-mono">
+                                <span>{tx.documentNo}</span>
+                                <span>•</span>
+                                <span>{tx.date}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="text-right shrink-0">
+                            <div
+                              className={`text-xs font-extrabold font-mono tabular-nums ${
+                                isIncome ? "text-[#1F5E4B]" : "text-[#D97757]"
+                              }`}
+                            >
+                              {isIncome ? "+" : "-"}
+                              {tx.amount.toLocaleString(undefined, {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2,
+                              })}{" "}
+                              ฿
+                            </div>
+                            <span
+                              className={`inline-block mt-0.5 text-[9px] font-bold px-1.5 py-0.5 rounded-md ${
+                                isIncome
+                                  ? "bg-[#EBF4F0] text-[#1F5E4B] border border-[#C7E2D6]"
+                                  : "bg-[#FDF4F0] text-[#B55232] border border-[#F2D7CA]"
+                              }`}
+                            >
+                              {tx.category || (isIncome ? "เงินอุดหนุน" : "ค่าใช้จ่าย")}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Bottom Actions Row */}
+                        <div className="flex items-center justify-end gap-1.5 pt-1.5 border-t border-[#F0ECE4]">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditTransaction(tx)}
+                            className="px-3 py-1.5 rounded-xl border border-[#E7E4DC] hover:border-[#1F5E4B] bg-white text-xs font-semibold text-[#4B5850] flex items-center gap-1 transition-smooth active:scale-95"
+                          >
+                            <Pencil className="w-3.5 h-3.5 text-[#1F5E4B]" />
+                            <span>แก้ไข</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteTransaction(tx.id)}
+                            className="px-3 py-1.5 rounded-xl border border-[#F2D7CA] hover:bg-[#FDF4F0] text-xs font-semibold text-[#B55232] flex items-center gap-1 transition-smooth active:scale-95"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                            <span>ลบ</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })
+              )}
             </div>
           </div>
         )}
@@ -5552,6 +5713,104 @@ export default function HomePage() {
           isOpen={showInstallGuide}
           onClose={() => setShowInstallGuide(false)}
         />
+        {/* MODAL 9: แผ่นสรุปข้อมูลผู้บริหารและครูเวรบนมือถือ (Mobile Executive Bottom Sheet) */}
+        {showMobileSummarySheet && (
+          <div
+            className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-xs p-0 sm:p-4 animate-in fade-in duration-200"
+            onClick={() => setShowMobileSummarySheet(false)}
+          >
+            <div
+              className="w-full max-w-lg bg-white rounded-t-3xl sm:rounded-3xl border border-[#E7E4DC] p-5 space-y-4 shadow-2xl safe-area-bottom animate-in slide-in-from-bottom duration-200"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Drag Handle Indicator */}
+              <div className="w-12 h-1.5 bg-[#DDD8CE] rounded-full mx-auto sm:hidden" />
+
+              <div className="flex items-center justify-between pb-2 border-b border-[#ECE8DE]">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-8 h-8 rounded-xl bg-[#F2F8F5] text-[#1F5E4B] flex items-center justify-center font-bold text-sm">
+                    📊
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-extrabold text-[#18201C]">ข้อมูลบริหารจัดการประจำวัน</h3>
+                    <p className="text-[11px] text-[#66746C]">{settings.schoolName} ({settings.semester}/{settings.academicYear})</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowMobileSummarySheet(false)}
+                  className="w-7 h-7 rounded-xl hover:bg-[#F4F2EB] flex items-center justify-center text-[#66746C] text-xs font-bold transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Badges Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+                {/* Duty Teacher */}
+                <div className="p-3 rounded-2xl bg-[#FAF9F6] border border-[#E7E4DC] space-y-1">
+                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#1F5E4B]">
+                    <UserCheck className="w-3.5 h-3.5 text-[#1F5E4B]" />
+                    <span>{todayDutyInfo.isWeekendDay ? `วันหยุด (${todayDutyInfo.dayLabel})` : `ครูเวรประจำ${todayDutyInfo.dayLabel}`}</span>
+                  </div>
+                  <div className="font-bold text-[#18201C] text-xs">
+                    {todayDutyInfo.teachersSummary || "ยังไม่ได้กำหนดครูเวร"}
+                  </div>
+                </div>
+
+                {/* Students / Head */}
+                <div className="p-3 rounded-2xl bg-[#FAF9F6] border border-[#E7E4DC] space-y-1">
+                  <div className="flex items-center gap-1.5 text-[11px] font-bold text-[#1F5E4B]">
+                    <Users className="w-3.5 h-3.5 text-[#1F5E4B]" />
+                    <span>นักเรียน / อัตราจัดสรร</span>
+                  </div>
+                  <div className="font-extrabold text-[#18201C] text-xs font-mono">
+                    {studentCount} คน <span className="font-normal text-[#66746C]">({subsidyPerHead} ฿/คน/วัน)</span>
+                  </div>
+                </div>
+
+                {/* Net Remaining Budget */}
+                <div className="p-3.5 rounded-2xl bg-[#F2F8F5] border border-[#C7E2D6] space-y-1 sm:col-span-2">
+                  <div className="flex items-center justify-between text-[11px] font-bold text-[#1F5E4B]">
+                    <div className="flex items-center gap-1.5">
+                      <Wallet className="w-4 h-4 text-[#D97757]" />
+                      <span>งบประมาณคงเหลือสุทธิ (Net Cash)</span>
+                    </div>
+                    <span className="font-mono text-sm font-extrabold text-[#1F5E4B] tabular-nums">
+                      {netCashRemaining.toLocaleString()} ฿
+                    </span>
+                  </div>
+                  <p className="text-[10px] text-[#4B5850]">
+                    คำนวณจากเงินอุดหนุนรับเข้า หักลบค่าวัตถุดิบและค่าใช้จ่ายนอกทั้งหมดแล้ว
+                  </p>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center justify-between gap-2 pt-2 border-t border-[#ECE8DE]">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowMobileSummarySheet(false);
+                    setShowInstallGuide(true);
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-[#E7E4DC] hover:border-[#1F5E4B] text-xs font-bold text-[#18201C] transition-smooth shadow-2xs active:scale-95"
+                >
+                  <Smartphone className="w-3.5 h-3.5 text-[#1F5E4B]" />
+                  <span>วิธีติดตั้งแอปบนมือถือ</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowMobileSummarySheet(false)}
+                  className="px-4 py-2 rounded-xl bg-[#1F5E4B] text-white text-xs font-bold hover:bg-[#143B30] transition-smooth active:scale-95"
+                >
+                  เรียบร้อย
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </main>
 
       {/* ========================================================================= */}
@@ -5564,7 +5823,7 @@ export default function HomePage() {
         <button
           type="button"
           onClick={() => setActiveTab("KITCHEN_HUD")}
-          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-2xl transition-all ${
+          className={`flex flex-col items-center justify-center min-h-[48px] py-1 px-2.5 rounded-2xl transition-all active:scale-95 ${
             activeTab === "KITCHEN_HUD"
               ? "text-[#1F5E4B] font-extrabold"
               : "text-[#8C9890] hover:text-[#18201C] font-medium"
@@ -5579,7 +5838,7 @@ export default function HomePage() {
         <button
           type="button"
           onClick={() => setActiveTab("MENU_PLAN")}
-          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-2xl transition-all ${
+          className={`flex flex-col items-center justify-center min-h-[48px] py-1 px-2.5 rounded-2xl transition-all active:scale-95 ${
             activeTab === "MENU_PLAN"
               ? "text-[#1F5E4B] font-extrabold"
               : "text-[#8C9890] hover:text-[#18201C] font-medium"
@@ -5594,7 +5853,7 @@ export default function HomePage() {
         <button
           type="button"
           onClick={() => setActiveTab("ANALYTICS")}
-          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-2xl transition-all ${
+          className={`flex flex-col items-center justify-center min-h-[48px] py-1 px-2.5 rounded-2xl transition-all active:scale-95 ${
             activeTab === "ANALYTICS"
               ? "text-[#1F5E4B] font-extrabold"
               : "text-[#8C9890] hover:text-[#18201C] font-medium"
@@ -5609,7 +5868,7 @@ export default function HomePage() {
         <button
           type="button"
           onClick={() => setActiveTab("FINANCE_LEDGER")}
-          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-2xl transition-all ${
+          className={`flex flex-col items-center justify-center min-h-[48px] py-1 px-2.5 rounded-2xl transition-all active:scale-95 ${
             activeTab === "FINANCE_LEDGER"
               ? "text-[#1F5E4B] font-extrabold"
               : "text-[#8C9890] hover:text-[#18201C] font-medium"
@@ -5624,7 +5883,7 @@ export default function HomePage() {
         <button
           type="button"
           onClick={() => setActiveTab("SETTINGS")}
-          className={`flex flex-col items-center gap-1 py-1 px-2.5 rounded-2xl transition-all ${
+          className={`flex flex-col items-center justify-center min-h-[48px] py-1 px-2.5 rounded-2xl transition-all active:scale-95 ${
             activeTab === "SETTINGS"
               ? "text-[#1F5E4B] font-extrabold"
               : "text-[#8C9890] hover:text-[#18201C] font-medium"
