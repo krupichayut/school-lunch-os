@@ -89,6 +89,7 @@ import {
   getReceivingDocNo,
   getReceivingTxDocNo,
   syncTransactionsWithDailyPlans,
+  verifyAdminPasscode,
   DEFAULT_ROUND_1_INCOME_TRANSACTION,
   DEFAULT_FINANCIAL_TRANSACTIONS,
   ensureRound1Income,
@@ -136,7 +137,7 @@ function getFoodEmoji(name: string): string {
 
 export default function HomePage() {
   // Navigation State
-  const [activeTab, setActiveTab] = useState<
+  const [activeTab, setActiveTabRaw] = useState<
     "KITCHEN_HUD" | "MENU_PLAN" | "ANALYTICS" | "FINANCE_LEDGER" | "SETTINGS"
   >("KITCHEN_HUD");
 
@@ -185,6 +186,63 @@ export default function HomePage() {
   );
   const [showInstallGuide, setShowInstallGuide] = useState(false);
   const [showMobileSummarySheet, setShowMobileSummarySheet] = useState(false);
+
+  // Authentication & Access Control State (Public Kiosk vs Protected Admin)
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      return sessionStorage.getItem("school_lunch_os_auth") === "true";
+    }
+    return false;
+  });
+  const [showAdminAuthModal, setShowAdminAuthModal] = useState<boolean>(false);
+  const [targetTabAfterAuth, setTargetTabAfterAuth] = useState<
+    "MENU_PLAN" | "ANALYTICS" | "FINANCE_LEDGER" | "SETTINGS" | null
+  >(null);
+  const [authInputPasscode, setAuthInputPasscode] = useState<string>("");
+  const [authPasscodeError, setAuthPasscodeError] = useState<string>("");
+  const [showPasscodeText, setShowPasscodeText] = useState<boolean>(false);
+
+  // Guarded setActiveTab: KITCHEN_HUD is public, all other tabs require authentication
+  const setActiveTab = (
+    tab: "KITCHEN_HUD" | "MENU_PLAN" | "ANALYTICS" | "FINANCE_LEDGER" | "SETTINGS"
+  ) => {
+    if (tab === "KITCHEN_HUD" || isAuthenticated) {
+      setActiveTabRaw(tab);
+    } else {
+      setTargetTabAfterAuth(tab);
+      setAuthInputPasscode("");
+      setAuthPasscodeError("");
+      setShowAdminAuthModal(true);
+    }
+  };
+
+  const handleSelectTab = setActiveTab;
+
+  const handleAdminLogin = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (verifyAdminPasscode(authInputPasscode, settings)) {
+      setIsAuthenticated(true);
+      if (typeof window !== "undefined") {
+        sessionStorage.setItem("school_lunch_os_auth", "true");
+      }
+      setShowAdminAuthModal(false);
+      setAuthPasscodeError("");
+      if (targetTabAfterAuth) {
+        setActiveTabRaw(targetTabAfterAuth);
+        setTargetTabAfterAuth(null);
+      }
+    } else {
+      setAuthPasscodeError("รหัสผ่านไม่ถูกต้อง กรุณาลองใหม่อีกครั้ง");
+    }
+  };
+
+  const handleAdminLogout = () => {
+    setIsAuthenticated(false);
+    if (typeof window !== "undefined") {
+      sessionStorage.removeItem("school_lunch_os_auth");
+    }
+    setActiveTabRaw("KITCHEN_HUD");
+  };
 
   // Auto-persist Weekly Plan & Day Selection to Local Storage
   const isWeeklyMount = useRef(true);
@@ -2246,15 +2304,65 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-2xl bg-white border border-[#E7E4DC] shadow-xs">
-              <Wallet className="w-4 h-4 text-[#D97757]" />
-              <div className="text-xs leading-tight">
-                <span className="text-[11px] text-[#8C9890] block">งบคงเหลือสุทธิ</span>
-                <span className="font-extrabold font-mono text-[#1F5E4B] tabular-nums">
-                  {netCashRemaining.toLocaleString()} ฿
-                </span>
+            {/* Live Budget Pill (Guarded in Public) */}
+            {isAuthenticated ? (
+              <div className="flex items-center gap-2 px-3.5 py-1.5 rounded-2xl bg-white border border-[#E7E4DC] shadow-xs">
+                <Wallet className="w-4 h-4 text-[#D97757]" />
+                <div className="text-xs leading-tight">
+                  <span className="text-[11px] text-[#8C9890] block">งบคงเหลือสุทธิ</span>
+                  <span className="font-extrabold font-mono text-[#1F5E4B] tabular-nums">
+                    {netCashRemaining.toLocaleString()} ฿
+                  </span>
+                </div>
               </div>
-            </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setTargetTabAfterAuth("ANALYTICS");
+                  setShowAdminAuthModal(true);
+                }}
+                className="flex items-center gap-2 px-3.5 py-1.5 rounded-2xl bg-white hover:bg-[#FAF9F6] border border-[#E7E4DC] hover:border-[#1F5E4B] shadow-xs transition-smooth group"
+                title="คลิกเพื่อเข้าสู่ระบบผู้ดูแลเพื่อดูงบประมาณและสมุดบัญชี"
+              >
+                <Lock className="w-4 h-4 text-[#8C9890] group-hover:text-[#1F5E4B]" />
+                <div className="text-xs leading-tight text-left">
+                  <span className="text-[11px] text-[#8C9890] block">งบประมาณ</span>
+                  <span className="font-bold text-[#4B5850] group-hover:text-[#1F5E4B]">เข้าสู่ระบบเพื่อดู</span>
+                </div>
+              </button>
+            )}
+
+            {/* Admin Auth Status / Action Button */}
+            {isAuthenticated ? (
+              <div className="flex items-center gap-1.5 bg-[#F2F8F5] p-1 rounded-2xl border border-[#C7E2D6]">
+                <span className="text-xs font-bold text-[#1F5E4B] px-2 py-0.5 flex items-center gap-1">
+                  <span>👑</span>
+                  <span>ผู้ดูแลระบบ</span>
+                </span>
+                <button
+                  type="button"
+                  onClick={handleAdminLogout}
+                  className="px-2.5 py-1 rounded-xl bg-white hover:bg-[#FDF4F0] border border-[#E7E4DC] hover:border-[#F2D7CA] text-[#B55232] text-xs font-bold transition-smooth shadow-2xs"
+                  title="ออกจากระบบผู้ดูแล"
+                >
+                  ออกจากระบบ
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setTargetTabAfterAuth(null);
+                  setShowAdminAuthModal(true);
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-[#1F5E4B] hover:bg-[#143B30] text-white text-xs font-bold transition-smooth shadow-xs active:scale-95"
+                title="เข้าสู่ระบบผู้ดูแลโครงการอาหารกลางวัน"
+              >
+                <Lock className="w-3.5 h-3.5 text-[#EAD598]" />
+                <span>เข้าสู่ระบบแอดมิน</span>
+              </button>
+            )}
 
             <button
               type="button"
@@ -2291,18 +2399,33 @@ export default function HomePage() {
             </div>
           </div>
 
-          {/* Quick Balance Pill (Tap opens Mobile Executive Drawer) */}
+          {/* Quick Balance Pill / Login Pill (Tap opens Mobile Executive Drawer or Login) */}
           <div className="flex items-center gap-1.5 shrink-0">
-            <button
-              type="button"
-              onClick={() => setShowMobileSummarySheet(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-[#F2F8F5] active:bg-[#E5F2EC] border border-[#C7E2D6] text-xs font-bold text-[#1F5E4B] shadow-2xs transition-smooth active:scale-95"
-              title="แตะเพื่อดูสรุปข้อมูลผู้บริหารและครูเวร"
-            >
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="font-mono tabular-nums">{netCashRemaining.toLocaleString()} ฿</span>
-              <span className="text-[9px] text-[#66746C]">▾</span>
-            </button>
+            {isAuthenticated ? (
+              <button
+                type="button"
+                onClick={() => setShowMobileSummarySheet(true)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-[#F2F8F5] active:bg-[#E5F2EC] border border-[#C7E2D6] text-xs font-bold text-[#1F5E4B] shadow-2xs transition-smooth active:scale-95"
+                title="แตะเพื่อดูสรุปข้อมูลผู้บริหารและครูเวร"
+              >
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="font-mono tabular-nums">{netCashRemaining.toLocaleString()} ฿</span>
+                <span className="text-[9px] text-[#66746C]">▾</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  setTargetTabAfterAuth(null);
+                  setShowAdminAuthModal(true);
+                }}
+                className="flex items-center gap-1 px-2.5 py-1.5 rounded-full bg-[#1F5E4B] active:bg-[#143B30] text-white text-xs font-bold shadow-2xs transition-smooth active:scale-95"
+                title="เข้าสู่ระบบผู้ดูแลโครงการ"
+              >
+                <Lock className="w-3 h-3 text-[#EAD598]" />
+                <span>แอดมิน</span>
+              </button>
+            )}
             <button
               type="button"
               onClick={() => setShowMobileSummarySheet(true)}
@@ -2330,6 +2453,9 @@ export default function HomePage() {
             >
               <Smartphone className="w-3.5 h-3.5 text-[#D97757]" />
               <span>ตรวจรับของสด</span>
+              <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-[#EBF4F0] text-[#1F5E4B] font-semibold border border-[#C7E2D6]">
+                สาธารณะ
+              </span>
             </button>
 
             <button
@@ -2342,6 +2468,7 @@ export default function HomePage() {
             >
               <UtensilsCrossed className="w-3.5 h-3.5 text-[#1F5E4B]" />
               <span>วางแผนเมนูอาหาร</span>
+              {!isAuthenticated && <Lock className="w-3 h-3 text-[#8C9890]" />}
             </button>
 
             <button
@@ -2354,6 +2481,7 @@ export default function HomePage() {
             >
               <BarChart3 className="w-3.5 h-3.5 text-[#2E6B8E]" />
               <span>ภาพรวมงบประมาณ</span>
+              {!isAuthenticated && <Lock className="w-3 h-3 text-[#8C9890]" />}
             </button>
 
             <button
@@ -2366,6 +2494,7 @@ export default function HomePage() {
             >
               <FileSpreadsheet className="w-3.5 h-3.5 text-[#1F5E4B]" />
               <span>สมุดบัญชี</span>
+              {!isAuthenticated && <Lock className="w-3 h-3 text-[#8C9890]" />}
             </button>
 
             <button
@@ -2378,6 +2507,7 @@ export default function HomePage() {
             >
               <Settings className="w-3.5 h-3.5 text-[#66746C]" />
               <span>ตั้งค่าโรงเรียน</span>
+              {!isAuthenticated && <Lock className="w-3 h-3 text-[#8C9890]" />}
             </button>
           </nav>
         </div>
@@ -4562,6 +4692,39 @@ export default function HomePage() {
                     <div className="w-11 h-6 bg-[#E7E4DC] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#1F5E4B]"></div>
                   </label>
                 </div>
+
+                {/* Security & Admin Passcode Card */}
+                <div className="md:col-span-2 p-5 bg-[#FAF9F6] rounded-3xl border border-[#E7E4DC] flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-2xs">
+                  <div className="space-y-1">
+                    <div className="flex items-center gap-2">
+                      <Lock className="w-5 h-5 text-[#1F5E4B]" />
+                      <strong className="font-bold text-sm text-[#18201C]">
+                        ความปลอดภัยและการเข้าถึง (Security & Admin Passcode)
+                      </strong>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#EBF4F0] text-[#1F5E4B] border border-[#C7E2D6]">
+                        รหัสผ่านแอดมิน
+                      </span>
+                    </div>
+                    <p className="text-xs text-[#66746C] leading-relaxed max-w-2xl">
+                      รหัสผ่านสำหรับปลดล็อกการเข้าถึง <strong>วางแผนเมนูอาหาร, ภาพรวมงบประมาณ, สมุดบัญชี, และการตั้งค่า</strong> (หน้าตรวจรับของสดจะเปิดสาธารณะเสมอเพื่อให้ครูเวรและแม่ครัวใช้งานสะดวก)
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2 shrink-0">
+                    <label className="text-xs font-bold text-[#4B5850]">รหัสผ่าน:</label>
+                    <input
+                      type="text"
+                      value={settingsForm.adminPasscode || "1234"}
+                      onChange={(e) =>
+                        setSettingsForm({
+                          ...settingsForm,
+                          adminPasscode: e.target.value.trim(),
+                        })
+                      }
+                      placeholder="เช่น 1234 หรือ 2569"
+                      className="bg-white border border-[#E7E4DC] rounded-xl px-3.5 py-2 text-sm font-mono font-bold text-[#18201C] w-36 text-center focus:outline-none focus:ring-2 focus:ring-[#1F5E4B]/20 focus:border-[#1F5E4B] transition-smooth"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -5770,35 +5933,74 @@ export default function HomePage() {
                 </div>
 
                 {/* Net Remaining Budget */}
-                <div className="p-3.5 rounded-2xl bg-[#F2F8F5] border border-[#C7E2D6] space-y-1 sm:col-span-2">
-                  <div className="flex items-center justify-between text-[11px] font-bold text-[#1F5E4B]">
-                    <div className="flex items-center gap-1.5">
-                      <Wallet className="w-4 h-4 text-[#D97757]" />
-                      <span>งบประมาณคงเหลือสุทธิ (Net Cash)</span>
+                {isAuthenticated ? (
+                  <div className="p-3.5 rounded-2xl bg-[#F2F8F5] border border-[#C7E2D6] space-y-1 sm:col-span-2">
+                    <div className="flex items-center justify-between text-[11px] font-bold text-[#1F5E4B]">
+                      <div className="flex items-center gap-1.5">
+                        <Wallet className="w-4 h-4 text-[#D97757]" />
+                        <span>งบประมาณคงเหลือสุทธิ (Net Cash)</span>
+                      </div>
+                      <span className="font-mono text-sm font-extrabold text-[#1F5E4B] tabular-nums">
+                        {netCashRemaining.toLocaleString()} ฿
+                      </span>
                     </div>
-                    <span className="font-mono text-sm font-extrabold text-[#1F5E4B] tabular-nums">
-                      {netCashRemaining.toLocaleString()} ฿
-                    </span>
+                    <p className="text-[10px] text-[#4B5850]">
+                      คำนวณจากเงินอุดหนุนรับเข้า หักลบค่าวัตถุดิบและค่าใช้จ่ายนอกทั้งหมดแล้ว
+                    </p>
                   </div>
-                  <p className="text-[10px] text-[#4B5850]">
-                    คำนวณจากเงินอุดหนุนรับเข้า หักลบค่าวัตถุดิบและค่าใช้จ่ายนอกทั้งหมดแล้ว
-                  </p>
-                </div>
+                ) : (
+                  <div className="p-3.5 rounded-2xl bg-[#FAF9F6] border border-[#E7E4DC] space-y-1 sm:col-span-2">
+                    <div className="flex items-center justify-between text-[11px] font-bold text-[#66746C]">
+                      <div className="flex items-center gap-1.5">
+                        <Lock className="w-3.5 h-3.5 text-[#8C9890]" />
+                        <span>งบประมาณคงเหลือสุทธิ (Net Cash)</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowMobileSummarySheet(false);
+                          setShowAdminAuthModal(true);
+                        }}
+                        className="text-xs font-bold text-[#1F5E4B] hover:underline"
+                      >
+                        ล็อกอินเพื่อดูงบ
+                      </button>
+                    </div>
+                    <p className="text-[10px] text-[#8C9890]">
+                      ข้อมูลบัญชีและงบประมาณถูกซ่อนไว้ในโหมดสาธารณะ กรุณาเข้าสู่ระบบผู้ดูแล
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Actions */}
               <div className="flex items-center justify-between gap-2 pt-2 border-t border-[#ECE8DE]">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowMobileSummarySheet(false);
-                    setShowInstallGuide(true);
-                  }}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-[#E7E4DC] hover:border-[#1F5E4B] text-xs font-bold text-[#18201C] transition-smooth shadow-2xs active:scale-95"
-                >
-                  <Smartphone className="w-3.5 h-3.5 text-[#1F5E4B]" />
-                  <span>วิธีติดตั้งแอปบนมือถือ</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowMobileSummarySheet(false);
+                      setShowInstallGuide(true);
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-[#E7E4DC] hover:border-[#1F5E4B] text-xs font-bold text-[#18201C] transition-smooth shadow-2xs active:scale-95"
+                  >
+                    <Smartphone className="w-3.5 h-3.5 text-[#1F5E4B]" />
+                    <span>วิธีติดตั้งแอป</span>
+                  </button>
+
+                  {isAuthenticated && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowMobileSummarySheet(false);
+                        handleAdminLogout();
+                      }}
+                      className="px-3 py-2 rounded-xl bg-[#FDF4F0] border border-[#F2D7CA] text-[#B55232] text-xs font-bold hover:bg-[#FBEDE6] transition-smooth active:scale-95"
+                    >
+                      ออกจากระบบ
+                    </button>
+                  )}
+                </div>
 
                 <button
                   type="button"
@@ -5808,6 +6010,117 @@ export default function HomePage() {
                   เรียบร้อย
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* MODAL 10: กล่องเข้าสู่ระบบผู้ดูแลโครงการ (Admin Passcode Auth Modal) */}
+        {showAdminAuthModal && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-xs p-4 animate-in fade-in duration-200"
+            onClick={() => {
+              setShowAdminAuthModal(false);
+              setAuthPasscodeError("");
+            }}
+          >
+            <div
+              className="w-full max-w-sm bg-white rounded-3xl border border-[#E7E4DC] p-6 space-y-4 shadow-2xl animate-in zoom-in-95 duration-150"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="flex items-start justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-2xl bg-[#F2F8F5] text-[#1F5E4B] border border-[#C7E2D6] flex items-center justify-center font-bold text-lg shrink-0">
+                    🔐
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-extrabold text-[#18201C]">เข้าสู่ระบบผู้ดูแลโครงการ</h3>
+                    <p className="text-[11px] text-[#66746C] mt-0.5">
+                      {targetTabAfterAuth
+                        ? `กรุณาระบุรหัสผ่านเพื่อเข้าสู่ ${
+                            targetTabAfterAuth === "MENU_PLAN"
+                              ? "การวางแผนเมนู"
+                              : targetTabAfterAuth === "ANALYTICS"
+                              ? "ภาพรวมงบประมาณ"
+                              : targetTabAfterAuth === "FINANCE_LEDGER"
+                              ? "สมุดบัญชีรายรับ-รายจ่าย"
+                              : "การตั้งค่าโรงเรียน"
+                          }`
+                        : "สำหรับบริหารจัดการเมนู งบประมาณ และบัญชี"}
+                    </p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAdminAuthModal(false);
+                    setAuthPasscodeError("");
+                  }}
+                  className="w-7 h-7 rounded-full hover:bg-[#F4F2EB] flex items-center justify-center text-xs font-bold text-[#66746C]"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Form */}
+              <form onSubmit={handleAdminLogin} className="space-y-3 pt-1">
+                <div className="space-y-1.5 text-xs">
+                  <label className="font-bold text-[#18201C] block">
+                    รหัสผ่านผู้ดูแล (Admin Passcode):
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showPasscodeText ? "text" : "password"}
+                      value={authInputPasscode}
+                      onChange={(e) => {
+                        setAuthInputPasscode(e.target.value);
+                        if (authPasscodeError) setAuthPasscodeError("");
+                      }}
+                      autoFocus
+                      placeholder="กรอกรหัสผ่าน (ค่าเริ่มต้น: 1234)"
+                      className="w-full bg-[#FAF9F6] border border-[#E7E4DC] rounded-xl pl-3.5 pr-10 py-2.5 text-sm font-mono text-[#18201C] focus:outline-none focus:ring-2 focus:ring-[#1F5E4B]/20 focus:border-[#1F5E4B] transition-smooth"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPasscodeText(!showPasscodeText)}
+                      className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[#8C9890] hover:text-[#18201C] p-1"
+                      title={showPasscodeText ? "ซ่อนรหัสผ่าน" : "แสดงรหัสผ่าน"}
+                    >
+                      {showPasscodeText ? <Eye className="w-4 h-4 text-[#1F5E4B]" /> : <Lock className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  {authPasscodeError ? (
+                    <span className="text-[11px] text-red-600 font-semibold block flex items-center gap-1 mt-1">
+                      <span>⚠️</span>
+                      <span>{authPasscodeError}</span>
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-[#8C9890] block">
+                      * รหัสผ่านเริ่มต้นคือ <strong className="text-[#1F5E4B]">1234</strong> (เปลี่ยนได้ในหน้าตั้งค่า)
+                    </span>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#ECE8DE]">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAdminAuthModal(false);
+                      setAuthPasscodeError("");
+                    }}
+                    className="px-3.5 py-2 rounded-xl border border-[#E7E4DC] text-xs font-bold text-[#66746C] hover:bg-[#FAF9F6] transition-smooth"
+                  >
+                    ยกเลิก
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 rounded-xl bg-[#1F5E4B] hover:bg-[#143B30] text-white text-xs font-bold transition-smooth shadow-soft flex items-center gap-1.5 active:scale-95"
+                  >
+                    <span>ปลดล็อกเข้าสู่ระบบ</span>
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         )}
@@ -5838,7 +6151,7 @@ export default function HomePage() {
         <button
           type="button"
           onClick={() => setActiveTab("MENU_PLAN")}
-          className={`flex flex-col items-center justify-center min-h-[48px] py-1 px-2.5 rounded-2xl transition-all active:scale-95 ${
+          className={`flex flex-col items-center justify-center min-h-[48px] py-1 px-2.5 rounded-2xl transition-all active:scale-95 relative ${
             activeTab === "MENU_PLAN"
               ? "text-[#1F5E4B] font-extrabold"
               : "text-[#8C9890] hover:text-[#18201C] font-medium"
@@ -5847,13 +6160,16 @@ export default function HomePage() {
           <div className={`p-1.5 rounded-xl transition-all ${activeTab === "MENU_PLAN" ? "bg-[#F2F8F5] text-[#1F5E4B]" : ""}`}>
             <Calendar className="w-5 h-5" />
           </div>
-          <span className="text-[10px] tracking-tight">เมนู</span>
+          <span className="text-[10px] tracking-tight flex items-center gap-0.5">
+            <span>เมนู</span>
+            {!isAuthenticated && <Lock className="w-2.5 h-2.5 text-[#8C9890]" />}
+          </span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab("ANALYTICS")}
-          className={`flex flex-col items-center justify-center min-h-[48px] py-1 px-2.5 rounded-2xl transition-all active:scale-95 ${
+          className={`flex flex-col items-center justify-center min-h-[48px] py-1 px-2.5 rounded-2xl transition-all active:scale-95 relative ${
             activeTab === "ANALYTICS"
               ? "text-[#1F5E4B] font-extrabold"
               : "text-[#8C9890] hover:text-[#18201C] font-medium"
@@ -5862,13 +6178,16 @@ export default function HomePage() {
           <div className={`p-1.5 rounded-xl transition-all ${activeTab === "ANALYTICS" ? "bg-[#F2F8F5] text-[#1F5E4B]" : ""}`}>
             <BarChart3 className="w-5 h-5" />
           </div>
-          <span className="text-[10px] tracking-tight">งบประมาณ</span>
+          <span className="text-[10px] tracking-tight flex items-center gap-0.5">
+            <span>งบประมาณ</span>
+            {!isAuthenticated && <Lock className="w-2.5 h-2.5 text-[#8C9890]" />}
+          </span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab("FINANCE_LEDGER")}
-          className={`flex flex-col items-center justify-center min-h-[48px] py-1 px-2.5 rounded-2xl transition-all active:scale-95 ${
+          className={`flex flex-col items-center justify-center min-h-[48px] py-1 px-2.5 rounded-2xl transition-all active:scale-95 relative ${
             activeTab === "FINANCE_LEDGER"
               ? "text-[#1F5E4B] font-extrabold"
               : "text-[#8C9890] hover:text-[#18201C] font-medium"
@@ -5877,13 +6196,16 @@ export default function HomePage() {
           <div className={`p-1.5 rounded-xl transition-all ${activeTab === "FINANCE_LEDGER" ? "bg-[#F2F8F5] text-[#1F5E4B]" : ""}`}>
             <FileSpreadsheet className="w-5 h-5" />
           </div>
-          <span className="text-[10px] tracking-tight">สมุดบัญชี</span>
+          <span className="text-[10px] tracking-tight flex items-center gap-0.5">
+            <span>สมุดบัญชี</span>
+            {!isAuthenticated && <Lock className="w-2.5 h-2.5 text-[#8C9890]" />}
+          </span>
         </button>
 
         <button
           type="button"
           onClick={() => setActiveTab("SETTINGS")}
-          className={`flex flex-col items-center justify-center min-h-[48px] py-1 px-2.5 rounded-2xl transition-all active:scale-95 ${
+          className={`flex flex-col items-center justify-center min-h-[48px] py-1 px-2.5 rounded-2xl transition-all active:scale-95 relative ${
             activeTab === "SETTINGS"
               ? "text-[#1F5E4B] font-extrabold"
               : "text-[#8C9890] hover:text-[#18201C] font-medium"
@@ -5892,7 +6214,10 @@ export default function HomePage() {
           <div className={`p-1.5 rounded-xl transition-all ${activeTab === "SETTINGS" ? "bg-[#F2F8F5] text-[#1F5E4B]" : ""}`}>
             <Settings className="w-5 h-5" />
           </div>
-          <span className="text-[10px] tracking-tight">ตั้งค่า</span>
+          <span className="text-[10px] tracking-tight flex items-center gap-0.5">
+            <span>ตั้งค่า</span>
+            {!isAuthenticated && <Lock className="w-2.5 h-2.5 text-[#8C9890]" />}
+          </span>
         </button>
       </nav>
     </div>

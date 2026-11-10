@@ -75,6 +75,7 @@ export interface SchoolSettings {
   currentRoundEndDate?: string;
   maskGasInReports?: boolean;
   dutyRoster: DutyRoster;
+  adminPasscode?: string;
 }
 
 export const DEFAULT_DUTY_ROSTER: DutyRoster = {
@@ -101,6 +102,7 @@ export const DEFAULT_SCHOOL_SETTINGS: SchoolSettings = {
   currentRoundEndDate: "2026-11-27",
   maskGasInReports: true,
   dutyRoster: DEFAULT_DUTY_ROSTER,
+  adminPasscode: "1234",
 };
 
 export interface MenuItem {
@@ -514,7 +516,20 @@ export function normalizeSchoolSettings(raw: unknown, fallbackName?: string): Sc
         ? Boolean(source.maskGasInReports)
         : true,
     dutyRoster: cleanDuty,
+    adminPasscode:
+      (typeof source.adminPasscode === "string" && source.adminPasscode.trim()) ||
+      DEFAULT_SCHOOL_SETTINGS.adminPasscode ||
+      "1234",
   };
+}
+
+/**
+ * Verifies if user input passcode matches the school admin passcode
+ */
+export function verifyAdminPasscode(inputPasscode: string, settings: SchoolSettings): boolean {
+  if (!inputPasscode) return false;
+  const correct = (settings?.adminPasscode || DEFAULT_SCHOOL_SETTINGS.adminPasscode || "1234").trim();
+  return inputPasscode.trim() === correct;
 }
 
 /**
